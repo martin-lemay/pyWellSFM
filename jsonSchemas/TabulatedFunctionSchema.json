@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/TabulatedFunctionSchema.json",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/TabulatedFunctionSchema.json",
     "title": "Input Tabulated function Data",
     "description": "Defines the input data to create a tabulated function.",
     "type": "object",

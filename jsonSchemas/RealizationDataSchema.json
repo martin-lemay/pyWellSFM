@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/RealizationData.json",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/RealizationData.json",
     "title": "Input Realization Data",
     "description": "Defines the input data to create a realization data object.",
     "type": "object",
@@ -17,7 +17,7 @@
             "oneOf": [
                 {
                     "description": "Inline well definition.",
-                    "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/WellSchema.json"
+                    "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/WellSchema.json"
                 },
                 {
                     "type": "object",
@@ -39,7 +39,7 @@
             "oneOf": [
                 {
                     "description": "Inline curve definition.",
-                    "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/CurveSchema.json"
+                    "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/CurveSchema.json"
                 },
                 {
                     "type": "object",

@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/CurveSchema.json",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/CurveSchema.json",
     "title": "Input Curve Data",
     "description": "Defines the input data to create a curve.",
     "type": "object",

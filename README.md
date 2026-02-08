@@ -53,26 +53,26 @@ Supported input formats:
 
 - wells (use `loadWell()`):
   - LAS 2.0
-  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/WellSchema.json
+  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/jsonSchemas/WellSchema.json
 
 - curves (subsidence, eustatism, accumulation curve, etc.; use `loadCurvesFromFile()`):
   - csv: expects 2 columns, `AbscissaName` (e.g., "Age", "Bathymetry") and `CurveName` (e.g., "Eustacy", "Subsidence", "ReductionCoeff").
-  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/CurveSchema.json
+  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/jsonSchemas/CurveSchema.json
 
 - Accumulation model (use `loadAccumulationModel()`):
-  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/AccumulationModelSchema.json
+  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/jsonSchemas/AccumulationModelSchema.json
 
 - Facies model (use `loadFaciesModel()`):
-  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/FaciesModelSchema.json
+  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/jsonSchemas/FaciesModelSchema.json
 
 - Realization Data(use `loadRealizationData()`):
-  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/RealizationDataSchema.json
+  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/jsonSchemas/RealizationDataSchema.json
 
 - Scenario (use `loadScenario()`):
-  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/ScenarioSchema.json
+  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/jsonSchemas/ScenarioSchema.json
 
 - Simulation data (use `loadSimulationData()`):
-  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/SimulationDataSchema.json
+  - json: see json schema in https://github.com/martin-lemay/pyWellSFM/jsonSchemas/SimulationDataSchema.json
 
 Tip: example files are available in `tests/data/` and test files.
 

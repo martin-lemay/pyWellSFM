@@ -1,5 +1,5 @@
 {
-  "$schema": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/FaciesModelSchema.json",
+  "$schema": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/FaciesModelSchema.json",
   "format": "pyWellSFM.FaciesModelData",
   "version": "1.0",
   "faciesModel": [

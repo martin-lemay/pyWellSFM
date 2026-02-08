@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/UncertaintyCurveSchema.json",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/UncertaintyCurveSchema.json",
     "title": "Input Uncertainty Curve Data",
     "description": "Defines the input data to create an uncertainty curve.",
     "type": "object",
@@ -27,7 +27,7 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/CurveSchema.json"
+                        "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/CurveSchema.json"
                     }
                 }
             },
