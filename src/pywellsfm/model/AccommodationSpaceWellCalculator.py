@@ -61,7 +61,8 @@ class AccommodationSpaceWellCalculator:
             Curve("Depth", "AccommodationChange", abscissa, ordinate),
         )
         self.accommodationCurve = UncertaintyCurve(
-            "Accommodation", Curve("Depth", "Accommodation", abscissa, ordinate)
+            "Accommodation",
+            Curve("Depth", "Accommodation", abscissa, ordinate),
         )
 
     def computeAccommodationCurve(
@@ -92,7 +93,9 @@ class AccommodationSpaceWellCalculator:
         baseDepth: float = (
             fromMarker.depth if fromMarker is not None else faciesLog.stop.z
         )
-        topDepth: float = toMarker.depth if toMarker is not None else faciesLog.start.z
+        topDepth: float = (
+            toMarker.depth if toMarker is not None else faciesLog.start.z
+        )
 
         # compute bathymetry curve if it is not defined
         if self._bathymetryStepCurve is None:
@@ -108,7 +111,9 @@ class AccommodationSpaceWellCalculator:
             accoMin = np.max(row[1:3])
             accoMax = np.min(row[3:])
             accoMed = np.mean((accoMin, accoMax))
-            self.accommodationCurve.addSampledPoint(depth, accoMed, accoMin, accoMax)
+            self.accommodationCurve.addSampledPoint(
+                depth, accoMed, accoMin, accoMax
+            )
 
         return self.accommodationCurve
 
@@ -153,7 +158,9 @@ class AccommodationSpaceWellCalculator:
             depthBase = row[0]
             break
 
-        assert np.isfinite(bathyAtBase[0]), "Bathymetry at the base is undefined."
+        assert np.isfinite(bathyAtBase[0]), (
+            "Bathymetry at the base is undefined."
+        )
 
         # accommodation array: depth, acco min 1, acco min 2, acco max 1, acco max 2
         accoArray: npt.NDArray[np.float64] = np.full(
@@ -266,7 +273,9 @@ class AccommodationSpaceWellCalculator:
         baseDepth: float = (
             fromMarker.depth if fromMarker is not None else faciesLog.stop.z
         )
-        topDepth: float = toMarker.depth if toMarker is not None else faciesLog.start.z
+        topDepth: float = (
+            toMarker.depth if toMarker is not None else faciesLog.start.z
+        )
         # compute accommodation step curve
         if self._accommodationStepCurve is None:
             self._computeAccommodationStepCurve(faciesLog, baseDepth, topDepth)
@@ -311,7 +320,9 @@ class AccommodationSpaceWellCalculator:
         baseDepth: float = (
             fromMarker.depth if fromMarker is not None else faciesLog.stop.z
         )
-        topDepth: float = toMarker.depth if toMarker is not None else faciesLog.start.z
+        topDepth: float = (
+            toMarker.depth if toMarker is not None else faciesLog.start.z
+        )
         self._computeBathymetryStepCurve(faciesLog, baseDepth, topDepth)
 
         self._convertIntervalCurve2UncertaintyCurve(
@@ -336,7 +347,9 @@ class AccommodationSpaceWellCalculator:
                 f"Facies {faciesName} is not in the facies list. "
                 + "Bathymetry curve cannot be computed."
             )
-        bathyRange: FaciesCriteria = facies.getEnvironmentCondition("Bathymetry")
+        bathyRange: FaciesCriteria = facies.getEnvironmentCondition(
+            "Bathymetry"
+        )
         if bathyRange is None:
             raise ValueError(
                 f"Bathymetry is undefined for the facies {faciesName}. "
@@ -377,7 +390,9 @@ class AccommodationSpaceWellCalculator:
         if self._bathymetryStepCurve is None:
             self._computeBathymetryStepCurve(faciesLog, baseDepth, topDepth)
 
-        self._accommodationStepCurve = np.full_like(self._bathymetryStepCurve, np.nan)
+        self._accommodationStepCurve = np.full_like(
+            self._bathymetryStepCurve, np.nan
+        )
         interval: Interval
         for i, interval in enumerate(faciesLog):
             # bathymetry at the top of the interval
@@ -386,7 +401,9 @@ class AccommodationSpaceWellCalculator:
             # the last interval where we assume no variations)
             bathyMinStart, bathyMaxStart = bathyMinEnd, bathyMaxEnd
             if i > 0:  # self._bathymetryStepCurve.shape[0] - 1:
-                (bathyMinStart, bathyMaxStart) = self._bathymetryStepCurve[i - 1, 2:]
+                (bathyMinStart, bathyMaxStart) = self._bathymetryStepCurve[
+                    i - 1, 2:
+                ]
             # minimum bathymetry variation: consider bathy is max at bottom interval and
             #  min at current interval
             deltaBathyMin: float = bathyMinEnd - bathyMaxStart
@@ -397,7 +414,9 @@ class AccommodationSpaceWellCalculator:
             accoMax: float = interval.thickness + deltaBathyMax
             if accoMin > accoMax:
                 accoMin, accoMax = accoMax, accoMin
-            self._accommodationStepCurve[i, :2] = self._bathymetryStepCurve[i, :2]
+            self._accommodationStepCurve[i, :2] = self._bathymetryStepCurve[
+                i, :2
+            ]
             self._accommodationStepCurve[i, 2:] = (accoMin, accoMax)
         return self._accommodationStepCurve
 
@@ -408,5 +427,9 @@ class AccommodationSpaceWellCalculator:
     ) -> None:
         for row in stepCurve:
             med: float = (row[2] + row[3]) / 2.0
-            uncertaintyCurve.addSampledPoint(row[0] - self._eps, med, row[2], row[3])
-            uncertaintyCurve.addSampledPoint(row[1] + self._eps, med, row[2], row[3])
+            uncertaintyCurve.addSampledPoint(
+                row[0] - self._eps, med, row[2], row[3]
+            )
+            uncertaintyCurve.addSampledPoint(
+                row[1] + self._eps, med, row[2], row[3]
+            )

@@ -40,7 +40,9 @@ def _importStriplogFromCsv(path: Path, delimiter: str) -> Striplog:
     df.loc[:, ("top", "base")] *= 100  # type: ignore
     intervals = []
     for _, row in df.iterrows():
-        compDict = {key: row[key] for key in row.index if key not in ("top", "base")}
+        compDict = {
+            key: row[key] for key in row.index if key not in ("top", "base")
+        }
         interval = Interval(
             row["top"],
             row["base"],

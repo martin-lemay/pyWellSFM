@@ -111,7 +111,9 @@ def _raise_first_schema_error(
     )
 
 
-def validate_json_file_against_schema(filepath: str, schema_filename: str) -> Any:
+def validate_json_file_against_schema(
+    filepath: str, schema_filename: str
+) -> Any:
     """Validate a JSON file against a schema in jsonSchemas/.
 
     Returns the parsed JSON object when valid.
@@ -168,7 +170,9 @@ def expect_format_version(
 
 def validateFaciesModelJsonFile(filepath: str) -> dict[str, Any]:
     """Validate a facies model JSON file against FaciesModelSchema.json."""
-    data = validate_json_file_against_schema(filepath, "FaciesModelSchema.json")
+    data = validate_json_file_against_schema(
+        filepath, "FaciesModelSchema.json"
+    )
     if not isinstance(data, dict):
         raise ValueError("Facies model JSON must be an object.")
     return data
@@ -176,7 +180,9 @@ def validateFaciesModelJsonFile(filepath: str) -> dict[str, Any]:
 
 def validateAccumulationModelJsonFile(filepath: str) -> dict[str, Any]:
     """Validate an accumulation model JSON file against AccumulationModelSchema.json."""
-    data = validate_json_file_against_schema(filepath, "AccumulationModelSchema.json")
+    data = validate_json_file_against_schema(
+        filepath, "AccumulationModelSchema.json"
+    )
     if not isinstance(data, dict):
         raise ValueError("Accumulation model JSON must be an object.")
     return data
@@ -184,7 +190,9 @@ def validateAccumulationModelJsonFile(filepath: str) -> dict[str, Any]:
 
 def validateTabulatedFunctionJsonFile(filepath: str) -> dict[str, Any]:
     """Validate a TabulatedFunction JSON file against TabulatedFunctionSchema.json."""
-    data = validate_json_file_against_schema(filepath, "TabulatedFunctionSchema.json")
+    data = validate_json_file_against_schema(
+        filepath, "TabulatedFunctionSchema.json"
+    )
     if not isinstance(data, dict):
         raise ValueError("Tabulated function JSON must be an object.")
     return data
@@ -200,7 +208,9 @@ def validateScenarioJsonFile(filepath: str) -> dict[str, Any]:
 
 def validateUncertaintyCurveJsonFile(filepath: str) -> dict[str, Any]:
     """Validate an UncertaintyCurve JSON file against UncertaintyCurveSchema.json."""
-    data = validate_json_file_against_schema(filepath, "UncertaintyCurveSchema.json")
+    data = validate_json_file_against_schema(
+        filepath, "UncertaintyCurveSchema.json"
+    )
     if not isinstance(data, dict):
         raise ValueError("Uncertainty curve JSON must be an object.")
     return data

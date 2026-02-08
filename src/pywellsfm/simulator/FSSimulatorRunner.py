@@ -52,8 +52,12 @@ class FSSimulatorRunner:
         self.seaLevelSimulator: AccommodationSimulator
 
         # Adaptive step configuration
-        self.n_real: int = len(self.realizationDataList)  # number of realizations
-        self.max_bathymetry_change_per_step: float = max_bathymetry_change_per_step
+        self.n_real: int = len(
+            self.realizationDataList
+        )  # number of realizations
+        self.max_bathymetry_change_per_step: float = (
+            max_bathymetry_change_per_step
+        )
         self.dt_min: float = dt_min
         self.dt_max: float = dt_max
         self.safety: float = safety
@@ -76,7 +80,10 @@ class FSSimulatorRunner:
 
         # Optional environment function
         self.env_fn: Optional[
-            Callable[[Mapping[str, Any]], dict[str, float] | Sequence[dict[str, float]]]
+            Callable[
+                [Mapping[str, Any]],
+                dict[str, float] | Sequence[dict[str, float]],
+            ]
         ] = None
 
     def setEnvironmentFunction(
@@ -116,7 +123,10 @@ class FSSimulatorRunner:
         # Extract initial bathymetries
         # Initial bathymetry = -topographyStart (since topography = -bathymetry)
         self.initial_bathymetries = np.array(
-            [fsSimulator.getInitialBathymetry() for fsSimulator in self.fsSimulators],
+            [
+                fsSimulator.getInitialBathymetry()
+                for fsSimulator in self.fsSimulators
+            ],
             dtype=np.float64,
         )
 
@@ -140,7 +150,10 @@ class FSSimulatorRunner:
 
         :return float: start age.
         """
-        return min(fsSimulator.getFirstMarkerAge() for fsSimulator in self.fsSimulators)
+        return min(
+            fsSimulator.getFirstMarkerAge()
+            for fsSimulator in self.fsSimulators
+        )
 
     def getAgeEnd(self: Self, markerEnd: Optional[Marker]) -> float:
         """Get the end age of the simulation.
@@ -150,7 +163,8 @@ class FSSimulatorRunner:
         if markerEnd is None:
             # Get the maximum age across all realizations
             return max(
-                fsSimulator.getLastMarkerAge() for fsSimulator in self.fsSimulators
+                fsSimulator.getLastMarkerAge()
+                for fsSimulator in self.fsSimulators
             )
         return markerEnd.age
 
@@ -275,7 +289,8 @@ class FSSimulatorRunner:
         :return float: chosen time step.
         """
         dt_max = min(
-            self.dt_max, self.max_bathymetry_change_per_step / float(np.nanmax(rates))
+            self.dt_max,
+            self.max_bathymetry_change_per_step / float(np.nanmax(rates)),
         )
         dt_hi = float(min(dt_max, remaining))
         dt_lo = float(min(self.dt_min, dt_hi))
@@ -318,18 +333,28 @@ class FSSimulatorRunner:
 
         # Get subsidence at t1 and t2 for all realizations
         subsidence_t1 = np.array(
-            [fsSimulator.getSubsidenceAtAge(t1) for fsSimulator in self.fsSimulators],
+            [
+                fsSimulator.getSubsidenceAtAge(t1)
+                for fsSimulator in self.fsSimulators
+            ],
             dtype=np.float64,
         )
         subsidence_t2 = np.array(
-            [fsSimulator.getSubsidenceAtAge(t2) for fsSimulator in self.fsSimulators],
+            [
+                fsSimulator.getSubsidenceAtAge(t2)
+                for fsSimulator in self.fsSimulators
+            ],
             dtype=np.float64,
         )
 
         # Compute bathymetry change
         thicknesses_step = self._getAccumulatedThickness(rates, dt)
         d_bathy = self._getBathymetryVariation(
-            sea_level_t2, subsidence_t2, sea_level_t1, subsidence_t1, thicknesses_step
+            sea_level_t2,
+            subsidence_t2,
+            sea_level_t1,
+            subsidence_t1,
+            thicknesses_step,
         )
 
         # Return max absolute change
@@ -339,7 +364,11 @@ class FSSimulatorRunner:
         return float(np.max(np.abs(finite)))
 
     def _binarySearchForOptimalDt(
-        self: Self, t: float, rates: npt.NDArray[np.float64], dt_lo: float, dt_hi: float
+        self: Self,
+        t: float,
+        rates: npt.NDArray[np.float64],
+        dt_lo: float,
+        dt_hi: float,
     ) -> float:
         """Binary search for optimal time step between dt_lo and dt_hi.
 
@@ -374,7 +403,9 @@ class FSSimulatorRunner:
         if isinstance(env, Mapping):
             return [dict(env) for _ in range(int(n_real))]
         if len(env) != n_real:
-            raise ValueError("env sequence length must match number of realizations")
+            raise ValueError(
+                "env sequence length must match number of realizations"
+            )
         return [dict(e) for e in env]
 
     def finalize(self: Self) -> None:
@@ -418,7 +449,10 @@ class FSSimulatorRunner:
             data_vars={
                 "sea_level": (("time",), sea_level_arr[0, :]),
                 "dt": (("time",), dt_axis),
-                "initial_bathymetry": (("realization",), self.initial_bathymetries),
+                "initial_bathymetry": (
+                    ("realization",),
+                    self.initial_bathymetries,
+                ),
                 "subsidence": (("realization", "time"), subs_arr),
                 "topography": (("realization", "time"), topo_arr),
                 "accommodation": (("realization", "time"), acco_arr),

@@ -88,7 +88,8 @@ class FaciesCriteria:
 
 class FaciesCriteriaCollection:
     def __init__(
-        self: Self, criteriaType: FaciesCriteriaType = FaciesCriteriaType.UNCATEGORIZED
+        self: Self,
+        criteriaType: FaciesCriteriaType = FaciesCriteriaType.UNCATEGORIZED,
     ) -> None:
         """Collection of facies criteria.
 
@@ -108,7 +109,9 @@ class FaciesCriteriaCollection:
         self.criteria: set[FaciesCriteria] = set()
         self.type: FaciesCriteriaType = criteriaType
 
-    def addCriteria(self: Self, criteria: FaciesCriteria | set[FaciesCriteria]) -> None:
+    def addCriteria(
+        self: Self, criteria: FaciesCriteria | set[FaciesCriteria]
+    ) -> None:
         """Add a criteria or set of criteria to the collection.
 
         If a criteria with the same name already exists in the collection, it is not
@@ -188,7 +191,9 @@ class FaciesCriteriaCollection:
         """
         return self.criteria
 
-    def getCriteriaByName(self: Self, criteriaName: str) -> Optional[FaciesCriteria]:
+    def getCriteriaByName(
+        self: Self, criteriaName: str
+    ) -> Optional[FaciesCriteria]:
         """Get criteria from the collection by name.
 
         :param str criteriaName: name of the criteria to get
@@ -214,7 +219,9 @@ class FaciesCriteriaCollection:
         """Remove all criteria from the collection."""
         self.criteria.clear()
 
-    def clearCriteriaByType(self: Self, criteriaType: FaciesCriteriaType) -> int:
+    def clearCriteriaByType(
+        self: Self, criteriaType: FaciesCriteriaType
+    ) -> int:
         """Remove all criteria of a given type from the collection from its name.
 
         :param FaciesCriteriaType criteriaType: type of criteria to remove
@@ -261,8 +268,8 @@ class Facies:
                 f"At least one criteria must be defined for the facies {name}"
             )
         self.name: str = name
-        self.criteriaCollection: FaciesCriteriaCollection = FaciesCriteriaCollection(
-            criteriaType
+        self.criteriaCollection: FaciesCriteriaCollection = (
+            FaciesCriteriaCollection(criteriaType)
         )
         self.criteriaCollection.addCriteria(criteria)
 
@@ -358,7 +365,9 @@ class FaciesModel:
         """
         facies = self.getFaciesByName(faciesName)
         if facies is None:
-            print(f"Facies with name '{faciesName}' not found in the facies model.")
+            print(
+                f"Facies with name '{faciesName}' not found in the facies model."
+            )
             return None
         criteria = facies.getCriteria(criteriaName)
         if criteria is None:

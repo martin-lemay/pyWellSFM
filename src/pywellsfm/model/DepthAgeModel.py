@@ -35,7 +35,9 @@ class DepthAgeModel:
 
         : param set[Marker] markers: list of markers
         """
-        ageDepths = np.array([(marker.age, marker.depth) for marker in markers])
+        ageDepths = np.array(
+            [(marker.age, marker.depth) for marker in markers]
+        )
         self.updateCurve(ageDepths)
 
     def updateCurve(self: Self, ageDepths: npt.NDArray[np.float64]) -> None:

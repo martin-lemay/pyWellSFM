@@ -47,7 +47,9 @@ def curveToJsonObj(
         x_axis_name = str(x_axis_name_default)
 
     y_name = (
-        y_axis_name if y_axis_name is not None else getattr(curve, "_yAxisName", None)
+        y_axis_name
+        if y_axis_name is not None
+        else getattr(curve, "_yAxisName", None)
     )
     if not isinstance(y_name, str) or y_name.strip() == "":
         y_name = "Value"
@@ -118,7 +120,9 @@ def saveCurveToCsv(
     if not isinstance(x_axis_name, str) or x_axis_name.strip() == "":
         x_axis_name = str(x_axis_name_default)
     y_name = (
-        y_axis_name if y_axis_name is not None else getattr(curve, "_yAxisName", None)
+        y_axis_name
+        if y_axis_name is not None
+        else getattr(curve, "_yAxisName", None)
     )
     if not isinstance(y_name, str) or y_name.strip() == "":
         y_name = "y"
@@ -318,7 +322,9 @@ def loadCurveFromJsonObj(obj: dict[str, Any]) -> Curve:
     interpolation_args: dict[str, Any] = {}
     if isinstance(interpolation_method, str):
         if interpolation_method.strip() == "":
-            raise ValueError("Curve.curve.interpolationMethod must be non-empty.")
+            raise ValueError(
+                "Curve.curve.interpolationMethod must be non-empty."
+            )
         interpolation_function = interpolation_method
     elif isinstance(interpolation_method, dict):
         degree = interpolation_method.get("degree")
@@ -351,7 +357,9 @@ def loadCurveFromJsonObj(obj: dict[str, Any]) -> Curve:
         if not isinstance(point, dict):
             raise ValueError(f"Curve.curve.data[{i}] must be an object.")
         if "x" not in point or "y" not in point:
-            raise ValueError(f"Curve.curve.data[{i}] must contain 'x' and 'y'.")
+            raise ValueError(
+                f"Curve.curve.data[{i}] must contain 'x' and 'y'."
+            )
         try:
             x_values.append(float(point["x"]))
             y_values.append(float(point["y"]))
@@ -420,7 +428,9 @@ def loadCurvesFromFile(
     elif ext == ".csv":
         return loadCurvesFromCsv(path)
 
-    raise ValueError(f"Unsupported file extension '{ext}' for tabulated function.")
+    raise ValueError(
+        f"Unsupported file extension '{ext}' for tabulated function."
+    )
 
 
 def loadUncertaintyCurveFromFile(
@@ -447,7 +457,9 @@ def loadUncertaintyCurveFromFile(
     elif ext == ".csv":
         return loadUncertaintyCurveFromCsv(path)
 
-    raise ValueError(f"Unsupported file extension '{ext}' for tabulated function.")
+    raise ValueError(
+        f"Unsupported file extension '{ext}' for tabulated function."
+    )
 
 
 def loadUncertaintyCurveFromJsonObj(obj: dict[str, Any]) -> UncertaintyCurve:
@@ -469,15 +481,21 @@ def loadUncertaintyCurveFromJsonObj(obj: dict[str, Any]) -> UncertaintyCurve:
 
     data = obj.get("data")
     if not isinstance(data, dict):
-        raise ValueError("Uncertainty curve JSON must contain a 'data' object.")
+        raise ValueError(
+            "Uncertainty curve JSON must contain a 'data' object."
+        )
 
     curve_name = data.get("name")
     if not isinstance(curve_name, str) or curve_name.strip() == "":
-        raise ValueError("UncertaintyCurve.data.name must be a non-empty string.")
+        raise ValueError(
+            "UncertaintyCurve.data.name must be a non-empty string."
+        )
 
     curves_obj = data.get("curves")
     if not isinstance(curves_obj, list) or len(curves_obj) < 1:
-        raise ValueError("UncertaintyCurve.data.curves must be a non-empty array.")
+        raise ValueError(
+            "UncertaintyCurve.data.curves must be a non-empty array."
+        )
     if len(curves_obj) > 3:
         raise ValueError(
             "UncertaintyCurve.data.curves supports at most 3 curves (median/min/max)."
@@ -486,7 +504,9 @@ def loadUncertaintyCurveFromJsonObj(obj: dict[str, Any]) -> UncertaintyCurve:
     parsed_curves: list[Curve] = []
     for i, cobj in enumerate(curves_obj):
         if not isinstance(cobj, dict):
-            raise ValueError(f"UncertaintyCurve.data.curves[{i}] must be an object.")
+            raise ValueError(
+                f"UncertaintyCurve.data.curves[{i}] must be an object."
+            )
         parsed_curves.append(loadCurveFromJsonObj(cobj))
 
     # Validate x-axis consistency across curves.
@@ -565,7 +585,9 @@ def loadUncertaintyCurveFromJsonObj(obj: dict[str, Any]) -> UncertaintyCurve:
     return ucurve
 
 
-def loadUncertaintyCurveFromCsv(path: Path, delimiter: str = ",") -> UncertaintyCurve:
+def loadUncertaintyCurveFromCsv(
+    path: Path, delimiter: str = ","
+) -> UncertaintyCurve:
     """Load an UncertaintyCurve from a CSV file.
 
     The csv file is expected to have a row header defining axis names and two to
@@ -644,10 +666,14 @@ def loadUncertaintyCurveFromCsv(path: Path, delimiter: str = ",") -> Uncertainty
             # Infer from median values.
             median_values = clean["y"]
             ymin_values = pd.Series(
-                np.where(third_series <= median_values, third_series, median_values)
+                np.where(
+                    third_series <= median_values, third_series, median_values
+                )
             )
             ymax_values = pd.Series(
-                np.where(third_series >= median_values, third_series, median_values)
+                np.where(
+                    third_series >= median_values, third_series, median_values
+                )
             )
             clean["ymin"] = ymin_values
             clean["ymax"] = ymax_values
@@ -685,19 +711,25 @@ def loadUncertaintyCurveFromCsv(path: Path, delimiter: str = ",") -> Uncertainty
     x = clean["x"].to_numpy(dtype=float)
     y = clean["y"].to_numpy(dtype=float)
     if x.size < 2 or x.size != y.size:
-        raise ValueError("UncertaintyCurve CSV must have at least 2 unique x values.")
+        raise ValueError(
+            "UncertaintyCurve CSV must have at least 2 unique x values."
+        )
 
     print("Interpolation method set to 'linear' by default")
     median_curve = Curve(x_axis_name, y_axis_name, x, y, "linear")
     ucurve = UncertaintyCurve(x_axis_name, median_curve)
 
     if ymin_present and "ymin" in clean.columns:
-        ymin = pd.to_numeric(clean["ymin"], errors="coerce").to_numpy(dtype=float)
+        ymin = pd.to_numeric(clean["ymin"], errors="coerce").to_numpy(
+            dtype=float
+        )
         if ymin.size == y.size:
             ymin = np.where(np.isfinite(ymin), ymin, y)
             ucurve.setMinCurveValues(ymin)
     if ymax_present and "ymax" in clean.columns:
-        ymax = pd.to_numeric(clean["ymax"], errors="coerce").to_numpy(dtype=float)
+        ymax = pd.to_numeric(clean["ymax"], errors="coerce").to_numpy(
+            dtype=float
+        )
         if ymax.size == y.size:
             ymax = np.where(np.isfinite(ymax), ymax, y)
             ucurve.setMaxCurveValues(ymax)

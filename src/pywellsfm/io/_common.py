@@ -19,11 +19,14 @@ from typing import Any, Callable, TypeVar
 T = TypeVar("T")
 
 
-def reject_extra_keys(*, obj: dict[str, Any], allowed_keys: set[str], ctx: str) -> None:
+def reject_extra_keys(
+    *, obj: dict[str, Any], allowed_keys: set[str], ctx: str
+) -> None:
     extra = set(obj.keys()) - allowed_keys
     if extra:
         raise ValueError(
-            f"{ctx} contains unsupported properties: " + ", ".join(sorted(extra))
+            f"{ctx} contains unsupported properties: "
+            + ", ".join(sorted(extra))
         )
 
 

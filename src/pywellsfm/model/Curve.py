@@ -89,7 +89,9 @@ class Curve:
 
     # TODO: add unit test
     def setSampledPoints(
-        self: Self, abscissa: npt.NDArray[np.float64], ordinate: npt.NDArray[np.float64]
+        self: Self,
+        abscissa: npt.NDArray[np.float64],
+        ordinate: npt.NDArray[np.float64],
     ) -> None:
         """Set abscissa and ordinate values of sampled points.
 
@@ -101,7 +103,9 @@ class Curve:
         self._updateBounds()
 
     # TODO: add unit test
-    def addSampledPoint(self: Self, x: float, y: float, tol: float = 1e-6) -> None:
+    def addSampledPoint(
+        self: Self, x: float, y: float, tol: float = 1e-6
+    ) -> None:
         """Add a sampled point to the curve.
 
         :param float x: abscissa value
@@ -117,7 +121,9 @@ class Curve:
         self._abscissa = np.append(self._abscissa, [x])
         sortIndexes = np.argsort(self._abscissa)
         self._abscissa = np.take_along_axis(self._abscissa, sortIndexes)
-        self._ordinate = np.take_along_axis(np.append(self._ordinate, [y]), sortIndexes)
+        self._ordinate = np.take_along_axis(
+            np.append(self._ordinate, [y]), sortIndexes
+        )
         self._updateBounds()
 
     # TODO: add unit test
@@ -136,7 +142,9 @@ class Curve:
             self.addSampledPoint(xmin, y, tol)
         if self._getIndexOfX(xmax, tol) < 0:
             self.addSampledPoint(xmax, y, tol)
-        for index in np.nonzero((self._abscissa > xmin) and (self._abscissa < xmax)):
+        for index in np.nonzero(
+            (self._abscissa > xmin) and (self._abscissa < xmax)
+        ):
             self._ordinate[index] = y
 
     def _getIndexOfX(self: Self, x: float, tol: float = 1e-6) -> int:
@@ -204,7 +212,11 @@ class Curve:
         fromX0 = fromX if np.isfinite(fromX) else self._minAbscissa
         toX0 = toX if np.isfinite(toX) else self._maxAbscissa
         assert fromX0 < toX0, "Start abscissa must be lower than end abscissa."
-        nx = int((toX0 - fromX0) / dx) + 1 if np.isfinite(dx) else self._abscissa.size
+        nx = (
+            int((toX0 - fromX0) / dx) + 1
+            if np.isfinite(dx)
+            else self._abscissa.size
+        )
         assert dx > 0, "Sampling step must be strictly positive."
         lx = np.linspace(fromX0, toX0, nx)
         ly = [self.getValueAt(x) for x in lx]
@@ -277,7 +289,9 @@ class AccumulationCurve(Curve):
         assert (np.min(ordinate) >= 0.0) and (np.max(ordinate) <= 1.0), (
             "Accumulation curve ordinates must be between 0 and 1."
         )
-        super().__init__(envFactorName, "ReductionCoeff", abscissa, ordinate, "linear")
+        super().__init__(
+            envFactorName, "ReductionCoeff", abscissa, ordinate, "linear"
+        )
 
 
 # TODO: add unit tests

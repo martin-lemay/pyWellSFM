@@ -186,7 +186,9 @@ def loadAccumulationModelFromJsonObj(
 
     elements_obj = model_obj.get("elements")
     if not isinstance(elements_obj, list) or len(elements_obj) < 1:
-        raise ValueError("accumulationModel.elements must be a non-empty list.")
+        raise ValueError(
+            "accumulationModel.elements must be a non-empty list."
+        )
 
     model_type = model_obj.get("modelType")
     if model_type not in ("Gaussian", "EnvironmentOptimum"):
@@ -212,7 +214,9 @@ def loadAccumulationModelFromJsonObj(
     return model
 
 
-def loadAccumulationModelGaussianFromCsv(filepath: str) -> AccumulationModelGaussian:
+def loadAccumulationModelGaussianFromCsv(
+    filepath: str,
+) -> AccumulationModelGaussian:
     """Load Gaussian accumulation model from csv file.
 
     The csv file must contain the following columns:
@@ -274,12 +278,16 @@ def _loadAccumulationModelGaussianFromJsonObj(
         populate.
     """
     if not isinstance(elements_obj, list) or len(elements_obj) < 1:
-        raise ValueError("accumulationModel.elements must be a non-empty list.")
+        raise ValueError(
+            "accumulationModel.elements must be a non-empty list."
+        )
 
     seen_names: set[str] = set()
     for idx, elt in enumerate(elements_obj):
         if not isinstance(elt, dict):
-            raise ValueError(f"accumulationModel.elements[{idx}] must be an object.")
+            raise ValueError(
+                f"accumulationModel.elements[{idx}] must be an object."
+            )
 
         elt_name = elt.get("name")
         if not isinstance(elt_name, str) or elt_name.strip() == "":
@@ -326,12 +334,16 @@ def _loadAccumulationModelEnvironmentOptimumFromJsonObj(
         accumulation model to populate.
     """
     if not isinstance(elements_obj, list) or len(elements_obj) < 1:
-        raise ValueError("accumulationModel.elements must be a non-empty list.")
+        raise ValueError(
+            "accumulationModel.elements must be a non-empty list."
+        )
 
     seen_names: set[str] = set()
     for idx, elt in enumerate(elements_obj):
         if not isinstance(elt, dict):
-            raise ValueError(f"accumulationModel.elements[{idx}] must be an object.")
+            raise ValueError(
+                f"accumulationModel.elements[{idx}] must be an object."
+            )
 
         elt_name = elt.get("name")
         if not isinstance(elt_name, str) or elt_name.strip() == "":
@@ -361,8 +373,8 @@ def _loadAccumulationModelEnvironmentOptimumFromJsonObj(
         # NOTE: Current implementation stores curves globally (not per-element).
         for jdx, curve_def in enumerate(curves_obj):
             if isinstance(curve_def, dict):
-                abscissa_name, _ord_name, x, y = loadTabulatedFunctionFromJsonObj(
-                    curve_def
+                abscissa_name, _ord_name, x, y = (
+                    loadTabulatedFunctionFromJsonObj(curve_def)
                 )
             elif isinstance(curve_def, str) and curve_def.strip() != "":
                 curve_path = resolve_ref_path(
@@ -384,8 +396,16 @@ def _loadAccumulationModelEnvironmentOptimumFromJsonObj(
                 existing = model.prodCurves[abscissa_name]
                 if (
                     (existing._abscissa.shape != new_curve._abscissa.shape)
-                    or (not np.allclose(existing._abscissa, new_curve._abscissa))
-                    or (not np.allclose(existing._ordinate, new_curve._ordinate))
+                    or (
+                        not np.allclose(
+                            existing._abscissa, new_curve._abscissa
+                        )
+                    )
+                    or (
+                        not np.allclose(
+                            existing._ordinate, new_curve._ordinate
+                        )
+                    )
                 ):
                     raise ValueError(
                         "Conflicting definitions for accumulation curve "
@@ -424,7 +444,9 @@ def saveAccumulationModelEnvironmentOptimumToJson(
     fmt = curves_format.lower().strip()
 
     if mode == "inline":
-        payload = accumulationModelEnvironmentOptimumToJsonObjInline(accumulationModel)
+        payload = accumulationModelEnvironmentOptimumToJsonObjInline(
+            accumulationModel
+        )
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(
             json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -513,7 +535,9 @@ def saveAccumulationModel(
             return saveAccumulationModelGaussianToCsv(model, filepath)
         if ext == ".json":
             return saveAccumulationModelGaussianToJson(model, filepath)
-        raise ValueError("Gaussian accumulation model output must be .csv or .json")
+        raise ValueError(
+            "Gaussian accumulation model output must be .csv or .json"
+        )
 
     if isinstance(model, AccumulationModelEnvironmentOptimum):
         if ext != ".json":

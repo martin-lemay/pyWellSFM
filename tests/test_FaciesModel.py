@@ -37,7 +37,9 @@ if os.path.exists(out_path) is False:
 
 
 def _write_json(
-    tmp_path: Path, payload: dict[str, Any], filename: str = "facies_model.json"
+    tmp_path: Path,
+    payload: dict[str, Any],
+    filename: str = "facies_model.json",
 ) -> str:
     """Helper for tests: write JSON to a temp file and return its filesystem path."""
     path = tmp_path / filename
@@ -173,7 +175,9 @@ def test_FaciesCriteria_hasType() -> None:
     Expected outputs:
     - hasType(PETROPHYSICAL)=True, hasType(ENVIRONMENTAL)=False.
     """
-    crit = FaciesCriteria(name="Porosity", type=FaciesCriteriaType.PETROPHYSICAL)
+    crit = FaciesCriteria(
+        name="Porosity", type=FaciesCriteriaType.PETROPHYSICAL
+    )
     assert crit.hasType(FaciesCriteriaType.PETROPHYSICAL)
     assert not crit.hasType(FaciesCriteriaType.ENVIRONMENTAL)
 
@@ -260,9 +264,15 @@ def test_FaciesCriteriaCollection_criteriaIsAllowed_rules() -> None:
     Expected outputs:
     - Allowed for PETROPHYSICAL; not allowed for ENVIRONMENTAL.
     """
-    col = FaciesCriteriaCollection(criteriaType=FaciesCriteriaType.PETROPHYSICAL)
-    pet = FaciesCriteria(name="Porosity", type=FaciesCriteriaType.PETROPHYSICAL)
-    env = FaciesCriteria(name="WaterDepth", type=FaciesCriteriaType.ENVIRONMENTAL)
+    col = FaciesCriteriaCollection(
+        criteriaType=FaciesCriteriaType.PETROPHYSICAL
+    )
+    pet = FaciesCriteria(
+        name="Porosity", type=FaciesCriteriaType.PETROPHYSICAL
+    )
+    env = FaciesCriteria(
+        name="WaterDepth", type=FaciesCriteriaType.ENVIRONMENTAL
+    )
     assert col.criteriaIsAllowed(pet)
     assert not col.criteriaIsAllowed(env)
 
@@ -279,9 +289,13 @@ def test_FaciesCriteriaCollection_addCriteria_disallowed_type_is_ignored(
     Expected outputs:
     - Collection remains empty; a message is printed.
     """
-    col = FaciesCriteriaCollection(criteriaType=FaciesCriteriaType.PETROPHYSICAL)
+    col = FaciesCriteriaCollection(
+        criteriaType=FaciesCriteriaType.PETROPHYSICAL
+    )
     col.addCriteria(
-        FaciesCriteria(name="WaterDepth", type=FaciesCriteriaType.ENVIRONMENTAL)
+        FaciesCriteria(
+            name="WaterDepth", type=FaciesCriteriaType.ENVIRONMENTAL
+        )
     )
     out = capsys.readouterr().out
     assert col.getCriteriaCount() == 0
@@ -314,7 +328,9 @@ def test_FaciesCriteriaCollection_removeCriteria_str_and_set() -> None:
     - Counts go from 3 -> 2 -> 0.
     """
     col = FaciesCriteriaCollection()
-    col.addCriteria({FaciesCriteria("A"), FaciesCriteria("B"), FaciesCriteria("C")})
+    col.addCriteria(
+        {FaciesCriteria("A"), FaciesCriteria("B"), FaciesCriteria("C")}
+    )
     assert col.getCriteriaCount() == 3
     col.removeCriteria("B")
     assert col.getCriteriaCount() == 2
@@ -375,7 +391,9 @@ def test_FaciesCriteriaCollection_getters_and_clear_methods() -> None:
 # ------------------------------
 
 
-def test_Facies_init_requires_at_least_one_criteria_when_collection_provided() -> None:
+def test_Facies_init_requires_at_least_one_criteria_when_collection_provided() -> (
+    None
+):
     """Test Facies __init__ rejects empty collections for criteria parameter.
 
     Objective:
@@ -618,7 +636,11 @@ def test_loadFaciesModel_defaults_criteria_type_and_ranges(
             "Invalid facies model format",
         ),
         (
-            {"format": "pyWellSFM.FaciesModelData", "version": "x", "faciesModel": []},
+            {
+                "format": "pyWellSFM.FaciesModelData",
+                "version": "x",
+                "faciesModel": [],
+            },
             "Invalid facies model version",
         ),
         (
@@ -649,7 +671,9 @@ def test_loadFaciesModel_rejects_invalid_top_level_structures(
     _delete_temp_file(path)
 
 
-def test_loadFaciesModel_rejects_duplicate_facies_names(tmp_path: pathlib.Path) -> None:
+def test_loadFaciesModel_rejects_duplicate_facies_names(
+    tmp_path: pathlib.Path,
+) -> None:
     """Test loadFaciesModel rejects duplicate facies names.
 
     Objective:
@@ -691,8 +715,12 @@ def test_loadFaciesModel_rejects_invalid_facies_definition_shapes(
         "version": "1.0",
         "faciesModel": ["not-an-object"],
     }
-    with pytest.raises(ValueError, match="faciesModel\\[0\\] must be an object"):
-        loadFaciesModel(_write_json(tmp_path, payload_non_object, filename="bad1.json"))
+    with pytest.raises(
+        ValueError, match="faciesModel\\[0\\] must be an object"
+    ):
+        loadFaciesModel(
+            _write_json(tmp_path, payload_non_object, filename="bad1.json")
+        )
 
     payload_empty_name = {
         "format": "pyWellSFM.FaciesModelData",
@@ -700,7 +728,9 @@ def test_loadFaciesModel_rejects_invalid_facies_definition_shapes(
         "faciesModel": [{"name": "", "criteria": [{"name": "C"}]}],
     }
     with pytest.raises(ValueError, match="name must be a non-empty string"):
-        loadFaciesModel(_write_json(tmp_path, payload_empty_name, filename="bad2.json"))
+        loadFaciesModel(
+            _write_json(tmp_path, payload_empty_name, filename="bad2.json")
+        )
 
 
 def test_loadFaciesModel_rejects_invalid_criteriaType_values(
@@ -719,10 +749,16 @@ def test_loadFaciesModel_rejects_invalid_criteriaType_values(
         "format": "pyWellSFM.FaciesModelData",
         "version": "1.0",
         "faciesModel": [
-            {"name": "A", "criteriaType": "not-a-type", "criteria": [{"name": "C"}]}
+            {
+                "name": "A",
+                "criteriaType": "not-a-type",
+                "criteria": [{"name": "C"}],
+            }
         ],
     }
-    with pytest.raises(ValueError, match="Invalid faciesModel\\[0\\]\\.criteriaType"):
+    with pytest.raises(
+        ValueError, match="Invalid faciesModel\\[0\\]\\.criteriaType"
+    ):
         loadFaciesModel(_write_json(tmp_path, payload))
 
 
@@ -754,7 +790,9 @@ def test_loadFaciesModel_rejects_invalid_criteria_list_and_items(
         "faciesModel": [{"name": "A", "criteria": ["nope"]}],
     }
     with pytest.raises(ValueError, match="criteria\\[0\\] must be an object"):
-        path = _write_json(tmp_path, payload_crit_not_object, filename="bad4.json")
+        path = _write_json(
+            tmp_path, payload_crit_not_object, filename="bad4.json"
+        )
         loadFaciesModel(path)
         _delete_temp_file(path)
 
@@ -778,13 +816,19 @@ def test_loadFaciesModel_rejects_invalid_criterion_fields(
         "format": "pyWellSFM.FaciesModelData",
         "version": "1.0",
         "faciesModel": [
-            {"name": "A", "criteriaType": "petrophysical", "criteria": [{"name": "X"}]}
+            {
+                "name": "A",
+                "criteriaType": "petrophysical",
+                "criteria": [{"name": "X"}],
+            }
         ],
     }
 
     payload_bad_name = json.loads(json.dumps(base))
     payload_bad_name["faciesModel"][0]["criteria"][0] = {"name": ""}
-    with pytest.raises(ValueError, match="criteria\\[0\\]\\.name must be a non-empty"):
+    with pytest.raises(
+        ValueError, match="criteria\\[0\\]\\.name must be a non-empty"
+    ):
         path = _write_json(tmp_path, payload_bad_name, filename="bad5.json")
         loadFaciesModel(path)
         _delete_temp_file(path)
@@ -834,7 +878,9 @@ def _model_signature(
     return sig
 
 
-def test_saveFaciesModel_round_trip_preserves_model(tmp_path: pathlib.Path) -> None:
+def test_saveFaciesModel_round_trip_preserves_model(
+    tmp_path: pathlib.Path,
+) -> None:
     """Test saveFaciesModel round-trip with loadFaciesModel.
 
     Objective:
@@ -854,7 +900,9 @@ def test_saveFaciesModel_round_trip_preserves_model(tmp_path: pathlib.Path) -> N
 
     assert _model_signature(model_out) == _model_signature(model_in)
     assert isinstance(model_out.getFaciesByName("Sand"), SedimentaryFacies)
-    assert isinstance(model_out.getFaciesByName("Reservoir"), PetrophysicalFacies)
+    assert isinstance(
+        model_out.getFaciesByName("Reservoir"), PetrophysicalFacies
+    )
     assert isinstance(model_out.getFaciesByName("Shelf"), EnvironmentalFacies)
     assert isinstance(model_out.getFaciesByName("Other"), Facies)
 
@@ -904,7 +952,9 @@ def test_saveFaciesModel_omits_defaults_and_infinite_ranges(
     assert math.isinf(gamma.maxRange) and gamma.maxRange > 0
 
 
-def test_saveFaciesModel_sorts_facies_and_criteria(tmp_path: pathlib.Path) -> None:
+def test_saveFaciesModel_sorts_facies_and_criteria(
+    tmp_path: pathlib.Path,
+) -> None:
     """Test saveFaciesModel outputs deterministic (sorted) facies/criteria order.
 
     Objective:
@@ -915,8 +965,12 @@ def test_saveFaciesModel_sorts_facies_and_criteria(tmp_path: pathlib.Path) -> No
     - JSON faciesModel list is ordered by facies name.
     - Each facies.criteria list is ordered by criterion name.
     """
-    a = Facies(name="A", criteria={FaciesCriteria(name="b"), FaciesCriteria(name="a")})
-    b = Facies(name="B", criteria={FaciesCriteria(name="d"), FaciesCriteria(name="c")})
+    a = Facies(
+        name="A", criteria={FaciesCriteria(name="b"), FaciesCriteria(name="a")}
+    )
+    b = Facies(
+        name="B", criteria={FaciesCriteria(name="d"), FaciesCriteria(name="c")}
+    )
     model = FaciesModel(faciesSet={b, a})
 
     out_file = tmp_path / "sorted.json"
@@ -926,8 +980,12 @@ def test_saveFaciesModel_sorts_facies_and_criteria(tmp_path: pathlib.Path) -> No
     facies_names = [f["name"] for f in exported["faciesModel"]]
     assert facies_names == ["A", "B"]
 
-    a_criteria_names = [c["name"] for c in exported["faciesModel"][0]["criteria"]]
-    b_criteria_names = [c["name"] for c in exported["faciesModel"][1]["criteria"]]
+    a_criteria_names = [
+        c["name"] for c in exported["faciesModel"][0]["criteria"]
+    ]
+    b_criteria_names = [
+        c["name"] for c in exported["faciesModel"][1]["criteria"]
+    ]
     assert a_criteria_names == ["a", "b"]
     assert b_criteria_names == ["c", "d"]
 

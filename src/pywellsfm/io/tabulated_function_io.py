@@ -27,14 +27,20 @@ def tabulatedFunctionToJsonObj(
     - version: "1.0"
     """
     if not isinstance(abscissa_name, str) or abscissa_name.strip() == "":
-        raise ValueError("TabulatedFunction.abscissaName must be a non-empty string.")
+        raise ValueError(
+            "TabulatedFunction.abscissaName must be a non-empty string."
+        )
     if not isinstance(ordinate_name, str) or ordinate_name.strip() == "":
-        raise ValueError("TabulatedFunction.ordinateName must be a non-empty string.")
+        raise ValueError(
+            "TabulatedFunction.ordinateName must be a non-empty string."
+        )
 
     x_arr = np.asarray(x, dtype=float)
     y_arr = np.asarray(y, dtype=float)
     if x_arr.size < 1 or x_arr.size != y_arr.size:
-        raise ValueError("TabulatedFunction x/y must have same non-zero length.")
+        raise ValueError(
+            "TabulatedFunction x/y must have same non-zero length."
+        )
 
     return {
         "format": "pyWellSFM.TabulatedFunctionData",
@@ -60,7 +66,9 @@ def saveTabulatedFunctionToJson(
     """Save a tabulated function to a `.json` file."""
     path = Path(filepath)
     if path.suffix.lower() != ".json":
-        raise ValueError("Tabulated function output file must have a .json extension.")
+        raise ValueError(
+            "Tabulated function output file must have a .json extension."
+        )
     payload = tabulatedFunctionToJsonObj(
         abscissa_name=abscissa_name,
         ordinate_name=ordinate_name,
@@ -83,11 +91,15 @@ def saveTabulatedFunctionToCsv(
     """Save a tabulated function to a `.csv` file (two columns x,y, no header)."""
     path = Path(filepath)
     if path.suffix.lower() != ".csv":
-        raise ValueError("Tabulated function output file must have a .csv extension.")
+        raise ValueError(
+            "Tabulated function output file must have a .csv extension."
+        )
     x_arr = np.asarray(x, dtype=float)
     y_arr = np.asarray(y, dtype=float)
     if x_arr.size < 1 or x_arr.size != y_arr.size:
-        raise ValueError("TabulatedFunction x/y must have same non-zero length.")
+        raise ValueError(
+            "TabulatedFunction x/y must have same non-zero length."
+        )
     df = pd.DataFrame({"x": x_arr, "y": y_arr})
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, index=False, header=False)
@@ -114,9 +126,13 @@ def loadTabulatedFunctionFromJsonObj(
     abscissa_name = obj.get("abscissaName")
     ordinate_name = obj.get("ordinateName")
     if not isinstance(abscissa_name, str) or abscissa_name.strip() == "":
-        raise ValueError("TabulatedFunction.abscissaName must be a non-empty string.")
+        raise ValueError(
+            "TabulatedFunction.abscissaName must be a non-empty string."
+        )
     if not isinstance(ordinate_name, str) or ordinate_name.strip() == "":
-        raise ValueError("TabulatedFunction.ordinateName must be a non-empty string.")
+        raise ValueError(
+            "TabulatedFunction.ordinateName must be a non-empty string."
+        )
 
     values = obj.get("values")
     if not isinstance(values, dict):
@@ -124,8 +140,14 @@ def loadTabulatedFunctionFromJsonObj(
     x_values = values.get("xValues")
     y_values = values.get("yValues")
     if not isinstance(x_values, list) or not isinstance(y_values, list):
-        raise ValueError("TabulatedFunction.values.xValues and yValues must be arrays.")
-    if len(x_values) < 1 or len(y_values) < 1 or len(x_values) != len(y_values):
+        raise ValueError(
+            "TabulatedFunction.values.xValues and yValues must be arrays."
+        )
+    if (
+        len(x_values) < 1
+        or len(y_values) < 1
+        or len(x_values) != len(y_values)
+    ):
         raise ValueError(
             "TabulatedFunction.values.xValues and yValues must have same non-zero "
             "length."
@@ -135,7 +157,9 @@ def loadTabulatedFunctionFromJsonObj(
         x = np.array([float(v) for v in x_values], dtype=float)
         y = np.array([float(v) for v in y_values], dtype=float)
     except (TypeError, ValueError) as exc:
-        raise ValueError("TabulatedFunction xValues/yValues must be numeric.") from exc
+        raise ValueError(
+            "TabulatedFunction xValues/yValues must be numeric."
+        ) from exc
 
     return abscissa_name, ordinate_name, x, y
 
@@ -183,4 +207,6 @@ def loadTabulatedFunctionFromFile(
         # CSV contains no metadata; infer name from filename stem.
         return path.stem, "ReductionCoeff", x, y
 
-    raise ValueError(f"Unsupported tabulated function file extension '{path.suffix}'.")
+    raise ValueError(
+        f"Unsupported tabulated function file extension '{path.suffix}'."
+    )

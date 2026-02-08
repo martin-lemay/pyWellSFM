@@ -17,9 +17,12 @@ from pywellsfm.model import Element
 
 # Parameterize the tests with element names and production max values
 @pytest.mark.parametrize(
-    "element_name, accumulation_rate", [("Sand", 10), ("Shale", 30), ("Carbonate", 50)]
+    "element_name, accumulation_rate",
+    [("Sand", 10), ("Shale", 30), ("Carbonate", 50)],
 )
-def test_element_initialization(element_name: str, accumulation_rate: float) -> None:
+def test_element_initialization(
+    element_name: str, accumulation_rate: float
+) -> None:
     """Test of element initialization.
 
     :param str element_name: element name
@@ -47,7 +50,9 @@ def test_element_hash(element_name: str) -> None:
     :param str element_name: element name
     """
     element1 = Element(element_name, 10.0)
-    element2 = Element(element_name, 5.0)  # Same name, different accumulationRate
+    element2 = Element(
+        element_name, 5.0
+    )  # Same name, different accumulationRate
     element3 = Element("Clay", 10.0)  # Different name
 
     assert hash(element1) == hash(element2)  # Same name, same hash

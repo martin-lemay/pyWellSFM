@@ -52,7 +52,9 @@ class FSSimulator:
         )
 
         # set accummulation model global to all realizations
-        self.accumulationSimulator.setAccumulationModel(self.scenario.accumulationModel)
+        self.accumulationSimulator.setAccumulationModel(
+            self.scenario.accumulationModel
+        )
         self.accumulationSimulator.prepare()
 
         # update simulators with models
@@ -66,7 +68,9 @@ class FSSimulator:
         if self.scenario.eustaticCurve is not None:
             # set the eustatic curve if defined, otherwise uses a flat curve
             # (no eustatism variations)
-            self.accommodationSimulator.setEustaticCurve(self.scenario.eustaticCurve)
+            self.accommodationSimulator.setEustaticCurve(
+                self.scenario.eustaticCurve
+            )
         self.accommodationSimulator.prepare()
 
     def getSubsidenceAtAge(self: Self, age: float) -> float:
@@ -98,7 +102,9 @@ class FSSimulator:
             elementName, envCond
         )
 
-    def getTotalAccumulationRate(self: Self, envCond: dict[str, float]) -> float:
+    def getTotalAccumulationRate(
+        self: Self, envCond: dict[str, float]
+    ) -> float:
         """Get the total accumulation rate for the current realization.
 
         :param float age: age at which to get the total accumulation rate.
@@ -206,7 +212,9 @@ class FSSimulator:
                 f"No discrete log found in well '{well.name}' "
                 "to get initial bathymetry."
             )
-        faciesLog: Striplog = cast(Striplog, well.getDepthLog(faciesLogNames.pop()))
+        faciesLog: Striplog = cast(
+            Striplog, well.getDepthLog(faciesLogNames.pop())
+        )
         if faciesLog is None:
             raise ValueError(
                 f"Facies log not found in well '{well.name}' to get initial bathymetry."
@@ -220,5 +228,7 @@ class FSSimulator:
             )
         )
         if bathyRange is None:
-            raise ValueError(f"Bathymetry condition not found for facies {faciesName}.")
+            raise ValueError(
+                f"Bathymetry condition not found for facies {faciesName}."
+            )
         return bathyRange

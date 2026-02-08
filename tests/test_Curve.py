@@ -94,8 +94,12 @@ def test_Curve_init(interpMethod: str) -> None:
     curve = Curve(xAxisName, yAxisName, abscissa, ordinate, interpMethod)
     assert curve._xAxisName == xAxisName, "X axis name is wrong"
     assert curve._yAxisName == yAxisName, "Y axis name is wrong"
-    assert np.array_equal(curve._abscissa, abscissa), "Curve abscissa array is wrong"
-    assert np.array_equal(curve._ordinate, ordinate), "Curve ordinate array is wrong"
+    assert np.array_equal(curve._abscissa, abscissa), (
+        "Curve abscissa array is wrong"
+    )
+    assert np.array_equal(curve._ordinate, ordinate), (
+        "Curve ordinate array is wrong"
+    )
     assert type(curve._interpFunc) is interp1d, "Interpolation method is wrong"
 
 
@@ -112,8 +116,12 @@ def test_Curve_init2() -> None:
     )
     assert curve._xAxisName == xAxisName, "X axis name is wrong"
     assert curve._yAxisName == yAxisName, "Y axis name is wrong"
-    assert np.array_equal(curve._abscissa, abscissa), "Curve abscissa array is wrong"
-    assert np.array_equal(curve._ordinate, ordinate), "Curve ordinate array is wrong"
+    assert np.array_equal(curve._abscissa, abscissa), (
+        "Curve abscissa array is wrong"
+    )
+    assert np.array_equal(curve._ordinate, ordinate), (
+        "Curve ordinate array is wrong"
+    )
     assert type(curve._interpFunc) is PolynomialInterpolator, (
         "Interpolation method is wrong"
     )
@@ -188,7 +196,9 @@ def __generate_test_data() -> Iterator[TestCase]:
 @pytest.mark.parametrize("testCase", __generate_test_data())
 def test_Curve_compute1(testCase: TestCase) -> None:
     """Test of Curve class."""
-    curve = Curve(xAxisName, yAxisName, abscissa, ordinate, testCase.interpMethod)
+    curve = Curve(
+        xAxisName, yAxisName, abscissa, ordinate, testCase.interpMethod
+    )
     interp = interp1d(abscissa, ordinate, testCase.interpMethod)
     assert abs(curve.getValueAt(testCase.xx) - interp(testCase.xx)) < eps
 
@@ -196,7 +206,9 @@ def test_Curve_compute1(testCase: TestCase) -> None:
 @pytest.mark.parametrize("testCase", __generate_test_data())
 def test_Curve_compute2(testCase: TestCase) -> None:
     """Test of Curve class."""
-    curve = Curve(xAxisName, yAxisName, abscissa, ordinate, testCase.interpMethod)
+    curve = Curve(
+        xAxisName, yAxisName, abscissa, ordinate, testCase.interpMethod
+    )
     interp = interp1d(abscissa, ordinate, testCase.interpMethod)
     assert abs(curve(testCase.xx) - interp(testCase.xx)) < eps
 
@@ -558,7 +570,9 @@ def test_loadUncertaintyCurveFromCsv_no_header_four_columns_drops_nan_and_sorts(
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="UncertaintyCurve CSV must have a header row"):
+    with pytest.raises(
+        ValueError, match="UncertaintyCurve CSV must have a header row"
+    ):
         loadUncertaintyCurveFromCsv(csv_path)
 
 
@@ -667,7 +681,9 @@ def test_loadUncertaintyCurveFromFile_missing_raises(tmp_path: Path) -> None:
         loadUncertaintyCurveFromFile(missing)
 
 
-def test_loadUncertaintyCurveFromFile_unsupported_extension(tmp_path: Path) -> None:
+def test_loadUncertaintyCurveFromFile_unsupported_extension(
+    tmp_path: Path,
+) -> None:
     """Unsupported extension should raise ValueError."""
     p = tmp_path / "unc.txt"
     p.write_text("hello", encoding="utf-8")
@@ -699,7 +715,8 @@ def test_AccumulationCurve_init2() -> None:
     prodAbscissa = np.array([0.0, 10.0, 50.0])
     prodOrdinate = np.array([0.0, 2.0, 0.0])
     with pytest.raises(
-        AssertionError, match="Accumulation curve ordinates must be between 0 and 1."
+        AssertionError,
+        match="Accumulation curve ordinates must be between 0 and 1.",
     ):
         AccumulationCurve(prodName, prodAbscissa, prodOrdinate)
 

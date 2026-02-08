@@ -24,6 +24,11 @@ ruff
 sphinx
 sphinx-rtd-theme
 sphinx-autodoc-typehints
+sphinx-argparse>=0.5.2
+sphinx-design
+nbsphinx
+# Running CLI programs and capture outputs
+sphinxcontrib-programoutput>=0.17
 
 # --- Optional dependencies: build tooling ---
 build~=1.2

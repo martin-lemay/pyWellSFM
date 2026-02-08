@@ -76,11 +76,17 @@ def wellToJsonObj(well: Well) -> dict[str, Any]:
             if str(litho).strip() == "":
                 litho = "Unknown"
             intervals_out.append(
-                {"top": float(top), "base": float(base), "lithology": str(litho)}
+                {
+                    "top": float(top),
+                    "base": float(base),
+                    "lithology": str(litho),
+                }
             )
 
         if len(intervals_out) < 1:
-            raise ValueError(f"Striplog '{log_name}' must contain at least 1 interval")
+            raise ValueError(
+                f"Striplog '{log_name}' must contain at least 1 interval"
+            )
 
         return {"name": str(log_name), "intervals": intervals_out}
 
@@ -90,7 +96,11 @@ def wellToJsonObj(well: Well) -> dict[str, Any]:
 
     well_obj: dict[str, Any] = {
         "name": str(well.name),
-        "location": {"x": float(head[0]), "y": float(head[1]), "z": float(head[2])},
+        "location": {
+            "x": float(head[0]),
+            "y": float(head[1]),
+            "z": float(head[2]),
+        },
         "depth": float(well.depth),
     }
 
@@ -99,15 +109,22 @@ def wellToJsonObj(well: Well) -> dict[str, Any]:
         arr = np.asarray(well_path, dtype=float)
         if arr.ndim == 2 and arr.shape[1] == 3 and arr.shape[0] >= 2:
             well_obj["wellPath"] = [
-                {"x": float(p[0]), "y": float(p[1]), "z": float(p[2])} for p in arr
+                {"x": float(p[0]), "y": float(p[1]), "z": float(p[2])}
+                for p in arr
             ]
 
     markers = list(well.getMarkers())
     if markers:
         markers_out: list[dict[str, Any]] = []
         for m in markers:
-            st = getattr(m, "stratigraphicType", StratigraphicSurfaceType.UNKNOWN)
-            st_val = st.value if isinstance(st, StratigraphicSurfaceType) else str(st)
+            st = getattr(
+                m, "stratigraphicType", StratigraphicSurfaceType.UNKNOWN
+            )
+            st_val = (
+                st.value
+                if isinstance(st, StratigraphicSurfaceType)
+                else str(st)
+            )
             markers_out.append(
                 {
                     "name": str(m.name),
@@ -172,17 +189,23 @@ def _load_striplog_from_json_obj(obj: dict[str, Any]) -> tuple[str, Striplog]:
     if not isinstance(intervals_raw, list):
         raise ValueError(f"Striplog '{name}' intervals must be an array.")
     if len(intervals_raw) < 1:
-        raise ValueError(f"Striplog '{name}' intervals must contain at least 1 item.")
+        raise ValueError(
+            f"Striplog '{name}' intervals must contain at least 1 item."
+        )
 
     intervals: list[Interval] = []
     for i, itv in enumerate(intervals_raw):
         if not isinstance(itv, dict):
-            raise ValueError(f"Striplog '{name}' intervals[{i}] must be an object.")
+            raise ValueError(
+                f"Striplog '{name}' intervals[{i}] must be an object."
+            )
 
         top = itv.get("top")
         base = itv.get("base")
         litho = itv.get("lithology")
-        if not isinstance(top, (int, float)) or not isinstance(base, (int, float)):
+        if not isinstance(top, (int, float)) or not isinstance(
+            base, (int, float)
+        ):
             raise ValueError(
                 f"Striplog '{name}' intervals[{i}].top/base must be numbers."
             )
@@ -193,7 +216,9 @@ def _load_striplog_from_json_obj(obj: dict[str, Any]) -> tuple[str, Striplog]:
             )
 
         if float(base) < float(top):
-            raise ValueError(f"Striplog '{name}' intervals[{i}] base must be >= top.")
+            raise ValueError(
+                f"Striplog '{name}' intervals[{i}] base must be >= top."
+            )
 
         comp = Component({"lithology": litho})
         intervals.append(Interval(float(top), float(base), components=[comp]))
@@ -224,7 +249,9 @@ def _load_striplog_from_csv(path: Path, delimiter: str = ",") -> Striplog:
             for key in row.index
             if str(key).lower() not in ("top", "base", "lithology")
         }
-        intervals.append(Interval(top, base, components=[Component(comp_dict)]))
+        intervals.append(
+            Interval(top, base, components=[Component(comp_dict)])
+        )
 
     return Striplog(intervals)
 
@@ -261,7 +288,9 @@ def loadWell(filepath: str) -> Well:
     raise ValueError("Well file must be either a .json or .las file.")
 
 
-def loadWellFromJsonObj(obj: dict[str, Any], base_dir: Path | None = None) -> Well:
+def loadWellFromJsonObj(
+    obj: dict[str, Any], base_dir: Path | None = None
+) -> Well:
     """Load a Well from a JSON file matching `jsonSchemas/WellSchema.json`.
 
     Notes:
@@ -320,7 +349,9 @@ def loadWellFromJsonObj(obj: dict[str, Any], base_dir: Path | None = None) -> We
             coords.append([float(px), float(py), float(pz)])
         arr = np.asarray(coords, dtype=float)
         if arr.ndim != 2 or arr.shape[1] != 3 or arr.shape[0] < 2:
-            raise ValueError("Well.well.wellPath must be an array of 2+ (x,y,z) points")
+            raise ValueError(
+                "Well.well.wellPath must be an array of 2+ (x,y,z) points"
+            )
         well.setWellPath(arr)
 
     # Optional markers
@@ -337,11 +368,17 @@ def loadWellFromJsonObj(obj: dict[str, Any], base_dir: Path | None = None) -> We
             m_type = m.get("stratigraphicType")
 
             if not isinstance(m_name, str) or m_name.strip() == "":
-                raise ValueError(f"Well.well.markers[{i}].name must be a string.")
+                raise ValueError(
+                    f"Well.well.markers[{i}].name must be a string."
+                )
             if not isinstance(m_depth, (int, float)):
-                raise ValueError(f"Well.well.markers[{i}].depth must be a number.")
+                raise ValueError(
+                    f"Well.well.markers[{i}].depth must be a number."
+                )
             if not isinstance(m_age, (int, float)):
-                raise ValueError(f"Well.well.markers[{i}].age must be a number.")
+                raise ValueError(
+                    f"Well.well.markers[{i}].age must be a number."
+                )
 
             marker_set.add(
                 Marker(
@@ -403,7 +440,9 @@ def loadWellFromJsonObj(obj: dict[str, Any], base_dir: Path | None = None) -> We
         curves = loadCurvesFromFile(curve_path)
         for curve in curves:
             log_name = getattr(curve, "_yAxisName", curve_path.stem)
-            xaxisName = curve._xAxisName if hasattr(curve, "_xAxisName") else "Depth"
+            xaxisName = (
+                curve._xAxisName if hasattr(curve, "_xAxisName") else "Depth"
+            )
             if xaxisName.lower() == "depth":
                 well.addLog(str(log_name), curve)
             elif xaxisName.lower() == "age":
@@ -480,7 +519,9 @@ def loadWellFromLasFile(filepath: str) -> Well:
     x = _to_float(_get_header_value("X", "XCOORD", "EASTING", "LONG", "LON"))
     y = _to_float(_get_header_value("Y", "YCOORD", "NORTHING", "LAT"))
     # Elevation/KB/GL are various variants; store as z if present.
-    z = _to_float(_get_header_value("Z", "ELEV", "ELEVATION", "KB", "GL", "DATUM"))
+    z = _to_float(
+        _get_header_value("Z", "ELEV", "ELEVATION", "KB", "GL", "DATUM")
+    )
     well_head = np.asarray(
         [
             x if x is not None else 0.0,
@@ -499,7 +540,9 @@ def loadWellFromLasFile(filepath: str) -> Well:
     index_max = float(np.nanmax(index))
 
     # Prefer STOP/TD when available but ensure depth is at least max index.
-    depth = float(stop) if stop is not None and np.isfinite(stop) else index_max
+    depth = (
+        float(stop) if stop is not None and np.isfinite(stop) else index_max
+    )
     depth = max(depth, index_max)
 
     well = Well(name=str(name), wellHeadCoords=well_head, depth=float(depth))
@@ -507,7 +550,8 @@ def loadWellFromLasFile(filepath: str) -> Well:
     # --- Well path ---
     # Keep convention aligned with JSON loader tests: z increases with depth.
     path_arr = np.asarray(
-        [well_head, well_head + np.asarray([0.0, 0.0, float(depth)])], dtype=float
+        [well_head, well_head + np.asarray([0.0, 0.0, float(depth)])],
+        dtype=float,
     )
     well.setWellPath(path_arr)
 
@@ -516,7 +560,9 @@ def loadWellFromLasFile(filepath: str) -> Well:
     x_raw = np.asarray(getattr(las, "index", []), dtype=float)
     if x_raw.size < 2:
         # If no index, attempt to use first curve as index (rare).
-        raise ValueError("LAS file must contain at least 2 depth/index samples.")
+        raise ValueError(
+            "LAS file must contain at least 2 depth/index samples."
+        )
 
     null_value = getattr(las, "null", None)
     for curve_info in getattr(las, "curves", []):
@@ -569,7 +615,9 @@ def loadWellFromLasFile(filepath: str) -> Well:
         if x.size < 2:
             continue
 
-        curve = Curve("Depth", mnemonic_str, x.astype(float), y.astype(float), "linear")
+        curve = Curve(
+            "Depth", mnemonic_str, x.astype(float), y.astype(float), "linear"
+        )
         well.addLog(mnemonic_str, curve)
 
     return well
@@ -589,7 +637,9 @@ def saveWellToJson(well: Well, filepath: str) -> None:
 
     out = wellToJsonObj(well)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(out, indent=4, ensure_ascii=False), encoding="utf-8")
+    path.write_text(
+        json.dumps(out, indent=4, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def saveWell(well: Well, filepath: str) -> None:

@@ -70,8 +70,8 @@ class AccumulationSimulator:
 
         :return float: accumulation rate of the given element.
         """
-        elementsAccumulationRates = self.computeAccumulationRatesForAllElements(
-            environmentConditions
+        elementsAccumulationRates = (
+            self.computeAccumulationRatesForAllElements(environmentConditions)
         )
         return elementsAccumulationRates.get(elementName, 0.0)
 
@@ -86,7 +86,7 @@ class AccumulationSimulator:
 
         :return float: total accumulation rate.
         """
-        elementsAccumulationRates = self.computeAccumulationRatesForAllElements(
-            environmentConditions
+        elementsAccumulationRates = (
+            self.computeAccumulationRatesForAllElements(environmentConditions)
         )
         return float(np.nansum(list(elementsAccumulationRates.values())))

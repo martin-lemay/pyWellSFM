@@ -51,9 +51,13 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
 
         facies_name = facies_def.get("name")
         if not isinstance(facies_name, str) or facies_name.strip() == "":
-            raise ValueError(f"faciesModel[{idx}].name must be a non-empty string.")
+            raise ValueError(
+                f"faciesModel[{idx}].name must be a non-empty string."
+            )
         if facies_name in seen_names:
-            raise ValueError(f"Duplicate facies name '{facies_name}' in faciesModel.")
+            raise ValueError(
+                f"Duplicate facies name '{facies_name}' in faciesModel."
+            )
         seen_names.add(facies_name)
 
         facies_type_raw = facies_def.get(
@@ -72,7 +76,9 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
 
         criteria_list = facies_def.get("criteria")
         if not isinstance(criteria_list, list) or len(criteria_list) < 1:
-            raise ValueError(f"faciesModel[{idx}].criteria must be a non-empty list.")
+            raise ValueError(
+                f"faciesModel[{idx}].criteria must be a non-empty list."
+            )
 
         criteria_set: set[FaciesCriteria] = set()
 
@@ -109,12 +115,16 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
             min_range = crit_def.get("minRange", -float("inf"))
             max_range = crit_def.get("maxRange", float("inf"))
 
-            if (min_range is not None) and (not isinstance(min_range, (int, float))):
+            if (min_range is not None) and (
+                not isinstance(min_range, (int, float))
+            ):
                 raise ValueError(
                     f"faciesModel[{idx}].criteria[{jdx}].minRange must be a number "
                     "when provided."
                 )
-            if (max_range is not None) and (not isinstance(max_range, (int, float))):
+            if (max_range is not None) and (
+                not isinstance(max_range, (int, float))
+            ):
                 raise ValueError(
                     f"faciesModel[{idx}].criteria[{jdx}].maxRange must be a number "
                     "when provided."
@@ -134,9 +144,13 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
                 name=facies_name, criteria=criteria_set
             )
         elif facies_type == FaciesCriteriaType.PETROPHYSICAL:
-            facies_obj = PetrophysicalFacies(name=facies_name, criteria=criteria_set)
+            facies_obj = PetrophysicalFacies(
+                name=facies_name, criteria=criteria_set
+            )
         elif facies_type == FaciesCriteriaType.ENVIRONMENTAL:
-            facies_obj = EnvironmentalFacies(name=facies_name, criteria=criteria_set)
+            facies_obj = EnvironmentalFacies(
+                name=facies_name, criteria=criteria_set
+            )
         else:
             facies_obj = Facies(
                 name=facies_name,
@@ -224,4 +238,3 @@ def saveFaciesModel(faciesModel: FaciesModel, filepath: str) -> None:
     payload = faciesModelToJsonObj(faciesModel)
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
-

@@ -226,7 +226,9 @@ def test_environment_optimum_model_without_env_conditions_raises() -> None:
     assert "sand" in error_msg  # Element name should be in error
 
 
-def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve() -> None:
+def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve() -> (
+    None
+):
     """Test adding curves stores them by x-axis name and can be retrieved."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
 
@@ -239,7 +241,9 @@ def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve() -> 
     assert model.getAccumulationCurve("Energy") is energy_curve
 
 
-def test_environment_optimum_removeCurve_removes_and_is_noop_when_missing() -> None:
+def test_environment_optimum_removeCurve_removes_and_is_noop_when_missing() -> (
+    None
+):
     """Test removeAccumulationCurve removes by name and doesn't error if missing."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     model.addAccumulationCurve(bathy_curve)
@@ -259,7 +263,9 @@ def test_environment_optimum_getAccumulationCurve_raises_for_missing() -> None:
         model.getAccumulationCurve("Bathymetry")
 
 
-def test_environment_optimum_getElementAccumulationAt_matches_curve_product() -> None:
+def test_environment_optimum_getElementAccumulationAt_matches_curve_product() -> (
+    None
+):
     """Migrated behavior test: accumulation equals rate * product(coeffs)."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     element = Element("Sand", 10.0)
@@ -306,7 +312,10 @@ def test_environment_optimum_model_multiple_factors() -> None:
     assert rate == pytest.approx(100.0, rel=1e-6)
 
     # Test with one factor suboptimal
-    env_conditions = {"Bathymetry": 10.0, "Temperature": 12.5}  # temp coeff = 0.5
+    env_conditions = {
+        "Bathymetry": 10.0,
+        "Temperature": 12.5,
+    }  # temp coeff = 0.5
     rate = model.getElementAccumulationAt(element, env_conditions)
 
     # Bathy coeff = 1.0, temp coeff = 0.5, so rate = 100.0 * 1.0 * 0.5 = 50.0
@@ -416,7 +425,9 @@ def _write_json(tmp_path: Path, payload: dict[str, Any], filename: str) -> str:
     return str(path)
 
 
-def _write_csv(tmp_path: Path, rows: list[list[float | str]], filename: str) -> str:
+def _write_csv(
+    tmp_path: Path, rows: list[list[float | str]], filename: str
+) -> str:
     """Helper for tests: write a simple CSV file and return its filesystem path."""
     path = tmp_path / filename
     lines = [",".join(str(v) for v in row) for row in rows]
@@ -454,7 +465,9 @@ def _envopt_signature(
 # -------------------------------------------------
 
 
-def test_loadAccumulationModelGaussianFromCsv_happy_path(tmp_path: Path) -> None:
+def test_loadAccumulationModelGaussianFromCsv_happy_path(
+    tmp_path: Path,
+) -> None:
     """Test loading a Gaussian accumulation model from a CSV file.
 
     Objective:
@@ -541,8 +554,16 @@ def test_loadAccumulationModelGaussian_happy_path(tmp_path: Path) -> None:
             "name": "G",
             "modelType": "Gaussian",
             "elements": [
-                {"name": "sand", "accumulationRate": 100.0, "stddevFactor": 0.2},
-                {"name": "shale", "accumulationRate": 50.0, "stddevFactor": 0.1},
+                {
+                    "name": "sand",
+                    "accumulationRate": 100.0,
+                    "stddevFactor": 0.2,
+                },
+                {
+                    "name": "shale",
+                    "accumulationRate": 50.0,
+                    "stddevFactor": 0.1,
+                },
             ],
         },
     }
@@ -551,7 +572,10 @@ def test_loadAccumulationModelGaussian_happy_path(tmp_path: Path) -> None:
     model = cast(AccumulationModelGaussian, loadAccumulationModel(json_path))
 
     assert model.name == "G"
-    assert _gaussian_signature(model) == {"sand": (100.0, 0.2), "shale": (50.0, 0.1)}
+    assert _gaussian_signature(model) == {
+        "sand": (100.0, 0.2),
+        "shale": (50.0, 0.1),
+    }
 
 
 def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
@@ -578,7 +602,9 @@ def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
     out_json = tmp_path / "gaussian_out.json"
     saveAccumulationModelGaussianToJson(model, str(out_json))
 
-    reloaded = cast(AccumulationModelGaussian, loadAccumulationModel(str(out_json)))
+    reloaded = cast(
+        AccumulationModelGaussian, loadAccumulationModel(str(out_json))
+    )
     assert reloaded.name == "MyGaussian"
     assert _gaussian_signature(reloaded) == _gaussian_signature(model)
 
@@ -756,7 +782,9 @@ def test_loadAccuModelEnvironmentOptimumFromJson_external_curve_files_json_and_c
         "values": {"xValues": [0.0, 10.0], "yValues": [0.0, 1.0]},
     }
     bathy_json = tmp_path / "bathy.json"
-    bathy_json.write_text(json.dumps(bathy_payload, indent=2), encoding="utf-8")
+    bathy_json.write_text(
+        json.dumps(bathy_payload, indent=2), encoding="utf-8"
+    )
 
     energy_csv = tmp_path / "Energy.csv"
     energy_csv.write_text("0,0\n1,1\n", encoding="utf-8")
@@ -807,7 +835,9 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
     model.addElement(Element("shale", 2.5))
 
     model.addAccumulationCurve(
-        AccumulationCurve("Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0]))
+        AccumulationCurve(
+            "Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0])
+        )
     )
     model.addAccumulationCurve(
         AccumulationCurve("Energy", np.array([0.0, 1.0]), np.array([0.0, 1.0]))
@@ -819,7 +849,8 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
     )
 
     reloaded = cast(
-        AccumulationModelEnvironmentOptimum, loadAccumulationModel(str(out_json))
+        AccumulationModelEnvironmentOptimum,
+        loadAccumulationModel(str(out_json)),
     )
     assert _envopt_signature(reloaded) == _envopt_signature(model)
 
@@ -844,7 +875,9 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_external_json_round_trip(
     model = AccumulationModelEnvironmentOptimum("Env")
     model.addElement(Element("sand", 10.0))
     model.addAccumulationCurve(
-        AccumulationCurve("Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0]))
+        AccumulationCurve(
+            "Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0])
+        )
     )
     model.addAccumulationCurve(
         AccumulationCurve("Energy", np.array([0.0, 1.0]), np.array([0.0, 1.0]))
@@ -864,7 +897,8 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_external_json_round_trip(
     assert (curves_dir / "Energy.json").exists()
 
     reloaded = cast(
-        AccumulationModelEnvironmentOptimum, loadAccumulationModel(str(out_json))
+        AccumulationModelEnvironmentOptimum,
+        loadAccumulationModel(str(out_json)),
     )
     assert _envopt_signature(reloaded) == _envopt_signature(model)
 
@@ -889,7 +923,9 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_external_csv_round_trip(
     model = AccumulationModelEnvironmentOptimum("Env")
     model.addElement(Element("sand", 10.0))
     model.addAccumulationCurve(
-        AccumulationCurve("Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0]))
+        AccumulationCurve(
+            "Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0])
+        )
     )
     model.addAccumulationCurve(
         AccumulationCurve("Energy", np.array([0.0, 1.0]), np.array([0.0, 1.0]))
@@ -909,7 +945,8 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_external_csv_round_trip(
     assert (curves_dir / "Energy.csv").exists()
 
     reloaded = cast(
-        AccumulationModelEnvironmentOptimum, loadAccumulationModel(str(out_json))
+        AccumulationModelEnvironmentOptimum,
+        loadAccumulationModel(str(out_json)),
     )
     assert _envopt_signature(reloaded) == _envopt_signature(model)
 

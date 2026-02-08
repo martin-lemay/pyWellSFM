@@ -24,7 +24,9 @@ from pywellsfm.io.simulation_io import (  # noqa: E402
     saveScenario,
     saveSimulationData,
 )
-from pywellsfm.model.AccumulationModel import AccumulationModelGaussian  # noqa: E402
+from pywellsfm.model.AccumulationModel import (
+    AccumulationModelGaussian,  # noqa: E402
+)
 from pywellsfm.model.SimulationParameters import SimulationData  # noqa: E402
 
 fileDir = os.path.dirname(os.path.abspath(__file__))
@@ -67,7 +69,9 @@ def test_loadRealizationData_from_json(tmp_path: Path) -> None:
     rd = loadRealizationData(str(realization_path))
 
     assert rd.well.name == "TestWell"
-    assert np.allclose(rd.well.wellHeadCoords, np.asarray([1.0, 2.0, 3.0], dtype=float))
+    assert np.allclose(
+        rd.well.wellHeadCoords, np.asarray([1.0, 2.0, 3.0], dtype=float)
+    )
     assert rd.well.depth == 100.0
 
     assert rd.subsidenceCurve is not None
@@ -96,7 +100,9 @@ def test_loadRealizationData_from_json_reference(tmp_path: Path) -> None:
     rd = loadRealizationData(str(realization_path))
 
     assert rd.well.name == "Well-B"
-    assert np.allclose(rd.well.wellHeadCoords, np.asarray([0.0, 0.0, 0.0], dtype=float))
+    assert np.allclose(
+        rd.well.wellHeadCoords, np.asarray([0.0, 0.0, 0.0], dtype=float)
+    )
     assert rd.well.depth == 100.0
     assert len(rd.well.getMarkers()) == 1
     litho_log = rd.well.getDepthLog("lithology")
@@ -237,7 +243,9 @@ def test_loadScenario_from_json_with_eustatic_curve(tmp_path: Path) -> None:
     assert scenario.eustaticCurve.getValueAt(1.0) == 5.0
     assert len(scenario.faciesModel.faciesSet) == 1
     assert scenario.faciesModel.getFaciesByName("F1") is not None
-    assert scenario.faciesModel.getCriteriaRangeForFacies("F1", "Bathymetry") == (
+    assert scenario.faciesModel.getCriteriaRangeForFacies(
+        "F1", "Bathymetry"
+    ) == (
         10.0,
         20.0,
     )
@@ -255,10 +263,14 @@ def test_loadScenario_from_json_with_references(tmp_path: Path) -> None:
 
     # Reuse repo test data for facies + eustatic curve
     facies_src = Path(dataDir) / "facies_model.json"
-    facies_path.write_text(facies_src.read_text(encoding="utf-8"), encoding="utf-8")
+    facies_path.write_text(
+        facies_src.read_text(encoding="utf-8"), encoding="utf-8"
+    )
 
     eustatic_src = Path(dataDir) / "eustatic_curve.csv"
-    eustatic_path.write_text(eustatic_src.read_text(encoding="utf-8"), encoding="utf-8")
+    eustatic_path.write_text(
+        eustatic_src.read_text(encoding="utf-8"), encoding="utf-8"
+    )
 
     acc_payload = {
         "format": "pyWellSFM.AccumulationModelData",
@@ -303,8 +315,12 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
     simulation_path = tmp_path / "simulation.json"
 
     # Scenario uses inline internals here; we're validating SimulationData oneOf.
-    facies_model_path = Path(__file__).resolve().parent / "data" / "facies_model.json"
-    facies_model_obj = json.loads(facies_model_path.read_text(encoding="utf-8"))
+    facies_model_path = (
+        Path(__file__).resolve().parent / "data" / "facies_model.json"
+    )
+    facies_model_obj = json.loads(
+        facies_model_path.read_text(encoding="utf-8")
+    )
     scenario_payload = {
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
@@ -335,7 +351,9 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
         "well": {"url": f"{dataDir}/well.json"},
         "subsidenceCurve": {"url": f"{dataDir}/subsidence_curve.csv"},
     }
-    realization_path.write_text(json.dumps(realization_payload), encoding="utf-8")
+    realization_path.write_text(
+        json.dumps(realization_payload), encoding="utf-8"
+    )
 
     simulation_payload = {
         "format": "pyWellSFM.SimulationData",
@@ -344,13 +362,20 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
         "scenario": {"url": "scenario.json"},
         "realizations": [{"url": "realization.json"}],
     }
-    simulation_path.write_text(json.dumps(simulation_payload), encoding="utf-8")
+    simulation_path.write_text(
+        json.dumps(simulation_payload), encoding="utf-8"
+    )
 
     simulators = loadSimulationData(str(simulation_path))
     assert len(simulators) == 1
     assert simulators[0].scenario.name == "Scenario1"
-    assert simulators[0].scenario.faciesModel.getFaciesByName("Sand") is not None
-    assert simulators[0].scenario.accumulationModel.getElement("Carbonate") is not None
+    assert (
+        simulators[0].scenario.faciesModel.getFaciesByName("Sand") is not None
+    )
+    assert (
+        simulators[0].scenario.accumulationModel.getElement("Carbonate")
+        is not None
+    )
     assert simulators[0].realizationData.well.name == "Well-B"
     assert simulators[0].realizationData.subsidenceCurve is not None
 
@@ -359,8 +384,12 @@ def test_loadSimulationData_from_json_two_realizations(tmp_path: Path) -> None:
     """Loads SimulationData and returns one FSSimulator per realization."""
     simulation_path = tmp_path / "simulation.json"
 
-    facies_model_path = Path(__file__).resolve().parent / "data" / "facies_model.json"
-    facies_model_obj = json.loads(facies_model_path.read_text(encoding="utf-8"))
+    facies_model_path = (
+        Path(__file__).resolve().parent / "data" / "facies_model.json"
+    )
+    facies_model_obj = json.loads(
+        facies_model_path.read_text(encoding="utf-8")
+    )
 
     payload = {
         "format": "pyWellSFM.SimulationData",
@@ -452,8 +481,13 @@ def test_loadSimulationData_from_json_two_realizations(tmp_path: Path) -> None:
     assert simulators[0].scenario is simulators[1].scenario
     # check scenario data
     assert simulators[0].scenario.name == "Scenario1"
-    assert simulators[0].scenario.faciesModel.getFaciesByName("Sand") is not None
-    assert simulators[0].scenario.accumulationModel.getElement("Carbonate") is not None
+    assert (
+        simulators[0].scenario.faciesModel.getFaciesByName("Sand") is not None
+    )
+    assert (
+        simulators[0].scenario.accumulationModel.getElement("Carbonate")
+        is not None
+    )
 
     # realization 1
     assert simulators[0].realizationData.well.name == "Well1"
@@ -472,7 +506,9 @@ def test_loadSimulationData_from_json_two_realizations(tmp_path: Path) -> None:
     )
 
 
-def test_loadSimulationData_rejects_wrong_format_version(tmp_path: Path) -> None:
+def test_loadSimulationData_rejects_wrong_format_version(
+    tmp_path: Path,
+) -> None:
     """Fails fast when the top-level SimulationData format/version is wrong."""
     simulation_path = tmp_path / "simulation_bad_format.json"
     payload = {
@@ -488,7 +524,9 @@ def test_loadSimulationData_rejects_wrong_format_version(tmp_path: Path) -> None
         loadSimulationData(str(simulation_path))
 
 
-def test_loadSimulationData_rejects_missing_realizations(tmp_path: Path) -> None:
+def test_loadSimulationData_rejects_missing_realizations(
+    tmp_path: Path,
+) -> None:
     """Rejects SimulationData when 'realizations' is missing or not a list."""
     simulation_path = tmp_path / "simulation_missing_realizations.json"
     payload = {
@@ -506,7 +544,11 @@ def test_loadSimulationData_rejects_missing_realizations(tmp_path: Path) -> None
                     {
                         "name": "F1",
                         "criteria": [
-                            {"name": "WaterDepth", "minRange": 0.0, "maxRange": 10.0}
+                            {
+                                "name": "WaterDepth",
+                                "minRange": 0.0,
+                                "maxRange": 10.0,
+                            }
                         ],
                     }
                 ],
@@ -530,7 +572,9 @@ def test_loadSimulationData_rejects_missing_realizations(tmp_path: Path) -> None
     }
     simulation_path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match=r"Simulation\.realizations must be a list"):
+    with pytest.raises(
+        ValueError, match=r"Simulation\.realizations must be a list"
+    ):
         loadSimulationData(str(simulation_path))
 
 
@@ -552,7 +596,11 @@ def test_loadSimulationData_rejects_empty_realizations(tmp_path: Path) -> None:
                     {
                         "name": "F1",
                         "criteria": [
-                            {"name": "WaterDepth", "minRange": 0.0, "maxRange": 10.0}
+                            {
+                                "name": "WaterDepth",
+                                "minRange": 0.0,
+                                "maxRange": 10.0,
+                            }
                         ],
                     }
                 ],
@@ -578,12 +626,15 @@ def test_loadSimulationData_rejects_empty_realizations(tmp_path: Path) -> None:
     simulation_path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(
-        ValueError, match=r"Simulation\.realizations must contain at least one item"
+        ValueError,
+        match=r"Simulation\.realizations must contain at least one item",
     ):
         loadSimulationData(str(simulation_path))
 
 
-def test_loadSimulationData_rejects_scenario_with_extra_keys(tmp_path: Path) -> None:
+def test_loadSimulationData_rejects_scenario_with_extra_keys(
+    tmp_path: Path,
+) -> None:
     """Scenario validation should reject unsupported properties."""
     simulation_path = tmp_path / "simulation_bad_scenario.json"
 
@@ -602,7 +653,11 @@ def test_loadSimulationData_rejects_scenario_with_extra_keys(tmp_path: Path) -> 
                     {
                         "name": "F1",
                         "criteria": [
-                            {"name": "WaterDepth", "minRange": 0.0, "maxRange": 10.0}
+                            {
+                                "name": "WaterDepth",
+                                "minRange": 0.0,
+                                "maxRange": 10.0,
+                            }
                         ],
                     }
                 ],
@@ -653,11 +708,15 @@ def test_loadSimulationData_rejects_scenario_with_extra_keys(tmp_path: Path) -> 
     }
     simulation_path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match=r"Scenario contains unsupported properties"):
+    with pytest.raises(
+        ValueError, match=r"Scenario contains unsupported properties"
+    ):
         loadSimulationData(str(simulation_path))
 
 
-def test_loadSimulationData_rejects_non_object_realization_item(tmp_path: Path) -> None:
+def test_loadSimulationData_rejects_non_object_realization_item(
+    tmp_path: Path,
+) -> None:
     """Each item of 'realizations' must be a JSON object."""
     simulation_path = tmp_path / "simulation_bad_realization_item.json"
     payload = {
@@ -675,7 +734,11 @@ def test_loadSimulationData_rejects_non_object_realization_item(tmp_path: Path) 
                     {
                         "name": "F1",
                         "criteria": [
-                            {"name": "WaterDepth", "minRange": 0.0, "maxRange": 10.0}
+                            {
+                                "name": "WaterDepth",
+                                "minRange": 0.0,
+                                "maxRange": 10.0,
+                            }
                         ],
                     }
                 ],
@@ -712,8 +775,12 @@ def test_exportScenario_writes_inline_objects(tmp_path: Path) -> None:
     scenario_path = tmp_path / "scenario_in.json"
     scenario_out = tmp_path / "scenario_out.json"
 
-    facies_model_path = Path(__file__).resolve().parent / "data" / "facies_model.json"
-    facies_model_obj = json.loads(facies_model_path.read_text(encoding="utf-8"))
+    facies_model_path = (
+        Path(__file__).resolve().parent / "data" / "facies_model.json"
+    )
+    facies_model_obj = json.loads(
+        facies_model_path.read_text(encoding="utf-8")
+    )
 
     payload = {
         "format": "pyWellSFM.ScenarioData",
@@ -759,7 +826,8 @@ def test_exportScenario_writes_inline_objects(tmp_path: Path) -> None:
     assert isinstance(out_obj.get("accumulationModel"), dict)
     assert "url" not in out_obj["accumulationModel"]
     assert (
-        out_obj["accumulationModel"].get("format") == "pyWellSFM.AccumulationModelData"
+        out_obj["accumulationModel"].get("format")
+        == "pyWellSFM.AccumulationModelData"
     )
 
     assert isinstance(out_obj.get("eustaticCurve"), dict)
@@ -798,8 +866,12 @@ def test_exportRealizationData_writes_inline_objects(tmp_path: Path) -> None:
 
     rd2 = loadRealizationData(str(realization_out))
     assert rd2.well.name == rd.well.name
-    assert set(rd2.well.getContinuousLogNames()) == set(rd.well.getContinuousLogNames())
-    assert set(rd2.well.getDiscreteLogNames()) == set(rd.well.getDiscreteLogNames())
+    assert set(rd2.well.getContinuousLogNames()) == set(
+        rd.well.getContinuousLogNames()
+    )
+    assert set(rd2.well.getDiscreteLogNames()) == set(
+        rd.well.getDiscreteLogNames()
+    )
     assert len(rd2.well.getMarkers()) == len(rd.well.getMarkers())
     assert rd2.subsidenceCurve is not None
     assert np.isclose(rd2.subsidenceCurve.getValueAt(0.0), 50.0)
@@ -812,8 +884,12 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
     scenario_path = tmp_path / "scenario.json"
     simulation_out = tmp_path / "simulation_out.json"
 
-    facies_model_path = Path(__file__).resolve().parent / "data" / "facies_model.json"
-    facies_model_obj = json.loads(facies_model_path.read_text(encoding="utf-8"))
+    facies_model_path = (
+        Path(__file__).resolve().parent / "data" / "facies_model.json"
+    )
+    facies_model_obj = json.loads(
+        facies_model_path.read_text(encoding="utf-8")
+    )
 
     scenario_payload = {
         "format": "pyWellSFM.ScenarioData",
@@ -863,7 +939,10 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
                         "xAxisName": "Age",
                         "yAxisName": "Subsidence",
                         "interpolationMethod": "linear",
-                        "data": [{"x": 0.0, "y": 0.0}, {"x": 10.0, "y": 100.0}],
+                        "data": [
+                            {"x": 0.0, "y": 0.0},
+                            {"x": 10.0, "y": 100.0},
+                        ],
                     },
                 },
             }
@@ -910,7 +989,9 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
     assert "url" not in out_obj["scenario"]
     assert isinstance(out_obj.get("realizations"), list)
     assert len(out_obj["realizations"]) == 2
-    assert all(isinstance(r, dict) and "url" not in r for r in out_obj["realizations"])
+    assert all(
+        isinstance(r, dict) and "url" not in r for r in out_obj["realizations"]
+    )
 
     simulators = loadSimulationData(str(simulation_out))
     assert len(simulators) == 2

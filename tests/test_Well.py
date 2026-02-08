@@ -27,7 +27,10 @@ if m_path not in sys.path:
     sys.path.insert(0, m_path)
 
 from pywellsfm.io import loadWell  # noqa: E402
-from pywellsfm.model.Marker import Marker, StratigraphicSurfaceType  # noqa: E402
+from pywellsfm.model.Marker import (  # noqa: E402
+    Marker,
+    StratigraphicSurfaceType,
+)
 from pywellsfm.model.Well import Well  # noqa: E402
 
 
@@ -284,8 +287,12 @@ def test_saveWellToJson_with_markers_logs_and_path(tmp_path: Path) -> None:
     # Striplog
     striplog = Striplog(
         [
-            Interval(0.0, 15.0, components=[Component({"lithology": "sandstone"})]),
-            Interval(15.0, 30.0, components=[Component({"lithology": "shale"})]),
+            Interval(
+                0.0, 15.0, components=[Component({"lithology": "sandstone"})]
+            ),
+            Interval(
+                15.0, 30.0, components=[Component({"lithology": "shale"})]
+            ),
         ]
     )
     print("input striplog", striplog)

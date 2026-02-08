@@ -120,7 +120,9 @@ class PolynomialInterpolator(Interpolator):
         """
         self.deg = args["deg"]
         nbPtsTmp: int = args["nbPts"]
-        self.nbPts = nbPtsTmp if 2 * nbPtsTmp > self.deg else int(self.deg / 2) + 1
+        self.nbPts = (
+            nbPtsTmp if 2 * nbPtsTmp > self.deg else int(self.deg / 2) + 1
+        )
 
     def __str__(self: Self) -> str:
         """Overload of __str__ method.

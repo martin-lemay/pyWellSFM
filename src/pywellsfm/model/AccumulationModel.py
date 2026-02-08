@@ -117,7 +117,9 @@ class AccumulationModelGaussian(AccumulationModelBase):
         :param float | None std_dev_factor: standard deviation factor, defaults to None
         """
         super().addElement(element)
-        factor = self.defaultStdDev if std_dev_factor is None else std_dev_factor
+        factor = (
+            self.defaultStdDev if std_dev_factor is None else std_dev_factor
+        )
         self.std_dev_factors[element.name] = factor
 
     def getElementAccumulationAt(
@@ -133,7 +135,9 @@ class AccumulationModelGaussian(AccumulationModelBase):
         :return float: accumulation rate (m/My)
         """
         mean = element.accumulationRate
-        stdDev_factor = self.std_dev_factors.get(element.name, self.defaultStdDev)
+        stdDev_factor = self.std_dev_factors.get(
+            element.name, self.defaultStdDev
+        )
         stddev = stdDev_factor * mean
         return float(np.random.normal(mean, stddev))
 

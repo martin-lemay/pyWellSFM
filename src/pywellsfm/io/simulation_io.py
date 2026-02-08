@@ -51,7 +51,9 @@ def loadRealizationData(filepath: str) -> RealizationData:
     """
     path = Path(filepath)
     data = json.loads(path.read_text(encoding="utf-8"))
-    return _loadRealizationDataFromJsonObj(data, base_dir=path.resolve().parent)
+    return _loadRealizationDataFromJsonObj(
+        data, base_dir=path.resolve().parent
+    )
 
 
 def _loadRealizationDataFromJsonObj(
@@ -131,7 +133,9 @@ def _loadRealizationDataFromJsonObj(
     return RealizationData(well=well, subsidenceCurve=subsidence_curve)
 
 
-def exportRealizationDataToJsonObj(realizationData: RealizationData) -> dict[str, Any]:
+def exportRealizationDataToJsonObj(
+    realizationData: RealizationData,
+) -> dict[str, Any]:
     """Export RealizationData object to json object.
 
     json format conforms to json/RealizationDataSchema.json.
@@ -148,13 +152,17 @@ def exportRealizationDataToJsonObj(realizationData: RealizationData) -> dict[str
     }
 
     if realizationData.subsidenceCurve is not None:
-        payload["subsidenceCurve"] = curveToJsonObj(realizationData.subsidenceCurve)
+        payload["subsidenceCurve"] = curveToJsonObj(
+            realizationData.subsidenceCurve
+        )
     else:
         payload["subsidenceCurve"] = None
     return payload
 
 
-def saveRealizationData(realizationData: RealizationData, filepath: str) -> None:
+def saveRealizationData(
+    realizationData: RealizationData, filepath: str
+) -> None:
     """Save RealizationData object to json file.
 
     json file format conforms to json/RealizationDataSchema.json.
@@ -165,10 +173,14 @@ def saveRealizationData(realizationData: RealizationData, filepath: str) -> None
     """
     path = Path(filepath)
     if path.suffix.lower() != ".json":
-        raise ValueError("RealizationData output file must have a .json extension.")
+        raise ValueError(
+            "RealizationData output file must have a .json extension."
+        )
     out = exportRealizationDataToJsonObj(realizationData)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def loadScenario(filepath: str) -> Scenario:
@@ -320,7 +332,9 @@ def exportScenarioToJsonObj(scenario: Scenario) -> dict[str, Any]:
         "version": "1.0",
         "name": scenario.name,
         "faciesModel": faciesModelToJsonObj(scenario.faciesModel),
-        "accumulationModel": accumulationModelToJsonObj(scenario.accumulationModel),
+        "accumulationModel": accumulationModelToJsonObj(
+            scenario.accumulationModel
+        ),
     }
     if scenario.eustaticCurve is not None:
         payload["eustaticCurve"] = curveToJsonObj(scenario.eustaticCurve)
@@ -343,7 +357,9 @@ def saveScenario(scenario: Scenario, filepath: str) -> None:
         raise ValueError("Scenario output file must have a .json extension.")
     out = exportScenarioToJsonObj(scenario)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def exportSimulationDataToJsonObj(
@@ -368,7 +384,9 @@ def exportSimulationDataToJsonObj(
         not isinstance(simulationData.realizationsData, list)
         or len(simulationData.realizationsData) < 1
     ):
-        raise ValueError("Simulation.realizations must contain at least one item.")
+        raise ValueError(
+            "Simulation.realizations must contain at least one item."
+        )
 
     payload: dict[str, Any] = {
         "format": "pyWellSFM.SimulationData",
@@ -376,7 +394,8 @@ def exportSimulationDataToJsonObj(
         "name": str(name),
         "scenario": exportScenarioToJsonObj(simulationData.scenario),
         "realizations": [
-            exportRealizationDataToJsonObj(r) for r in simulationData.realizationsData
+            exportRealizationDataToJsonObj(r)
+            for r in simulationData.realizationsData
         ],
     }
     return payload
@@ -391,10 +410,14 @@ def saveSimulationData(
     """Save SimulationData object to json file."""
     path = Path(filepath)
     if path.suffix.lower() != ".json":
-        raise ValueError("SimulationData output file must have a .json extension.")
+        raise ValueError(
+            "SimulationData output file must have a .json extension."
+        )
     out = exportSimulationDataToJsonObj(simulationData, name=name)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(
+        json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def loadSimulationData(filepath: str) -> list[FSSimulator]:
@@ -449,14 +472,20 @@ def loadSimulationData(filepath: str) -> list[FSSimulator]:
     if not isinstance(realizations_obj, list):
         raise ValueError("Simulation.realizations must be a list.")
     if len(realizations_obj) == 0:
-        raise ValueError("Simulation.realizations must contain at least one item.")
+        raise ValueError(
+            "Simulation.realizations must contain at least one item."
+        )
 
     realizations_data: list[RealizationData] = []
     for idx, realization_item in enumerate(realizations_obj):
         ctx = f"Simulation.realizations[{idx}]"
 
-        def _load_inline_realization(real_json: dict[str, Any]) -> RealizationData:
-            return _loadRealizationDataFromJsonObj(real_json, base_dir=base_dir)
+        def _load_inline_realization(
+            real_json: dict[str, Any],
+        ) -> RealizationData:
+            return _loadRealizationDataFromJsonObj(
+                real_json, base_dir=base_dir
+            )
 
         def _load_realization_file(path: Path) -> RealizationData:
             return loadRealizationData(str(path))

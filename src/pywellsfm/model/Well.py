@@ -125,7 +125,9 @@ class Well:
         elif isinstance(log, Curve):
             self._addContinuousLog(logName, log)
         else:
-            print("ERROR: Log type is not managed. Use either Curve or Striplog types.")
+            print(
+                "ERROR: Log type is not managed. Use either Curve or Striplog types."
+            )
 
     def addAgeLog(self: Self, logName: str, log: Curve | Striplog) -> None:
         """Add a well log in age domain.

@@ -12,7 +12,12 @@ import numpy as np
 import pytest
 from striplog import Legend, Striplog
 
-from pywellsfm.model import FaciesCriteria, SedimentaryFacies, UncertaintyCurve, Well
+from pywellsfm.model import (
+    FaciesCriteria,
+    SedimentaryFacies,
+    UncertaintyCurve,
+    Well,
+)
 from pywellsfm.model.AccommodationSpaceWellCalculator import (
     AccommodationSpaceWellCalculator,
 )
@@ -57,7 +62,9 @@ siltstoneFac1 = SedimentaryFacies(
     "siltstone", {FaciesCriteria("Bathymetry", 20.0, 50.0)}
 )
 siltstoneFac1.addCriteria(FaciesCriteria("Bathymetry", 20.0, 50.0))
-shaleFac1 = SedimentaryFacies("shale", {FaciesCriteria("Bathymetry", 40.0, 100.0)})
+shaleFac1 = SedimentaryFacies(
+    "shale", {FaciesCriteria("Bathymetry", 40.0, 100.0)}
+)
 shaleFac1.addCriteria(FaciesCriteria("Bathymetry", 40.0, 100.0))
 faciesList1: list[SedimentaryFacies] = [
     sandstoneFac1,
@@ -66,13 +73,17 @@ faciesList1: list[SedimentaryFacies] = [
 ]
 
 # defines facies bathymetry
-sandstoneFac2 = SedimentaryFacies("sandstone", {FaciesCriteria("Bathymetry", 5.0, 5.0)})
+sandstoneFac2 = SedimentaryFacies(
+    "sandstone", {FaciesCriteria("Bathymetry", 5.0, 5.0)}
+)
 sandstoneFac2.addCriteria(FaciesCriteria("Bathymetry", 5.0, 5.0))
 siltstoneFac2 = SedimentaryFacies(
     "siltstone", {FaciesCriteria("Bathymetry", 10.0, 10.0)}
 )
 siltstoneFac2.addCriteria(FaciesCriteria("Bathymetry", 10.0, 10.0))
-shaleFac2 = SedimentaryFacies("shale", {FaciesCriteria("Bathymetry", 60.0, 60.0)})
+shaleFac2 = SedimentaryFacies(
+    "shale", {FaciesCriteria("Bathymetry", 60.0, 60.0)}
+)
 shaleFac2.addCriteria(FaciesCriteria("Bathymetry", 60.0, 60.0))
 faciesList2: list[SedimentaryFacies] = [
     sandstoneFac2,
@@ -116,14 +127,18 @@ def test_getBathymetryRangeFromFaciesName(facies: SedimentaryFacies) -> None:
 def test_computeBathymetryStepCurve() -> None:
     """Test of computeBathymetryStepCurve method."""
     aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList1)
-    bathymetryStepCurves = aspc._computeBathymetryStepCurve(lithoLogBarbier, depth, 0)
+    bathymetryStepCurves = aspc._computeBathymetryStepCurve(
+        lithoLogBarbier, depth, 0
+    )
     # np.savetxt(
     #     os.path.join(fileDir, "bathyStepCurves.csv"),
     #     bathymetryStepCurves,
     #     fmt="%.3e",
     #     delimiter=",",
     # )
-    expArray = np.loadtxt(os.path.join(dataDir, "bathyStepCurves.csv"), delimiter=",")
+    expArray = np.loadtxt(
+        os.path.join(dataDir, "bathyStepCurves.csv"), delimiter=","
+    )
     eps = 1e-6
     assert array_equal(expArray, bathymetryStepCurves, eps), (
         "Bathymetry step curve array is wrong."
@@ -139,9 +154,13 @@ def test_computeBathymetryCurve() -> None:
     # check curves coherency
     eps = 1e-4
     assert array_equal(
-        bathymetryCurve._medianCurve._abscissa, bathymetryCurve._minCurve._abscissa, eps
+        bathymetryCurve._medianCurve._abscissa,
+        bathymetryCurve._minCurve._abscissa,
+        eps,
     ) and array_equal(
-        bathymetryCurve._medianCurve._abscissa, bathymetryCurve._maxCurve._abscissa, eps
+        bathymetryCurve._medianCurve._abscissa,
+        bathymetryCurve._maxCurve._abscissa,
+        eps,
     ), "Bathymetry curves do not have same abscissa values."
 
     # plot bathymetry curves to check results
@@ -181,9 +200,9 @@ def test_computeBathymetryCurve() -> None:
     assert array_equal(bathymetryCurve.getAbscissa(), expArray[:, 0], eps), (
         "Abscissa values of bathymetry curve are wrong."
     )
-    assert array_equal(bathymetryCurve.getMedianValues(), expArray[:, 1], eps), (
-        "Ordinate values of median bathymetry curve are wrong."
-    )
+    assert array_equal(
+        bathymetryCurve.getMedianValues(), expArray[:, 1], eps
+    ), "Ordinate values of median bathymetry curve are wrong."
     assert array_equal(bathymetryCurve.getMinValues(), expArray[:, 2], eps), (
         "Ordinate values of min bathymetry curve are wrong."
     )
@@ -195,14 +214,18 @@ def test_computeBathymetryCurve() -> None:
 def test_computeAccommodationArray() -> None:
     """Test of _computeAccommodationStepCurve method."""
     aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList1)
-    accommodationArray = aspc._computeAccommodationArray(lithoLogBarbier, 55.0, 0)
+    accommodationArray = aspc._computeAccommodationArray(
+        lithoLogBarbier, 55.0, 0
+    )
     # np.savetxt(
     #     os.path.join(fileDir, "accomodationArray.csv"),
     #     accommodationArray,
     #     fmt="%.3e",
     #     delimiter=",",
     # )
-    expArray = np.loadtxt(os.path.join(dataDir, "accomodationArray.csv"), delimiter=",")
+    expArray = np.loadtxt(
+        os.path.join(dataDir, "accomodationArray.csv"), delimiter=","
+    )
     eps = 1e-6
     assert array_equal(expArray, accommodationArray, eps), (
         "Accommodation step curve array is wrong."
@@ -260,7 +283,8 @@ def test_computeAccommodationCurve01() -> None:
 
     # check curve values
     expArray = np.loadtxt(
-        os.path.join(dataDir, "accommodationUncertaintyCurves01.csv"), delimiter=","
+        os.path.join(dataDir, "accommodationUncertaintyCurves01.csv"),
+        delimiter=",",
     )
     print(accoCurve.getAbscissa(), expArray[:, 0])
     assert array_equal(accoCurve.getAbscissa(), expArray[:, 0], eps), (
@@ -328,7 +352,8 @@ def test_computeAccommodationCurve02() -> None:
 
     # check curve values
     expArray = np.loadtxt(
-        os.path.join(dataDir, "accommodationUncertaintyCurves02.csv"), delimiter=","
+        os.path.join(dataDir, "accommodationUncertaintyCurves02.csv"),
+        delimiter=",",
     )
     print(accoCurve.getAbscissa(), expArray[:, 0])
     assert array_equal(accoCurve.getAbscissa(), expArray[:, 0], eps), (
@@ -399,7 +424,8 @@ def test_computeAccommodationCurve1() -> None:
 
     # check curve values
     expArray = np.loadtxt(
-        os.path.join(dataDir, "accommodationUncertaintyCurves1.csv"), delimiter=","
+        os.path.join(dataDir, "accommodationUncertaintyCurves1.csv"),
+        delimiter=",",
     )
     print(accoCurve.getAbscissa(), expArray[:, 0])
     assert array_equal(accoCurve.getAbscissa(), expArray[:, 0], eps), (
@@ -470,7 +496,8 @@ def test_computeAccommodationCurve2() -> None:
 
     # check curve values
     expArray = np.loadtxt(
-        os.path.join(dataDir, "accommodationUncertaintyCurves2.csv"), delimiter=","
+        os.path.join(dataDir, "accommodationUncertaintyCurves2.csv"),
+        delimiter=",",
     )
     print(accoCurve.getAbscissa(), expArray[:, 0])
     assert array_equal(accoCurve.getAbscissa(), expArray[:, 0], eps), (
