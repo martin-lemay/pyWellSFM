@@ -11,7 +11,6 @@ Files documented
 
 This page is built from the following Python modules:
 
-* ``__init__.py`` (``pywellsfm.io``)
 * ``_common.py`` (``pywellsfm.io._common``)
 * ``accumulation_model_io.py`` (``pywellsfm.io.accumulation_model_io``)
 * ``curve_io.py`` (``pywellsfm.io.curve_io``)
