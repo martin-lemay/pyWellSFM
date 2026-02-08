@@ -1,0 +1,29 @@
+# requirements.txt
+#
+# Derived from pyproject.toml ([project.dependencies] and [project.optional-dependencies]).
+# Note: project requires Python >= 3.13.1
+
+# --- Runtime dependencies ---
+numpy>=2.3.1
+pandas>=2.3.0
+scipy>=1.16.0
+welly>=0.5.2
+striplog>=0.9.2
+lasio>=0.31
+xarray>=2025.12.0
+jsonschema>=4.26.0
+
+# --- Optional dependencies: tests ---
+pytest
+
+# --- Optional dependencies: dev tooling (lint/format/typecheck/docs) ---
+pylint
+mypy
+black
+ruff
+sphinx
+sphinx-rtd-theme
+sphinx-autodoc-typehints
+
+# --- Optional dependencies: build tooling ---
+build~=1.2

@@ -1,0 +1,79 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/SimulationDataSchema.json",
+    "title": "Input Simulation Data",
+    "description": "Defines the input data to create FSM simulations.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.SimulationData"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "name": {
+            "type": "string",
+            "description": "Name of the simulation data."
+        },
+        "scenario": {
+            "description": "Scenario data for the simulation.",
+            "oneOf": [
+                {
+                    "description": "Inline scenario definition.",
+                    "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/ScenarioSchema.json"
+                },
+                {
+                    "type": "object",
+                    "description": "Path to scenario JSON file.",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Relative or absolute path to the scenario JSON file."
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "realizations": {
+            "type": "array",
+            "description": "List of realization data.",
+            "minItems": 1,
+            "items": {
+                "oneOf": [
+                    {
+                        "description": "Inline realization data definition.",
+                        "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/RealizationDataSchema.json"
+                    },
+                    {
+                        "type": "object",
+                        "description": "Path to realization data JSON file.",
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "description": "Relative or absolute path to the realization data JSON file."
+                            }
+                        },
+                        "required": [
+                            "url"
+                        ],
+                        "additionalProperties": false
+                    }
+                ]
+            }
+        }
+    },
+    "required": [
+        "format",
+        "version",
+        "name",
+        "scenario",
+        "realizations"
+    ],
+    "additionalProperties": false
+}

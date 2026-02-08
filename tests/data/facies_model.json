@@ -1,0 +1,81 @@
+{
+  "$schema": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/FaciesModelSchema.json",
+  "format": "pyWellSFM.FaciesModelData",
+  "version": "1.0",
+  "faciesModel": [
+    {
+      "name": "Sand",
+      "criteriaType": "sedimentological",
+      "criteria": [
+        {
+          "name": "GrainSize",
+          "minRange": 0.1,
+          "maxRange": 2.0
+        }
+      ]
+    },
+    {
+      "name": "Clay",
+      "criteriaType": "sedimentological",
+      "criteria": [
+        {
+          "name": "GrainSize",
+          "minRange": 0.001,
+          "maxRange": 0.004
+        }
+      ]
+    },
+    {
+      "name": "Reservoir",
+      "criteriaType": "petrophysical",
+      "criteria": [
+        {
+          "name": "Porosity",
+          "minRange": 0.05,
+          "maxRange": 0.35
+        }
+      ]
+    },
+    {
+      "name": "Seal",
+      "criteriaType": "petrophysical",
+      "criteria": [
+        {
+          "name": "Porosity",
+          "minRange": 0.0,
+          "maxRange": 0.05
+        }
+      ]
+    },
+    {
+      "name": "Shelf",
+      "criteriaType": "environmental",
+      "criteria": [
+        {
+          "name": "WaterDepth",
+          "minRange": 0.0,
+          "maxRange": 200.0
+        }
+      ]
+    },
+    {
+      "name": "Basin",
+      "criteriaType": "environmental",
+      "criteria": [
+        {
+          "name": "WaterDepth",
+          "minRange": 1000.0
+        }
+      ]
+    },
+    {
+      "name": "Other",
+      "criteriaType": "uncategorized",
+      "criteria": [
+        {
+          "name": "Foo"
+        }
+      ]
+    }
+  ]
+}

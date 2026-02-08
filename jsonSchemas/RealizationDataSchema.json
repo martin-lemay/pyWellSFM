@@ -1,0 +1,67 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/RealizationData.json",
+    "title": "Input Realization Data",
+    "description": "Defines the input data to create a realization data object.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.RealizationData"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "well": {
+            "oneOf": [
+                {
+                    "description": "Inline well definition.",
+                    "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/WellSchema.json"
+                },
+                {
+                    "type": "object",
+                    "description": "Path to a well file.",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Relative or absolute path to the well file."
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "subsidenceCurve": {
+            "oneOf": [
+                {
+                    "description": "Inline curve definition.",
+                    "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/CurveSchema.json"
+                },
+                {
+                    "type": "object",
+                    "description": "Path to a curve.",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Relative or absolute path to the curve file."
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        }
+    },
+    "required": [
+        "format",
+        "version",
+        "well"
+    ],
+    "additionalProperties": false
+}

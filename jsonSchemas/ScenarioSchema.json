@@ -1,0 +1,95 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/Scenario.json",
+    "title": "Input Scenario Data",
+    "description": "Defines the input data to create a scenario data object.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.ScenarioData"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "name": {
+            "description": "Name of the scenario.",
+            "type": "string"
+        },
+        "faciesModel": {
+            "oneOf": [
+                {
+                    "description": "Inline facies model definition.",
+                    "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/FaciesModel.json"
+                },
+                {
+                    "type": "object",
+                    "description": "Path to facies model JSON file.",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Relative or absolute path to the facies model JSON file."
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "accumulationModel": {
+            "oneOf": [
+                {
+                    "description": "Inline accumulation model definition.",
+                    "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/AccumulationModel.json"
+                },
+                {
+                    "type": "object",
+                    "description": "Path to accumulation model JSON file.",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Relative or absolute path to the accumulation model JSON file."
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "eustaticCurve": {
+            "oneOf": [
+                {
+                    "description": "Inline curve definition.",
+                    "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/CurveSchema.json"
+                },
+                {
+                    "type": "object",
+                    "description": "Path to a curve.",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Relative or absolute path to the curve file."
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        }
+    },
+    "required": [
+        "format",
+        "version",
+        "name",
+        "faciesModel",
+        "accumulationModel"
+    ],
+    "additionalProperties": false
+}

@@ -1,0 +1,58 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/TabulatedFunctionSchema.json",
+    "title": "Input Tabulated function Data",
+    "description": "Defines the input data to create a tabulated function.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.TabulatedFunctionData"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "abscissaName": {
+            "description": "Name of the abscissa (x-axis) variable.",
+            "type": "string"
+        },
+        "ordinateName": {
+            "description": "Name of the ordinate (y-axis) variable.",
+            "type": "string"
+        },
+        "values": {
+            "description": "Tabulated function definition.",
+            "type": "object",
+            "properties": {
+                "xValues": {
+                    "description": "Array of x values.",
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "yValues": {
+                    "description": "Array of y values.",
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                }
+            },
+            "required": [
+                "xValues",
+                "yValues"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "format",
+        "version",
+        "abscissaName",
+        "ordinateName",
+        "values"
+    ],
+    "additionalProperties": false
+}

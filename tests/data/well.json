@@ -1,0 +1,54 @@
+{
+    "$schema": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/WellSchema.json",
+    "format": "pyWellSFM.WellData",
+    "version": "1.0",
+    "well": {
+        "name": "Well-B",
+        "location": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "depth": 100.0,
+        "wellPath": [
+            {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 100.0
+            }
+        ],
+        "markers": [
+            {
+                "name": "M1",
+                "depth": 10.0,
+                "age": 5.0,
+                "stratigraphicType": "Baselap"
+            }
+        ],
+        "striplogs": [
+            {
+                "name": "lithology",
+                "intervals": [
+                    {
+                        "top": 0.0,
+                        "base": 15.0,
+                        "lithology": "sandstone"
+                    },
+                    {
+                        "top": 15.0,
+                        "base": 30.0,
+                        "lithology": "shale"
+                    }
+                ]
+            }
+        ],
+        "continuousLogs": {
+            "url": "wellLogs.csv"
+        }
+    }
+}

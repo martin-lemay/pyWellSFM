@@ -1,0 +1,112 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/CurveSchema.json",
+    "title": "Input Curve Data",
+    "description": "Defines the input data to create a curve.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.CurveData"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "curve": {
+            "description": "Curve definition.",
+            "type": "object",
+            "properties": {
+                "xAxisName": {
+                    "description": "Name of the curve's x-axis.",
+                    "type": "string"
+                },
+                "yAxisName": {
+                    "description": "Name of the curve's y-axis.",
+                    "type": "string"
+                },
+                "interpolationMethod": {
+                    "description": "Interpolation method used for the curve.",
+                    "oneOf": [
+                        {
+                            "description": "Polynomial interpolation method.",
+                            "$ref": "#/$defs/PolynomialInterpolationFunction"
+                        },
+                        {
+                            "description": "Methods from scipy.",
+                            "type": "string",
+                            "enum": [
+                                "linear",
+                                "nearest",
+                                "nearest-up",
+                                "zero",
+                                "slinear",
+                                "quadratic",
+                                "cubic",
+                                "previous",
+                                "next"
+                            ]
+                        }
+                    ]
+                },
+                "data": {
+                    "description": "Data points of the curve.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "description": "Abscissa value.",
+                                "type": "number"
+                            },
+                            "y": {
+                                "description": "Ordinate value.",
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "x",
+                            "y"
+                        ],
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "required": [
+                "xAxisName",
+                "yAxisName",
+                "interpolationMethod",
+                "data"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "format",
+        "version",
+        "curve"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+        "PolynomialInterpolationFunction": {
+            "type": "object",
+            "properties": {
+                "degree": {
+                    "description": "Degree of the polynomial interpolation.",
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "nbPoints": {
+                    "description": "Number of points used for the polynomial interpolation.",
+                    "type": "integer",
+                    "minimum": 2
+                }
+            },
+            "required": [
+                "degree",
+                "nbPoints"
+            ],
+            "additionalProperties": false
+        }
+    }
+}

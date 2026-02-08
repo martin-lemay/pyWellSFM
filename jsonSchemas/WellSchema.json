@@ -1,0 +1,223 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/WellSchema.json",
+    "title": "Input Well Data",
+    "description": "Defines the input data to create a well.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.WellData"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "well": {
+            "description": "Well definition.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of the well.",
+                    "type": "string"
+                },
+                "location": {
+                    "description": "Location of the well.",
+                    "type": "object",
+                    "properties": {
+                        "x": {
+                            "description": "X coordinate of the well location.",
+                            "type": "number"
+                        },
+                        "y": {
+                            "description": "Y coordinate of the well location.",
+                            "type": "number"
+                        },
+                        "z": {
+                            "description": "Z coordinate of the well location.",
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "additionalProperties": false
+                },
+                "depth": {
+                    "description": "Depth of the well in meters.",
+                    "type": "number",
+                    "minimum": 0
+                },
+                "wellPath": {
+                    "description": "well path containing x,y,z coordinates of the path.",
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "description": "X coordinate of the well path point.",
+                                "type": "number"
+                            },
+                            "y": {
+                                "description": "Y coordinate of the well path point.",
+                                "type": "number"
+                            },
+                            "z": {
+                                "description": "Z coordinate of the well path point.",
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "x",
+                            "y",
+                            "z"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "markers": {
+                    "description": "Markers in the well.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Marker"
+                    }
+                },
+                "striplogs": {
+                    "description": "Striplogs in the well.",
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/$defs/Striplog"
+                            },
+                            {
+                                "type": "string",
+                                "description": "Path to external csv file containing the striplog data."
+                            }
+                        ]
+                    }
+                },
+                "continuousLogs": {
+                    "description": "Continuous logs in the well.",
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/CurveSchema.json"
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "description": "Path to external csv file containing the continuous log data.",
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "url"
+                            ],
+                            "additionalProperties": false
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "name",
+                "location",
+                "depth"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "format",
+        "version",
+        "well"
+    ],
+    "$defs": {
+        "Marker": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of the marker.",
+                    "type": "string"
+                },
+                "depth": {
+                    "description": "Depth of the marker in meters.",
+                    "type": "number",
+                    "minimum": 0
+                },
+                "age": {
+                    "description": "Age of the marker in million years.",
+                    "type": "number",
+                    "minimum": 0
+                },
+                "stratigraphicType": {
+                    "description": "Stratigraphic type of the marker.",
+                    "type": "string",
+                    "enum": [
+                        "Conform",
+                        "Erosive",
+                        "Toplap",
+                        "Baselap",
+                        "Unknown"
+                    ]
+                }
+            },
+            "required": [
+                "name",
+                "depth",
+                "age",
+                "stratigraphicType"
+            ],
+            "additionalProperties": false
+        },
+        "Striplog": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of the striplog.",
+                    "type": "string"
+                },
+                "intervals": {
+                    "description": "Intervals of the striplog.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "top": {
+                                "description": "Top depth of the interval in meters.",
+                                "type": "number",
+                                "minimum": 0
+                            },
+                            "base": {
+                                "description": "Base depth of the interval in meters.",
+                                "type": "number",
+                                "minimum": 0
+                            },
+                            "lithology": {
+                                "description": "Lithology of the interval.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "top",
+                            "base",
+                            "lithology"
+                        ],
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "intervals"
+            ],
+            "additionalProperties": false
+        }
+    }
+}

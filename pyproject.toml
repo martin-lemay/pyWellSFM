@@ -1,0 +1,175 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pywellsfm*"]
+exclude = ['tests*']
+
+[project]
+name = "pywellsfm"
+version = "0.0.1"
+description = "The Python package pyWellSFM aims at simulating the deposition of sediment layers along a well."
+authors = [{name = "Martin Lemay", email = "martinlemay@mines-paris.org"}]
+license = {file = "LICENSE"}
+classifiers = [
+    "Intended Audience :: Developers",
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+]
+keywords = [
+    "Sedimentology",
+    "Stratigraphy",
+]
+dependencies = [
+    "numpy >= 2.3.1",
+    "pandas >= 2.3.0",
+    "scipy >= 1.16.0",
+    "welly >= 0.5.2",
+    "striplog >= 0.9.2",
+    "lasio >= 0.31",
+    "xarray >= 2025.12.0",
+    "jsonschema >= 4.26.0",
+]
+requires-python = ">= 3.12"
+
+[project.optional-dependencies]
+build = [
+  "build ~= 1.2"
+]
+dev = [
+    "pylint",
+    "mypy",
+    "black",
+    "ruff",
+    "sphinx", 
+    "sphinx-rtd-theme", 
+    "sphinx-autodoc-typehints"
+]
+test = [
+    "pytest",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.bumpversion]
+current_version = "0.0.1"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+
+[tool.ruff]
+target-version = "py312"
+
+extend-exclude = ["tests/data", "docs/", "notebooks/"]
+
+# Same as Black.
+line-length = 79
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+#    "UP",   # pyupgrade deactivate since python39
+    "B",    # flake8-bugbear        
+    "SIM",  # flake8-simplify        
+    "ANN",  # flake8-annotations        
+    "C4",   # flake8-comprehensions    
+    "I",    # isort        
+    "D",    # pydocstyle    
+]
+
+ignore = [
+#    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "W191", # indentation contains tabs
+    "D100",
+    "D101",
+    "D104",  # Missing docstring in public package in __init__.py files
+    "UP007",
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+
+#[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+#keep-runtime-typing = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+console_output_style = "count"
+pythonpath = [".", "src"]
+python_classes = "Test"
+python_files = "test*.py"
+python_functions = "test*"
+testpaths = ["tests"]
+norecursedirs = "bin"
+filterwarnings = ["ignore::DeprecationWarning:pybend.*", "ignore::DeprecationWarning:multiprocessing.*",]
+
+[tool.coverage.run]
+branch = true
+source = ["pybend"]
+
+[tool.mypy]
+# Specify the target platform details in config, so your developers are
+# free to run mypy on Windows, Linux, or macOS and get consistent
+# results.
+python_version = "3.12"
+files = "."
+exclude = "build/*"
+# strict = true
+
+warn_unreachable = true
+implicit_reexport = true
+show_error_codes = true
+show_column_numbers = true
+disable_error_code = "misc, import-untyped"
+
+# Overrides for currently untyped modules
+[[tool.mypy.overrides]]
+module = [
+    "docs.*",
+    "docs.ext.*",
+    "tests.unit.*",
+]
+ignore_errors = true
+
+[project.urls]
+Homepage = "https://github.com/martin-lemay/pyWellSFM"
+Documentation = "https://mlemay-pywellsfm.readthedocs.io/en/latest/index.html"
+Repository = "https://github.com/martin-lemay/pyWellSFM.git"

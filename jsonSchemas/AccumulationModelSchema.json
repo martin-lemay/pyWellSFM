@@ -1,0 +1,152 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/AccumulationModelSchema.json",
+    "title": "Input Accumulation Model Data",
+    "description": "Defines the input data to create an accumulation model.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.AccumulationModelData"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "accumulationModel": {
+            "description": "Accumulation model definition.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of the accumulation model.",
+                    "type": "string"
+                },
+                "modelType": {
+                    "description": "Type of accumulation model.",
+                    "type": "string",
+                    "enum": [
+                        "Gaussian",
+                        "EnvironmentOptimum"
+                    ]
+                },
+                "elements": {
+                    "description": "Elements part of the accumulation model.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "description": "Parameters defining the accumulation model for the element.",
+                        "oneOf": [
+                            {
+                                "$ref": "#/$defs/ElementGaussianParameters"
+                            },
+                            {
+                                "$ref": "#/$defs/ElementEnvironmentOptimumParameters"
+                            }
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "modelType",
+                "elements"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "format",
+        "version",
+        "accumulationModel"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+        "Element": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of the element.",
+                    "type": "string"
+                },
+                "accumulationRate": {
+                    "description": "Accumulation rate of the element.",
+                    "type": "number"
+                }
+            },
+            "required": [
+                "name",
+                "accumulationRate"
+            ],
+            "additionalProperties": false
+        },
+        "AccumulationModelType": {
+            "type": "string",
+            "enum": [
+                "Gaussian",
+                "EnvironmentOptimum"
+            ]
+        },
+        "ElementGaussianParameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of the element.",
+                    "type": "string"
+                },
+                "accumulationRate": {
+                    "description": "Mean accumulation rate of the element.",
+                    "type": "number"
+                },
+                "stddevFactor": {
+                    "description": "Standard deviation factor of the Gaussian distribution.",
+                    "type": "number"
+                }
+            },
+            "required": [
+                "name",
+                "accumulationRate",
+                "stddevFactor"
+            ],
+            "additionalProperties": false
+        },
+        "ElementEnvironmentOptimumParameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of the element.",
+                    "type": "string"
+                },
+                "accumulationRate": {
+                    "description": "Optimal accumulation rate of the element.",
+                    "type": "number"
+                },
+                "accumulationCurves": {
+                    "description": "List of accumulation curves defining the environment optimum model for the element.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "description": "Either an inline TabulatedFunction object, or a path/URI to a JSON or csv file containing a TabulatedFunction object.",
+                        "oneOf": [
+                            {
+                                "$ref": "https://github.com/martin-lemay/pyWellSFM/pyWellSFM/jsonSchemas/TabulatedFunctionSchema.json"
+                            },
+                            {
+                                "type": "string",
+                                "minLength": 1,
+                                "format": "uri-reference",
+                                "pattern": ".*\\.(json|csv)$",
+                                "description": "Path/URI to a .json or .csv file defining the tabulated function."
+                            }
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "accumulationRate",
+                "accumulationCurves"
+            ],
+            "additionalProperties": false
+        }
+    }
+}

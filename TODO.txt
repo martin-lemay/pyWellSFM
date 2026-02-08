@@ -1,0 +1,16 @@
+Short-term:
+
+- fix AccommodationSpaceWellCalculator
+- use subsidence rate curve instead of subsidence (in meters)
+- create simulated well from output xarray
+- create output plots (acco/accumulation/topo... vs time) (from well in time or from xarray?)
+- Wells: allowing to convert Depth to Age from DepthAgeModel composed of markers linking depth with age. In between markers, assume a function (default is linear)
+- create missing unit tests for save methods
+- create export methods to save data objects (simulation, realization, scenario, etc.)
+
+Long-term:
+
+- define cost function to evaluate misfit between real and simulated well
+- implement multi-real framework from parameter ranges
+- implement parameter optimisation
+- add (de-)compaction law to restore wells at deposition thicknesses
