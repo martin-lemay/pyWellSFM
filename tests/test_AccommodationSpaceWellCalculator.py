@@ -15,6 +15,7 @@ from striplog import Legend, Striplog
 
 from pywellsfm.model import (
     FaciesCriteria,
+    FaciesCriteriaType,
     SedimentaryFacies,
     UncertaintyCurve,
     Well,
@@ -56,17 +57,41 @@ wellBarbier.addLog(lithoLogName, lithoLogBarbier)
 
 # defines facies bathymetry
 sandstoneFac1 = SedimentaryFacies(
-    "sandstone", {FaciesCriteria("Bathymetry", 0.0, 20.0)}
+    "sandstone", {
+        FaciesCriteria(
+            "Bathymetry", 0.0, 20.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        )
+    }
 )
-sandstoneFac1.addCriteria(FaciesCriteria("Bathymetry", 0.0, 20.0))
+sandstoneFac1.addCriteria(
+    FaciesCriteria(
+        "Bathymetry", 0.0, 20.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+    )
+)
 siltstoneFac1 = SedimentaryFacies(
-    "siltstone", {FaciesCriteria("Bathymetry", 20.0, 50.0)}
+    "siltstone", {
+        FaciesCriteria(
+            "Bathymetry", 20.0, 50.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        )
+    }
 )
-siltstoneFac1.addCriteria(FaciesCriteria("Bathymetry", 20.0, 50.0))
+siltstoneFac1.addCriteria(
+    FaciesCriteria(
+        "Bathymetry", 20.0, 50.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+    )
+)
 shaleFac1 = SedimentaryFacies(
-    "shale", {FaciesCriteria("Bathymetry", 40.0, 100.0)}
+    "shale", {
+        FaciesCriteria(
+            "Bathymetry", 40.0, 100.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        )
+    }
 )
-shaleFac1.addCriteria(FaciesCriteria("Bathymetry", 40.0, 100.0))
+shaleFac1.addCriteria(
+    FaciesCriteria(
+        "Bathymetry", 40.0, 100.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+    )
+)
 faciesList1: list[SedimentaryFacies] = [
     sandstoneFac1,
     siltstoneFac1,
@@ -75,17 +100,41 @@ faciesList1: list[SedimentaryFacies] = [
 
 # defines facies bathymetry
 sandstoneFac2 = SedimentaryFacies(
-    "sandstone", {FaciesCriteria("Bathymetry", 5.0, 5.0)}
+    "sandstone", {
+        FaciesCriteria(
+            "Bathymetry", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        )
+    }
 )
-sandstoneFac2.addCriteria(FaciesCriteria("Bathymetry", 5.0, 5.0))
+sandstoneFac2.addCriteria(
+    FaciesCriteria(
+        "Bathymetry", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+    )
+)
 siltstoneFac2 = SedimentaryFacies(
-    "siltstone", {FaciesCriteria("Bathymetry", 10.0, 10.0)}
+    "siltstone", {
+        FaciesCriteria(
+            "Bathymetry", 10.0, 10.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        )
+    }
 )
-siltstoneFac2.addCriteria(FaciesCriteria("Bathymetry", 10.0, 10.0))
+siltstoneFac2.addCriteria(
+    FaciesCriteria(
+        "Bathymetry", 10.0, 10.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+    )
+)
 shaleFac2 = SedimentaryFacies(
-    "shale", {FaciesCriteria("Bathymetry", 60.0, 60.0)}
+    "shale", {
+        FaciesCriteria(
+            "Bathymetry", 60.0, 60.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        )
+    }
 )
-shaleFac2.addCriteria(FaciesCriteria("Bathymetry", 60.0, 60.0))
+shaleFac2.addCriteria(
+    FaciesCriteria(
+        "Bathymetry", 60.0, 60.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+    )
+)
 faciesList2: list[SedimentaryFacies] = [
     sandstoneFac2,
     siltstoneFac2,
@@ -375,7 +424,6 @@ def test_computeAccommodationCurve02() -> None:
         os.path.join(dataDir, "accommodationUncertaintyCurves02.csv"),
         delimiter=",",
     )
-    print(accoCurve.getAbscissa(), expArray[:, 0])
     assert array_equal(accoCurve.getAbscissa(), expArray[:, 0], eps), (
         "Abscissa values of accommodation curve are wrong."
     )

@@ -100,6 +100,7 @@ class FaciesCriteriaCollection:
         """Collection of facies criteria.
 
         Criteria types include:
+
         - sedimentatological criteria (e.g., grain size, element composition,
           classifications)
         - petrophysical criteria (e.g., porosity, permeability, density)
@@ -280,7 +281,7 @@ class Facies:
         self.criteriaCollection: FaciesCriteriaCollection = (
             FaciesCriteriaCollection(criteriaType)
         )
-        self.criteriaCollection.addCriteria(criteria)
+        self.addCriteria(criteria)
 
     def addCriteria(self: Self, criteria: FaciesCriteria) -> None:
         """Add a criteria to the facies.

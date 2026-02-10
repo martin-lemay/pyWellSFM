@@ -136,7 +136,7 @@ class Curve:
             self._ordinate[index] = y
 
     def _getIndexOfX(self: Self, x: float, tol: float = 1e-6) -> int:
-        """Get the index of x is in the abscissa values.
+        """Get the index of x in the abscissa values.
 
         :param float x: value to check for
         :param float tol: Tolerance, defaults to 1e-6.
@@ -144,7 +144,7 @@ class Curve:
         """
         diff: npt.NDArray[np.bool_] = np.abs(self._abscissa - x) < tol
         if np.any(diff):
-            return int(np.nonzero(diff)[0])
+            return int(np.nonzero(diff)[0][0])
         return -1
 
     def setValueAt(self: Self, x: float, y: float, tol: float = 1e-6) -> None:

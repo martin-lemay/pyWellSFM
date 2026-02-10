@@ -7,9 +7,9 @@ import numpy as np
 import numpy.typing as npt
 from striplog import Striplog
 
-from pywellsfm.model.Curve import Curve
-from pywellsfm.model.DepthAgeModel import DepthAgeModel
-from pywellsfm.model.Marker import Marker
+from .Curve import Curve
+from .DepthAgeModel import DepthAgeModel
+from .Marker import Marker
 
 
 class Well:

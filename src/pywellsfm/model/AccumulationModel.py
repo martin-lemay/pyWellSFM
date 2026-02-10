@@ -6,8 +6,8 @@ from typing import Self
 
 import numpy as np
 
-from pywellsfm.model.Curve import AccumulationCurve
-from pywellsfm.model.Element import Element
+from .Curve import AccumulationCurve
+from .Element import Element
 
 
 class AccumulationModelBase(ABC):

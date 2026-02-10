@@ -7,10 +7,10 @@ import numpy as np
 import numpy.typing as npt
 from striplog import Interval, Striplog
 
-from pywellsfm.model.Curve import Curve, UncertaintyCurve
-from pywellsfm.model.Facies import FaciesCriteria, SedimentaryFacies
-from pywellsfm.model.Marker import Marker
-from pywellsfm.model.Well import Well
+from .Curve import Curve, UncertaintyCurve
+from .Facies import FaciesCriteria, SedimentaryFacies
+from .Marker import Marker
+from .Well import Well
 
 
 class AccommodationSpaceWellCalculator:
@@ -212,7 +212,6 @@ class AccommodationSpaceWellCalculator:
 
             # compute accommodation
             # computed from bathy of the interval
-            print(bathyAtBase, bathyInterval)
             acco1: tuple[float, float] = self._computeAccommodationValue(
                 thickness, bathyAtBase, tuple(bathyInterval.tolist())
             )
@@ -228,6 +227,7 @@ class AccommodationSpaceWellCalculator:
             # max accommodation
             accoArray[i + 1, 3:] = (acco1[1], acco2[1])
 
+        # set initial accommodation at the base to 0 (no uncertainty here)
         accoArray[-1, 1:] = 0.0
 
         # add initial accommodation value

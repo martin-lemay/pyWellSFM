@@ -4,10 +4,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from pywellsfm.model.AccumulationModel import AccumulationModelBase
-from pywellsfm.model.Curve import Curve
-from pywellsfm.model.Facies import FaciesModel
-from pywellsfm.model.Well import Well
+from .AccumulationModel import AccumulationModelBase
+from .Curve import Curve
+from .Facies import FaciesModel
+from .Well import Well
 
 
 @dataclass(frozen=True)
