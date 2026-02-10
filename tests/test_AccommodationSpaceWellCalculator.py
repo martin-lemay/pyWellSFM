@@ -57,11 +57,12 @@ wellBarbier.addLog(lithoLogName, lithoLogBarbier)
 
 # defines facies bathymetry
 sandstoneFac1 = SedimentaryFacies(
-    "sandstone", {
+    "sandstone",
+    {
         FaciesCriteria(
             "Bathymetry", 0.0, 20.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
-    }
+    },
 )
 sandstoneFac1.addCriteria(
     FaciesCriteria(
@@ -69,11 +70,12 @@ sandstoneFac1.addCriteria(
     )
 )
 siltstoneFac1 = SedimentaryFacies(
-    "siltstone", {
+    "siltstone",
+    {
         FaciesCriteria(
             "Bathymetry", 20.0, 50.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
-    }
+    },
 )
 siltstoneFac1.addCriteria(
     FaciesCriteria(
@@ -81,11 +83,12 @@ siltstoneFac1.addCriteria(
     )
 )
 shaleFac1 = SedimentaryFacies(
-    "shale", {
+    "shale",
+    {
         FaciesCriteria(
             "Bathymetry", 40.0, 100.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
-    }
+    },
 )
 shaleFac1.addCriteria(
     FaciesCriteria(
@@ -100,23 +103,23 @@ faciesList1: list[SedimentaryFacies] = [
 
 # defines facies bathymetry
 sandstoneFac2 = SedimentaryFacies(
-    "sandstone", {
+    "sandstone",
+    {
         FaciesCriteria(
             "Bathymetry", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
-    }
+    },
 )
 sandstoneFac2.addCriteria(
-    FaciesCriteria(
-        "Bathymetry", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL
-    )
+    FaciesCriteria("Bathymetry", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL)
 )
 siltstoneFac2 = SedimentaryFacies(
-    "siltstone", {
+    "siltstone",
+    {
         FaciesCriteria(
             "Bathymetry", 10.0, 10.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
-    }
+    },
 )
 siltstoneFac2.addCriteria(
     FaciesCriteria(
@@ -124,11 +127,12 @@ siltstoneFac2.addCriteria(
     )
 )
 shaleFac2 = SedimentaryFacies(
-    "shale", {
+    "shale",
+    {
         FaciesCriteria(
             "Bathymetry", 60.0, 60.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
-    }
+    },
 )
 shaleFac2.addCriteria(
     FaciesCriteria(
@@ -597,7 +601,7 @@ def array_equal(array1: np.ndarray, array2: np.ndarray, tol: float) -> bool:
     :param float tol: tolerance for comparison
     :return bool: True if arrays are equal within tolerance, False otherwise
     """
-    __test__ = False # noqa: F841
+    __test__ = False  # noqa: F841
     if array1.shape != array2.shape:
         return False
     diff = np.abs(array1 - array2)

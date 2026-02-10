@@ -54,7 +54,7 @@ def _json_schema_store() -> dict[str, Any]:
     return store
 
 
-def _format_jsonschema_path(path_items: Any) -> str: # noqa: ANN401
+def _format_jsonschema_path(path_items: Any) -> str:  # noqa: ANN401
     try:
         items = list(path_items)
     except TypeError:
@@ -70,9 +70,9 @@ def _format_jsonschema_path(path_items: Any) -> str: # noqa: ANN401
 
 
 def _iter_schema_errors(
-        instance: Any, # noqa: ANN401
-        schema_filename: str
-    ) -> list[Any]:
+    instance: Any,  # noqa: ANN401
+    schema_filename: str,
+) -> list[Any]:
     """Return jsonschema validation errors for instance (does not raise)."""
     try:
         from jsonschema import RefResolver
@@ -116,7 +116,7 @@ def _raise_first_schema_error(
 
 def validate_json_file_against_schema(
     filepath: str, schema_filename: str
-) -> Any: # noqa: ANN401
+) -> Any:  # noqa: ANN401
     """Validate a JSON file against a schema in jsonSchemas/.
 
     Returns the parsed JSON object when valid.
@@ -134,7 +134,7 @@ def validate_json_file_against_schema(
 
 
 def expect_format_version(
-    data: Any, # noqa: ANN401
+    data: Any,  # noqa: ANN401
     *,
     expected_format: str,
     expected_version: str,

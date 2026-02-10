@@ -83,10 +83,10 @@ def _loadRealizationDataFromJsonObj(
     # --- Well ---
     well_obj: Any = obj.get("well")
 
-    def _load_inline_well(well_json: dict[str, Any]) -> Any: # noqa: ANN401
+    def _load_inline_well(well_json: dict[str, Any]) -> Any:  # noqa: ANN401
         return loadWellFromJsonObj(well_json, base_dir=base_dir)
 
-    def _load_well_file(path: Path) -> Any: # noqa: ANN401
+    def _load_well_file(path: Path) -> Any:  # noqa: ANN401
         try:
             return loadWell(str(path))
         except ValueError as exc:
@@ -239,7 +239,7 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
     # --- Facies model ---
     facies_model_obj: Any = obj.get("faciesModel")
 
-    def _load_facies_file(path: Path) -> Any: # noqa: ANN401
+    def _load_facies_file(path: Path) -> Any:  # noqa: ANN401
         try:
             return loadFaciesModel(str(path))
         except (ValueError, FileNotFoundError, OSError) as exc:
@@ -259,10 +259,10 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
     # --- Accumulation model ---
     accumulation_model_obj: Any = obj.get("accumulationModel")
 
-    def _load_inline_am(am_json: dict[str, Any]) -> Any: # noqa: ANN401
+    def _load_inline_am(am_json: dict[str, Any]) -> Any:  # noqa: ANN401
         return loadAccumulationModelFromJsonObj(am_json, base_dir=base_dir)
 
-    def _load_am_file(path: Path) -> Any: # noqa: ANN401
+    def _load_am_file(path: Path) -> Any:  # noqa: ANN401
         try:
             return loadAccumulationModel(str(path))
         except (ValueError, FileNotFoundError, OSError) as exc:

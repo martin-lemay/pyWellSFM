@@ -127,7 +127,7 @@ class Well:
             self._addContinuousLog(logName, log)
         else:
             print(
-                "ERROR: Log type is not managed. Use either Curve or" \
+                "ERROR: Log type is not managed. Use either Curve or"
                 " Striplog types."
             )
 

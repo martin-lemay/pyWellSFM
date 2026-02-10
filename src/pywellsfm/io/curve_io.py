@@ -58,8 +58,8 @@ def curveToJsonObj(
     ordinate = np.asarray(getattr(curve, "_ordinate", []), dtype=float)
     if abscissa.size != ordinate.size:
         raise ValueError(
-            f"Curve abscissa/ordinate lengths differ: {abscissa.size} != " +
-            f"{ordinate.size}"
+            f"Curve abscissa/ordinate lengths differ: {abscissa.size} != "
+            + f"{ordinate.size}"
         )
     if abscissa.size < 2:
         raise ValueError("Curve must have at least 2 points")
@@ -340,12 +340,12 @@ def loadCurveFromJsonObj(obj: dict[str, Any]) -> Curve:
         nb_points = interpolation_method.get("nbPoints")
         if not isinstance(degree, int) or degree < 1:
             raise ValueError(
-                "Curve.curve.interpolationMethod.degree must be an" \
+                "Curve.curve.interpolationMethod.degree must be an"
                 " integer >= 1."
             )
         if not isinstance(nb_points, int) or nb_points < 2:
             raise ValueError(
-                "Curve.curve.interpolationMethod.nbPoints must be an" \
+                "Curve.curve.interpolationMethod.nbPoints must be an"
                 " integer >= 2."
             )
         interpolation_function = PolynomialInterpolator()
@@ -538,7 +538,7 @@ def loadUncertaintyCurveFromJsonObj(obj: dict[str, Any]) -> UncertaintyCurve:
             c._abscissa, abscissa, equal_nan=True
         ):
             raise ValueError(
-                "All curves in an UncertaintyCurve must share the same" \
+                "All curves in an UncertaintyCurve must share the same"
                 " abscissa values."
             )
 
@@ -638,7 +638,7 @@ def loadUncertaintyCurveFromCsv(
         print(first_line)
         if not any(ch.isalpha() for ch in first_line):
             raise ValueError(
-                "UncertaintyCurve CSV must have a header row defining" \
+                "UncertaintyCurve CSV must have a header row defining"
                 " axis names."
             )
 

@@ -32,7 +32,7 @@ class Element:
         """
         return hash(self.name)
 
-    def __eq__(self: Self, other: Any) -> bool: # noqa: ANN401
+    def __eq__(self: Self, other: Any) -> bool:  # noqa: ANN401
         """Defines __eq__ method.
 
         :return bool: True if input object is an Element with the same name.

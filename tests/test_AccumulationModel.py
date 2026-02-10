@@ -227,8 +227,9 @@ def test_environment_optimum_model_without_env_conditions_raises() -> None:
     assert "sand" in error_msg  # Element name should be in error
 
 
-def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve(
-) -> None:
+def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve() -> (
+    None
+):
     """Test adding curves stores them by x-axis name and can be retrieved."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
 
@@ -241,9 +242,9 @@ def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve(
     assert model.getAccumulationCurve("Energy") is energy_curve
 
 
-def test_environment_optimum_removeCurve_removes_and_is_noop_when_missing(
-
-) -> None:
+def test_environment_optimum_removeCurve_removes_and_is_noop_when_missing() -> (
+    None
+):
     """Test removes by name and doesn't error if missing."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     model.addAccumulationCurve(bathy_curve)
@@ -263,9 +264,9 @@ def test_environment_optimum_getAccumulationCurve_raises_for_missing() -> None:
         model.getAccumulationCurve("Bathymetry")
 
 
-def test_environment_optimum_getElementAccumulationAt_matches_curve_product(
-
-) -> None:
+def test_environment_optimum_getElementAccumulationAt_matches_curve_product() -> (
+    None
+):
     """Migrated behavior test: accumulation equals rate * product(coeffs)."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     element = Element("Sand", 10.0)
@@ -663,7 +664,7 @@ def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
 )
 def test_loadAccumulationModel_rejects_invalid_payloads(
     tmp_path: Path,
-    payload: Any, # noqa: ANN401
+    payload: Any,  # noqa: ANN401
     expected_message: str,
 ) -> None:
     """Test JSON loader rejects invalid shapes/metadata.

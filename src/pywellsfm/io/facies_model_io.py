@@ -135,8 +135,8 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
             criteria_set.add(
                 FaciesCriteria(
                     name=crit_name,
-                    minRange=float(min_range), # type: ignore[arg-type]
-                    maxRange=float(max_range), # type: ignore[arg-type]
+                    minRange=float(min_range),  # type: ignore[arg-type]
+                    maxRange=float(max_range),  # type: ignore[arg-type]
                     type=crit_type,
                 )
             )

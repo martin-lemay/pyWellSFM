@@ -35,13 +35,13 @@ from pywellsfm.model.Well import Well
 def wellToJsonObj(well: Well) -> dict[str, Any]:
     """Serialize a Well to JSON matching `jsonSchemas/WellSchema.json`."""
 
-    def _as_float(value: Any) -> float: # noqa: ANN401
+    def _as_float(value: Any) -> float:  # noqa: ANN401
         try:
             return float(value)
         except Exception as exc:
             raise ValueError(f"Value '{value}' is not a number") from exc
 
-    def _depth_from_position(pos: Any) -> float: # noqa: ANN401
+    def _depth_from_position(pos: Any) -> float:  # noqa: ANN401
         if hasattr(pos, "z"):
             return _as_float(pos.z)
         return _as_float(pos)
@@ -162,7 +162,7 @@ def wellToJsonObj(well: Well) -> dict[str, Any]:
     return {"format": "pyWellSFM.WellData", "version": "1.0", "well": well_obj}
 
 
-def _parse_stratigraphic_type(raw: Any) -> StratigraphicSurfaceType: # noqa: ANN401
+def _parse_stratigraphic_type(raw: Any) -> StratigraphicSurfaceType:  # noqa: ANN401
     print("Debug: Parsing stratigraphic type from raw value:", raw)
     if not isinstance(raw, str) or raw.strip() == "":
         return StratigraphicSurfaceType.UNKNOWN
@@ -484,7 +484,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
 
     las = lasio.read(str(path), ignore_header_errors=True)
 
-    def _get_header_value(*keys: str) -> Any: # noqa: ANN401
+    def _get_header_value(*keys: str) -> Any:  # noqa: ANN401
         for key in keys:
             try:
                 if hasattr(las, "well") and key in las.well:
@@ -498,7 +498,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
                 pass
         return None
 
-    def _to_float(value: Any) -> float | None: # noqa: ANN401
+    def _to_float(value: Any) -> float | None:  # noqa: ANN401
         if value is None:
             return None
         try:
@@ -506,7 +506,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
         except (TypeError, ValueError):
             return None
 
-    def _to_non_empty_str(value: Any) -> str | None: # noqa: ANN401
+    def _to_non_empty_str(value: Any) -> str | None:  # noqa: ANN401
         if value is None:
             return None
         s = str(value).strip()
@@ -596,7 +596,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
         if null_value is not None:
             nv = _to_float(null_value)
             if nv is not None and np.isfinite(nv):
-                y = np.where(y == nv, np.nan, y) # type: ignore[arg-type]
+                y = np.where(y == nv, np.nan, y)  # type: ignore[arg-type]
 
         mask = np.isfinite(x) & np.isfinite(y)
         x = x[mask]

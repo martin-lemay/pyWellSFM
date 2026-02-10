@@ -45,7 +45,7 @@ class Marker:
         #: stratigraphic relationship between above and bottom units
         self.stratigraphicType: StratigraphicSurfaceType = stratigraphicType
 
-    def __eq__(self: Self, other: Any) -> bool: # noqa: ANN401
+    def __eq__(self: Self, other: Any) -> bool:  # noqa: ANN401
         """Two markers are equal if all their properties are equal.
 
         :param Any other: other object
@@ -67,7 +67,7 @@ class Marker:
         """
         return hash((self.name, self.depth, self.age, self.stratigraphicType))
 
-    def areCollocated(self: Self, other: Any) -> bool: # noqa: ANN401
+    def areCollocated(self: Self, other: Any) -> bool:  # noqa: ANN401
         """Two markers are collocated if they are at the same depth.
 
         :param Any other: other object
@@ -77,7 +77,7 @@ class Marker:
             return self.depth == other.depth
         return False
 
-    def areSynchrone(self: Self, other: Any) -> bool: # noqa: ANN401
+    def areSynchrone(self: Self, other: Any) -> bool:  # noqa: ANN401
         """Two markers are synchrone if they are at the same age.
 
         :param Any other: other object
@@ -87,7 +87,7 @@ class Marker:
             return self.age == other.age
         return False
 
-    def areFromSameHorizon(self: Self, other: Any) -> bool: # noqa: ANN401
+    def areFromSameHorizon(self: Self, other: Any) -> bool:  # noqa: ANN401
         """Check that two markers are from the same horizon.
 
         Two markers belong to a same horizon if they have the same name and

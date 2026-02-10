@@ -16,7 +16,7 @@ class Curve:
         yAxisName: str,
         abscissa: npt.NDArray[np.float64],
         ordinate: npt.NDArray[np.float64],
-        interpolationFunction: str | Any = "linear", # noqa: ANN401
+        interpolationFunction: str | Any = "linear",  # noqa: ANN401
         **args: Any,
     ) -> None:
         """Defines a curve by two lists of abscissa and ordinate coordinates.

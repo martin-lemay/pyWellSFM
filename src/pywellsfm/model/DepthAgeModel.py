@@ -18,11 +18,12 @@ Defines a depth-age model and conversion methods.
     consider only 1 depth per age (no stratigraphic layer duplication)
 """
 
+
 class DepthAgeModel:
     def __init__(
         self: Self,
-        interpolationMethod: str | Any = "linear", # noqa: ANN401
-        **args: Any
+        interpolationMethod: str | Any = "linear",  # noqa: ANN401
+        **args: Any,
     ) -> None:
         """Defines depth-age model and conversion methods.
 

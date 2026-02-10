@@ -91,8 +91,7 @@ class AccommodationSpaceWellCalculator:
             + f"{self._well.name}."
         )
         faciesLog: Striplog = cast(
-            Striplog,
-            self._well.getDepthLog(faciesLogName)
+            Striplog, self._well.getDepthLog(faciesLogName)
         )
         baseDepth: float = (
             fromMarker.depth if fromMarker is not None else faciesLog.stop.z
@@ -160,7 +159,7 @@ class AccommodationSpaceWellCalculator:
         depthBase: float = baseDepth
         bathyAtBase: tuple[float, float] = (0.0, 0.0)
         lastIndex: int = len(faciesLog)
-        for row in self._bathymetryStepCurve[::-1]: # type: ignore
+        for row in self._bathymetryStepCurve[::-1]:  # type: ignore
             if row[0] > baseDepth:
                 lastIndex -= 1
                 continue
@@ -175,7 +174,8 @@ class AccommodationSpaceWellCalculator:
         # accommodation array: depth, acco min 1, acco min 2, acco max 1,
         # acco max 2
         accoArray: npt.NDArray[np.float64] = np.full(
-            (self._bathymetryStepCurve.shape[0] + 1, 5), np.nan # type: ignore
+            (self._bathymetryStepCurve.shape[0] + 1, 5),
+            np.nan,  # type: ignore
         )
         interval: Interval
         for i, interval in enumerate(faciesLog):
@@ -183,13 +183,13 @@ class AccommodationSpaceWellCalculator:
             if interval.base.z > depthBase:
                 continue
             # bathymetry of the interval
-            bathyInterval = self._bathymetryStepCurve[i, 2:] # type: ignore
+            bathyInterval = self._bathymetryStepCurve[i, 2:]  # type: ignore
             # compute accommodation at top
             thickness: float
             if i == 0:
                 thickness = depthBase - interval.top.z
                 # bathymetry of the interval
-                bathyInterval = self._bathymetryStepCurve[i, 2:] # type: ignore
+                bathyInterval = self._bathymetryStepCurve[i, 2:]  # type: ignore
                 # compute accommodation from bathy of the interval
                 acco0: tuple[float, float] = self._computeAccommodationValue(
                     thickness, bathyAtBase, tuple(bathyInterval.tolist())
@@ -208,7 +208,7 @@ class AccommodationSpaceWellCalculator:
             # bathymetry of above interval
             bathyAboveInterval = bathyInterval
             if (i < len(faciesLog) - 1) and (i < lastIndex):
-                bathyAboveInterval = self._bathymetryStepCurve[i + 1, 2:] # type: ignore
+                bathyAboveInterval = self._bathymetryStepCurve[i + 1, 2:]  # type: ignore
 
             # compute accommodation
             # computed from bathy of the interval
@@ -284,8 +284,7 @@ class AccommodationSpaceWellCalculator:
             + f"{self._well.name}."
         )
         faciesLog: Striplog = cast(
-            Striplog,
-            self._well.getDepthLog(faciesLogName)
+            Striplog, self._well.getDepthLog(faciesLogName)
         )
         baseDepth: float = (
             fromMarker.depth if fromMarker is not None else faciesLog.stop.z
@@ -298,11 +297,12 @@ class AccommodationSpaceWellCalculator:
             self._computeAccommodationStepCurve(faciesLog, baseDepth, topDepth)
         # store uncertainty accommodation change curve
         self._convertIntervalCurve2UncertaintyCurve(
-            self._accommodationStepCurve, self.accommodationChangeCurve # type: ignore
+            self._accommodationStepCurve,
+            self.accommodationChangeCurve,  # type: ignore
         )
 
         # compute cumulative accommodation
-        accommodationCumulStepCurve = np.copy(self._accommodationStepCurve) # type: ignore
+        accommodationCumulStepCurve = np.copy(self._accommodationStepCurve)  # type: ignore
         for i in (2, 3):
             accommodationCumulStepCurve[:, i][::-1] = np.cumsum(
                 accommodationCumulStepCurve[:, i][::-1]
@@ -335,8 +335,7 @@ class AccommodationSpaceWellCalculator:
             + f"{self._well.name}."
         )
         faciesLog: Striplog = cast(
-            Striplog,
-            self._well.getDepthLog(faciesLogName)
+            Striplog, self._well.getDepthLog(faciesLogName)
         )
         baseDepth: float = (
             fromMarker.depth if fromMarker is not None else faciesLog.stop.z
@@ -373,9 +372,7 @@ class AccommodationSpaceWellCalculator:
                 f"Facies {faciesName} is not in the facies list. "
                 + "Bathymetry curve cannot be computed."
             )
-        bathyRange: Optional[FaciesCriteria] = facies.getCriteria(
-            "Bathymetry"
-        )
+        bathyRange: Optional[FaciesCriteria] = facies.getCriteria("Bathymetry")
         if bathyRange is None:
             raise ValueError(
                 f"Bathymetry is undefined for the facies {faciesName}. "
@@ -425,12 +422,12 @@ class AccommodationSpaceWellCalculator:
         interval: Interval
         for i, interval in enumerate(faciesLog):
             # bathymetry at the top of the interval
-            (bathyMinEnd, bathyMaxEnd) = self._bathymetryStepCurve[i, 2:] # type: ignore
+            (bathyMinEnd, bathyMaxEnd) = self._bathymetryStepCurve[i, 2:]  # type: ignore
             # bathymetry at the top of the interval (=base of above interval,
             # except for the last interval where we assume no variations)
             bathyMinStart, bathyMaxStart = bathyMinEnd, bathyMaxEnd
             if i > 0:  # self._bathymetryStepCurve.shape[0] - 1:
-                (bathyMinStart, bathyMaxStart) = self._bathymetryStepCurve[ # type: ignore
+                (bathyMinStart, bathyMaxStart) = self._bathymetryStepCurve[  # type: ignore
                     i - 1, 2:
                 ]
             # minimum bathymetry variation: consider bathy is max at bottom
@@ -443,7 +440,7 @@ class AccommodationSpaceWellCalculator:
             accoMax: float = interval.thickness + deltaBathyMax
             if accoMin > accoMax:
                 accoMin, accoMax = accoMax, accoMin
-            self._accommodationStepCurve[i, :2] = self._bathymetryStepCurve[ # type: ignore
+            self._accommodationStepCurve[i, :2] = self._bathymetryStepCurve[  # type: ignore
                 i, :2
             ]
             self._accommodationStepCurve[i, 2:] = (accoMin, accoMax)

@@ -297,28 +297,28 @@ def _loadAccumulationModelGaussianFromJsonObj(
         elt_name = elt.get("name")
         if not isinstance(elt_name, str) or elt_name.strip() == "":
             raise ValueError(
-                f"accumulationModel.elements[{idx}].name must be a non-empty" +
-                "string."
+                f"accumulationModel.elements[{idx}].name must be a non-empty"
+                + "string."
             )
         if elt_name in seen_names:
             raise ValueError(
-                f"Duplicate element name '{elt_name}' in " +
-                "accumulationModel.elements."
+                f"Duplicate element name '{elt_name}' in "
+                + "accumulationModel.elements."
             )
         seen_names.add(elt_name)
 
         mean = elt.get("accumulationRate")
         if not isinstance(mean, (int, float)):
             raise ValueError(
-                f"accumulationModel.elements[{idx}].accumulationRate must be" +
-                " a number."
+                f"accumulationModel.elements[{idx}].accumulationRate must be"
+                + " a number."
             )
 
         stddev_factor = elt.get("stddevFactor")
         if not isinstance(stddev_factor, (int, float)):
             raise ValueError(
-                f"accumulationModel.elements[{idx}].stddevFactor must be" +
-                " a number."
+                f"accumulationModel.elements[{idx}].stddevFactor must be"
+                + " a number."
             )
 
         model.addElement(
@@ -359,29 +359,29 @@ def _loadAccumulationModelEnvironmentOptimumFromJsonObj(
         elt_name = elt.get("name")
         if not isinstance(elt_name, str) or elt_name.strip() == "":
             raise ValueError(
-                f"accumulationModel.elements[{idx}].name must be a " +
-                "non-empty string."
+                f"accumulationModel.elements[{idx}].name must be a "
+                + "non-empty string."
             )
         if elt_name in seen_names:
             raise ValueError(
-                f"Duplicate element name '{elt_name}' in " +
-                "accumulationModel.elements."
+                f"Duplicate element name '{elt_name}' in "
+                + "accumulationModel.elements."
             )
         seen_names.add(elt_name)
 
         rate = elt.get("accumulationRate")
         if not isinstance(rate, (int, float)):
             raise ValueError(
-                f"accumulationModel.elements[{idx}].accumulationRate must " +
-                "be a number."
+                f"accumulationModel.elements[{idx}].accumulationRate must "
+                + "be a number."
             )
         model.addElement(Element(name=elt_name, accumulationRate=float(rate)))
 
         curves_obj = elt.get("accumulationCurves")
         if not isinstance(curves_obj, list) or len(curves_obj) < 1:
             raise ValueError(
-                f"accumulationModel.elements[{idx}].accumulationCurves must " +
-                "be a non-empty list."
+                f"accumulationModel.elements[{idx}].accumulationCurves must "
+                + "be a non-empty list."
             )
 
         # NOTE: Current implementation stores curves globally (not per-element)
@@ -394,8 +394,10 @@ def _loadAccumulationModelEnvironmentOptimumFromJsonObj(
                 curve_path = resolve_ref_path(
                     base_dir=base_dir,
                     raw_url=curve_def,
-                    ctx=(f"accumulationModel.elements[{idx}]" +
-                    f".accumulationCurves[{jdx}]"),
+                    ctx=(
+                        f"accumulationModel.elements[{idx}]"
+                        + f".accumulationCurves[{jdx}]"
+                    ),
                 )
                 abscissa_name, _ord_name, x, y = loadTabulatedFunctionFromFile(
                     curve_path
@@ -559,8 +561,8 @@ def saveAccumulationModel(
     if isinstance(model, AccumulationModelEnvironmentOptimum):
         if ext != ".json":
             raise ValueError(
-                "EnvironmentOptimum accumulation model output must be a " +
-                ".json file."
+                "EnvironmentOptimum accumulation model output must be a "
+                + ".json file."
             )
         return saveAccumulationModelEnvironmentOptimumToJson(
             model,
@@ -571,6 +573,6 @@ def saveAccumulationModel(
         )
 
     raise ValueError(
-        "Unsupported accumulation model type for saving: " +
-        f"{model.__class__.__name__}"
+        "Unsupported accumulation model type for saving: "
+        + f"{model.__class__.__name__}"
     )
