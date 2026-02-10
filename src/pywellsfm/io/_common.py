@@ -4,6 +4,7 @@
 """Internal helpers shared by I/O modules.
 
 This module centralizes small, repetitive patterns:
+
 - resolving relative paths against a base directory
 - parsing schema-style {"url": "..."} references
 - rejecting unexpected keys (additionalProperties=false)

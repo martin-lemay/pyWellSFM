@@ -39,7 +39,7 @@ dependencies = [
     "xarray >= 2025.12.0",
     "jsonschema >= 4.26.0",
 ]
-requires-python = ">= 3.12"
+requires-python = ">= 3.13"
 
 [project.optional-dependencies]
 build = [
@@ -70,7 +70,7 @@ filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py313"
 
 extend-exclude = ["tests/data", "docs/", "notebooks/"]
 
@@ -149,7 +149,7 @@ source = ["pybend"]
 # Specify the target platform details in config, so your developers are
 # free to run mypy on Windows, Linux, or macOS and get consistent
 # results.
-python_version = "3.12"
+python_version = "3.13"
 files = "."
 exclude = "build/*"
 # strict = true
