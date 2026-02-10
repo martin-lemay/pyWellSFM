@@ -153,7 +153,7 @@ def expect_format_version(
     :param str expected_version: Required value for the ``version`` field.
     :param str kind: Human-friendly label used in error messages.
 
-    :raises ValueError: If data is not a dict or if format/version do not match.
+    :raises ValueError: If data is not a dict or if format/version do not match
     """
     if not isinstance(data, dict):
         raise ValueError(f"{kind} JSON must be an object.")

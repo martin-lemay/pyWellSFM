@@ -165,8 +165,8 @@ def loadAccumulationModelFromJsonObj(
 
     .. Note::
 
-        EnvironmentOptimum model curves can be embedded objects or relative paths
-        When paths are used, they are resolved against ``base_dir``.
+        EnvironmentOptimum model curves can be embedded objects or relative
+        paths When paths are used, they are resolved against ``base_dir``.
 
 
     :param dict[str, Any] obj: Parsed accumulation model JSON object.
