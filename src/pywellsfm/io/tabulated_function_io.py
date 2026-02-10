@@ -23,6 +23,7 @@ def tabulatedFunctionToJsonObj(
     """Serialize a tabulated function to a JSON object.
 
     The returned object conforms to the on-disk format used by this project:
+
     - format: "pyWellSFM.TabulatedFunctionData"
     - version: "1.0"
     """
@@ -88,7 +89,10 @@ def saveTabulatedFunctionToCsv(
     y: np.ndarray,
     filepath: str,
 ) -> None:
-    """Save a tabulated function to a `.csv` file (two columns x,y, no header)."""
+    """Save a tabulated function to a `.csv` file.
+
+    csv file has two columns x,y, no header.
+    """
     path = Path(filepath)
     if path.suffix.lower() != ".csv":
         raise ValueError(
@@ -111,6 +115,7 @@ def loadTabulatedFunctionFromJsonObj(
     """Parse a TabulatedFunction JSON object into arrays.
 
     Expects the object format used throughout this project:
+
     - format: "pyWellSFM.TabulatedFunctionData"
     - version: "1.0"
 
@@ -149,8 +154,8 @@ def loadTabulatedFunctionFromJsonObj(
         or len(x_values) != len(y_values)
     ):
         raise ValueError(
-            "TabulatedFunction.values.xValues and yValues must have same non-zero "
-            "length."
+            "TabulatedFunction.values.xValues and yValues must have same "
+            "non-zero length."
         )
 
     try:
@@ -172,7 +177,9 @@ def loadTabulatedFunctionFromFile(
     - `.json`: must match the TabulatedFunction JSON structure.
     - `.csv`: expects two numeric columns (x,y), no header.
 
-    Returns (abscissa_name, ordinate_name, x, y).
+    :param Path path: Path to the input file.
+    :returns tuple[str, str, np.ndarray, np.ndarray]: (abscissa_name,
+        ordinate_name, x, y).
     """
     if not path.exists():
         raise FileNotFoundError(str(path))

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
+# ruff: noqa: E402 # disable Module level import not at top of file
 
 import os
 import sys
@@ -111,7 +112,7 @@ def test_PolynomialInterpolator_init(testCase: TestCase) -> None:
 
 
 @pytest.mark.parametrize("deg, nbPts", ((1, 3), (2, 5), (3, 8), (4, 10)))
-def test_PolynomialInterpolator_Parabol(deg, nbPts) -> None:
+def test_PolynomialInterpolator_Parabol(deg: int, nbPts: int) -> None:
     """Test of PolynomialInterpolator.compute method."""
     xmin, xmax = -10, 10
     lx = np.linspace(xmin, xmax, 101)
@@ -128,7 +129,7 @@ def test_PolynomialInterpolator_Parabol(deg, nbPts) -> None:
 
 @pytest.mark.parametrize("testCase", __generate_test_data_polynomial())
 def test_PolynomialInterpolator_compute(testCase: TestCase) -> None:
-    """Test of PolynomialInterpolator.compute varying degree and number of points."""
+    """Test of PolynomialInterpolator varying degree and number of points."""
     interp = PolynomialInterpolator()
     interp.initialize(testCase.x, testCase.y)
     interp.setAdditionalArgs(deg=testCase.deg, nbPts=testCase.nbPts)

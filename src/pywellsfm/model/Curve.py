@@ -8,19 +8,6 @@ import numpy.typing as npt
 import pandas as pd
 import scipy.interpolate as interp
 
-# class ExtrapolationMethod(StrEnum):
-#     def _constant(at, abcissa, ordinate):
-#         return ordinate[0] if at < np.min(abcissa) else ordinate[-1]
-
-#     #: use the first/last value of the array
-#     CONSTANT = _constant
-#     #: mirror the array
-#     MIRROR = "Mirror"
-#     #: use linear interpolation from the 2 first/last values of the array
-#     PROPAGATE = "Propagate"
-#     #: no extrapolation, return nan if outside of the array
-#     NONE = "None"
-
 
 class Curve:
     def __init__(
@@ -29,19 +16,20 @@ class Curve:
         yAxisName: str,
         abscissa: npt.NDArray[np.float64],
         ordinate: npt.NDArray[np.float64],
-        interpolationFunction: str | Any = "linear",
+        interpolationFunction: str | Any = "linear", # noqa: ANN401
         **args: Any,
     ) -> None:
-        """Defines a curve by a list of abscissa and a list of ordinate coordinates.
+        """Defines a curve by two lists of abscissa and ordinate coordinates.
 
         :param str xAxisName: x axis name
         :param str yAxisName: y axis name
         :param npt.NDArray[np.float64] abscissa: abscissa values
         :param npt.NDArray[np.float64] ordinate: ordinate values
-        :param str | "function" interpolationFunction: name of interpolation method
-            according to scipy.interpolate.interp1d method, defaults to "linear", or
-            a class inherited from `pywellsfm.utils.helpers.Interpolator` to compute
-            the interpolation (see for instance
+        :param str | "function" interpolationFunction: name of interpolation
+            method according to scipy.interpolate.interp1d method, defaults to
+            "linear", or a class inherited from
+            `pywellsfm.utils.helpers.Interpolator` to compute the
+            interpolation (see for instance
             `pywellsfm.utils.helpers.PolynomialInterpolator`)
         """
         self._xAxisName: str = xAxisName
@@ -110,8 +98,8 @@ class Curve:
 
         :param float x: abscissa value
         :param float y: ordinate value
-        :param float tol: tolerance value to determine if x is already in the array of
-            abscissa. Defaults to 1e-6.
+        :param float tol: tolerance value to determine if x is already in the
+            array of abscissa. Defaults to 1e-6.
         """
         # set the value to existing abscissa if it exists
         if self._getIndexOfX(x, tol) >= 0:
@@ -135,8 +123,8 @@ class Curve:
         :param float xmin: minimum abscissa value
         :param float xmax: maximum abscissa value
         :param float y: ordinate value
-        :param float tol: tolerance value to determine if x is already in the array of
-            abscissa. Defaults to 1e-6.
+        :param float tol: tolerance value to determine if x is already in the
+            array of abscissa. Defaults to 1e-6.
         """
         if self._getIndexOfX(xmin, tol) < 0:
             self.addSampledPoint(xmin, y, tol)
@@ -164,8 +152,8 @@ class Curve:
 
         :param float x: abscissa value
         :param float y: ordinate value
-        :param float tol: tolerance value to determine if x is already in the array of
-            abscissa. Defaults to 1e-6.
+        :param float tol: tolerance value to determine if x is already in the
+            array of abscissa. Defaults to 1e-6.
         """
         index: int = self._getIndexOfX(x, tol)
         if index < 0:
@@ -177,8 +165,8 @@ class Curve:
     def getValueAt(self: Self, at: float) -> float:
         """Get the value at the given coordinate.
 
-        Returns the first/last value if input coordinate is outside of the domain the
-        curve is defined.
+        Returns the first/last value if input coordinate is outside of the
+        domain the curve is defined.
 
         :param float at: input coordinate
         :return float: output value
@@ -199,8 +187,8 @@ class Curve:
     ) -> pd.DataFrame:
         """Create a DataFrame from the curve.
 
-        By default the dataframe contains the curve over the whole definition domain
-        sampled by the same number of points as the curve.
+        By default the dataframe contains the curve over the whole definition
+        domain sampled by the same number of points as the curve.
 
         :param float fromX: starting abscissa, defaults to -inf
         :param float toX: end abscissa, defaults to +inf
@@ -226,23 +214,6 @@ class Curve:
         if len(columnNames[1]) == 0:
             columnNames0[1] = self._yAxisName
         return pd.DataFrame(np.column_stack((lx, ly)), columns=columnNames0)
-
-    # def _extrapolateValueAt(self: Self, at: float) -> float:
-    #     assert (at < self._minAbscissa) | (at > self._maxAbscissa), (
-    #         "Input abscissa must be lower (or higher) than the mnimum (or maximum)"
-    #         + " for extrapolation."
-    #     )
-    #     match self._extrapMethod:
-    #         case ExtrapolationMethod.CONSTANT:
-    #             return (
-    #                 self._ordinate[0] if at < self._minAbscissa else self._ordinate[-1]
-    #             )
-    #         case ExtrapolationMethod.MIRROR:
-    #             return np.nan
-    #         case ExtrapolationMethod.PROPAGATE:
-    #             return np.nan
-    #         case ExtrapolationMethod.NONE:
-    #             return np.nan
 
     def copy(self: Self) -> Self:
         """Create a copy of self.
@@ -272,17 +243,18 @@ class AccumulationCurve(Curve):
     ) -> None:
         """Defines a accumulation curve.
 
-        An accumulation curve defines the reduction coefficients according environment
-        conditions.
+        An accumulation curve defines the reduction coefficients according to
+        environment conditions.
         The curve uses a linear interpolation function between given points.
 
         :param str envFactorName: environmental factor name
         :param npt.NDArray[np.float64] abscissa: abscissa values
-        :param npt.NDArray[np.float64] ordinate: ordinate values. Must be between 0 and
-            1.
-        :param str | "function" interpolationFunction: name of interpolation method
-            according to scipy.interpolate.interp1d method, defaults to "linear", or
-            a class inherited from `pywellsfm.utils.helpers.Interpolator` to compute
+        :param npt.NDArray[np.float64] ordinate: ordinate values. Must be
+            between 0 and 1.
+        :param str | "function" interpolationFunction: name of interpolation
+            method according to scipy.interpolate.interp1d method, defaults to
+            "linear", or a class inherited from
+            `pywellsfm.utils.helpers.Interpolator` to compute
             the interpolation (see for instance
             `pywellsfm.utils.helpers.PolynomialInterpolator`)
         """
@@ -386,16 +358,16 @@ class UncertaintyCurve:
     ) -> None:
         """Set abscissa and ordinate values of sampled points.
 
-        The ordinate is set to the median curve, but it can also be set to minimum and
-        maximum curves by setting setAsMinValues and setAsMaxValues to True
-        respectively.
+        The ordinate is set to the median curve, but it can also be set to
+        minimum and maximum curves by setting setAsMinValues and setAsMaxValues
+        to True respectively.
 
         :param npt.NDArray[np.float64] abscissa: abscissa values
         :param npt.NDArray[np.float64] ordinate: ordinate values
-        :param bool setAsMinValues: if True, set ordinate array to minimum curve.
-            Defaults to False.
-        :param bool setAsMaxValues: if True, set ordinate array to maximum curve.
-            Defaults to False.
+        :param bool setAsMinValues: if True, set ordinate array to minimum
+            curve. Defaults to False.
+        :param bool setAsMaxValues: if True, set ordinate array to maximum
+            curve. Defaults to False.
         """
         self._medianCurve.setSampledPoints(abscissa, ordinate)
         ordinate2 = np.full_like(ordinate, np.nan)
@@ -417,8 +389,8 @@ class UncertaintyCurve:
     ) -> None:
         """Add a sampled point to the curves.
 
-        If no values are given for ymin and/or ymax, y value is set to minimum and
-        maximum curves.
+        If no values are given for ymin and/or ymax, y value is set to minimum
+        and maximum curves.
 
         :param float x: abscissa value
         :param float y: median value
@@ -435,8 +407,8 @@ class UncertaintyCurve:
         """Get the range of values for a given abscissa.
 
         :param float abscissa: input abscissa
-        :return tuple[float, float, float]: tuple containing the minimum, median and
-            maximum values
+        :return tuple[float, float, float]: tuple containing the minimum,
+            median and maximum values
         """
         return (
             self._minCurve(abscissa),

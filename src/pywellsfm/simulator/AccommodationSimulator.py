@@ -29,8 +29,8 @@ class AccommodationSimulator:
     def __init__(self: Self) -> None:
         """Simulate the accommodation space in wells based on a scenario.
 
-        The simulator uses the eustatism at the start of the simulation as the datum.
-        All elevations are computed relatively to this datum.
+        The simulator uses the eustatism at the start of the simulation as the
+        datum. All elevations are computed relatively to this datum.
 
         At the start of the simulation, we have:
           - initial sea level elevation is 0

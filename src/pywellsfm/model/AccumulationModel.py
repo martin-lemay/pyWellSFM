@@ -18,8 +18,8 @@ class AccumulationModelBase(ABC):
     ) -> None:
         """Defines the base class for sediment accumulation models.
 
-        An accumulation model defines a list of elements and the rules that govern their
-        accumulation through time.
+        An accumulation model defines a list of elements and the rules that
+        govern their accumulation through time.
 
         :param str name: name of the accumulation model
         :param set[Element] elements: set of elements in the accumulation model
@@ -52,7 +52,8 @@ class AccumulationModelBase(ABC):
         """Get an element of the model from its name.
 
         :param str elementName: name of the element to get
-        :return Element | None: element with the given name, or None if not found
+        :return Element | None: element with the given name, or None if not
+            found
         """
         for elt in self.elements:
             if elt.name == elementName:
@@ -70,13 +71,16 @@ class AccumulationModelBase(ABC):
         This method should be implemented in derived classes.
 
         :param Element element: element to compute the accumulation rate for
-        :param dict[str, float] | None environmentConditions: optional environmental
-            conditions. Keys are environmental factor names, values are the conditions.
+        :param dict[str, float] | None environmentConditions: optional
+            environmental conditions. Keys are environmental factor names,
+            values are the conditions.
         :return float: accumulation rate (m/My)
-        :raise NotImplementedError: if the method is not implemented in derived class
+        :raise NotImplementedError: if the method is not implemented in derived
+            class
         """
         raise NotImplementedError(
-            "getElementAccumulationAt() must be implemented in derived classes."
+            "getElementAccumulationAt() must be implemented "
+            "in derived classes."
         )
 
 
@@ -87,15 +91,17 @@ class AccumulationModelGaussian(AccumulationModelBase):
         elements: set[Element] | None = None,
         std_dev_factors: dict[str, float] | None = None,
     ) -> None:
-        """Defines a sediment accumulation model based on a probabilistic approach.
+        """Defines an accumulation model based on a probabilistic approach.
 
-        In this accumulation model, the accumulation rate of each element follows a
-        Gaussian distribution centered around the reference accumulation rate of the
-        element, with a standard deviation defined as twice the reference rate.
+        In this accumulation model, the accumulation rate of each element
+        follows a Gaussian distribution centered around the reference
+        accumulation rate of the element, with a standard deviation defined as
+        twice the reference rate.
 
         :param str name: name of the accumulation model
         :param set[Element] elements: set of elements in the accumulation model
-        :param float std_dev_factor: factor to multiply the standard deviation by
+        :param float std_dev_factor: factor to multiply the standard deviation
+            by
         """
         super().__init__(name, elements)
 
@@ -114,7 +120,8 @@ class AccumulationModelGaussian(AccumulationModelBase):
         """Add an element together with the standard deviation factor.
 
         :param Element element: element to add
-        :param float | None std_dev_factor: standard deviation factor, defaults to None
+        :param float | None std_dev_factor: standard deviation factor,
+            defaults to None
         """
         super().addElement(element)
         factor = (
@@ -130,8 +137,8 @@ class AccumulationModelGaussian(AccumulationModelBase):
         """Get the accumulation rate according to the Gaussian distribution.
 
         :param Element element: element to get the accumulation rate for
-        :param dict[str, float] | None environmentConditions: environmental conditions
-            (ignored by this model, accepted for API consistency)
+        :param dict[str, float] | None environmentConditions: environmental
+            conditions (ignored by this model, accepted for API consistency)
         :return float: accumulation rate (m/My)
         """
         mean = element.accumulationRate
@@ -148,13 +155,14 @@ class AccumulationModelEnvironmentOptimum(AccumulationModelBase):
         name: str,
         elements: set[Element] | None = None,
     ) -> None:
-        """Defines a sediment accumulation model based on environmental optimums.
+        """Defines an accumulation model based on environmental optimums.
 
-        For a given element, the accumulation rate is maximal if all environmental
-        conditions are at their optimum value. The accumulation rate decreases as the
-        environmental values deviate from their optimum. The rate equals the reference
-        accumulation rate of the element multiplied by the product of all the reduction
-        coefficients defined by the accumulation curves.
+        For a given element, the accumulation rate is maximal if all
+        environmental conditions are at their optimum value. The accumulation
+        rate decreases as the environmental values deviate from their optimum.
+        The rate equals the reference accumulation rate of the element
+        multiplied by the product of all the reduction coefficients defined by
+        the accumulation curves.
 
         :param str name: name of the accumulation model
         :param set[Element] elements: set of elements in the accumulation model
@@ -167,7 +175,8 @@ class AccumulationModelEnvironmentOptimum(AccumulationModelBase):
     def addAccumulationCurve(self: Self, curve: AccumulationCurve) -> None:
         """Add a reduction coefficient curve that modulate the accumulation.
 
-        The name of the environmental factor is the name of x axis of the curve.
+        The name of the environmental factor is the name of x axis of the
+        curve.
 
         :param AccumulationCurve curve: reduction coefficient curve
         """
@@ -193,12 +202,12 @@ class AccumulationModelEnvironmentOptimum(AccumulationModelBase):
         element: Element,
         environmentConditions: dict[str, float] | None = None,
     ) -> float:
-        """Get the accumulation rate of an element according to environmental condition.
+        """Get accumulation rate of an element from environmental condition.
 
         :param Element element: element to get the accumulation rate for
-        :param dict[str, float] | None environmentConditions: environment conditions.
-            The keys are the name of the curves, the values are the corresponding
-            conditions. Required for this model type.
+        :param dict[str, float] | None environmentConditions: environment
+            conditions. The keys are the name of the curves, the values are
+            the corresponding conditions. Required for this model type.
         :return float: accumulation rate (m/My)
         :raise ValueError: if environmentConditions is None or empty
         """

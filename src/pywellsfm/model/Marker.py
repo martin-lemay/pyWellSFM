@@ -23,15 +23,17 @@ class Marker:
         name: str,
         depth: float,
         age: float = np.nan,
-        stratigraphicType: StratigraphicSurfaceType = StratigraphicSurfaceType.UNKNOWN,
-    ):
+        stratigraphicType: StratigraphicSurfaceType = (
+            StratigraphicSurfaceType.UNKNOWN
+        ),
+    ) -> None:
         """Defines stratigraphic markers and associated properties.
 
         :param str name: name of the marker
         :param float depth: marker depth
         :param float age: marker age, defaults to np.nan
-        :param StratigraphiSurfaceType stratigraphicType: stratigraphic type of the
-            marker, defaults to StratigraphicSurfaceType.UNKNOWN.
+        :param StratigraphicSurfaceType stratigraphicType: stratigraphic type
+            of the marker, defaults to StratigraphicSurfaceType.UNKNOWN.
         """
         #: name of the marker
         self.name: str = name
@@ -43,7 +45,7 @@ class Marker:
         #: stratigraphic relationship between above and bottom units
         self.stratigraphicType: StratigraphicSurfaceType = stratigraphicType
 
-    def __eq__(self: Self, other: Any) -> bool:
+    def __eq__(self: Self, other: Any) -> bool: # noqa: ANN401
         """Two markers are equal if all their properties are equal.
 
         :param Any other: other object
@@ -59,9 +61,13 @@ class Marker:
         return False
 
     def __hash__(self: Self) -> int:
+        """Hash method.
+
+        :return int: hash value of the marker
+        """
         return hash((self.name, self.depth, self.age, self.stratigraphicType))
 
-    def areCollocated(self: Self, other: Any) -> bool:
+    def areCollocated(self: Self, other: Any) -> bool: # noqa: ANN401
         """Two markers are collocated if they are at the same depth.
 
         :param Any other: other object
@@ -71,7 +77,7 @@ class Marker:
             return self.depth == other.depth
         return False
 
-    def areSynchrone(self: Self, other: Any) -> bool:
+    def areSynchrone(self: Self, other: Any) -> bool: # noqa: ANN401
         """Two markers are synchrone if they are at the same age.
 
         :param Any other: other object
@@ -81,8 +87,11 @@ class Marker:
             return self.age == other.age
         return False
 
-    def areFromSameHorizon(self: Self, other: Any) -> bool:
-        """Two markers belong to a same horizon if they have the same name and age.
+    def areFromSameHorizon(self: Self, other: Any) -> bool: # noqa: ANN401
+        """Check that two markers are from the same horizon.
+
+        Two markers belong to a same horizon if they have the same name and
+        age.
 
         :param Any other: other object
         :return bool: True if same name and synchrone

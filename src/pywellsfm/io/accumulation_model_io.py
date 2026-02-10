@@ -4,6 +4,7 @@
 """I/O utilities for AccumulationModel variants.
 
 This module contains serialization/deserialization helpers for:
+
 - Gaussian accumulation models
 - Environment optimum accumulation models
 
@@ -110,7 +111,7 @@ def accumulationModelEnvironmentOptimumToJsonObjInline(
 
 
 def accumulationModelToJsonObj(model: AccumulationModelBase) -> dict[str, Any]:
-    """Serialize an accumulation model (Gaussian or EnvironmentOptimum) to JSON."""
+    """Serialize an accumulation model to JSON."""
     if isinstance(model, AccumulationModelGaussian):
         return accumulationModelGaussianToJsonObj(model)
     if isinstance(model, AccumulationModelEnvironmentOptimum):
@@ -124,8 +125,8 @@ def accumulationModelToJsonObj(model: AccumulationModelBase) -> dict[str, Any]:
 def loadAccumulationModel(filepath: str) -> AccumulationModelBase:
     """Load accumulation model from file.
 
-    The file can be a csv or a json file. Csv file supports only Gaussian accumulation
-    model. The json file conforms to the schema in
+    The file can be a csv or a json file. Csv file supports only Gaussian
+    accumulation model. The json file conforms to the schema in
     `jsonSchemas/AccumulationModelSchema.json`.
 
     Parameters:
@@ -147,8 +148,8 @@ def loadAccumulationModel(filepath: str) -> AccumulationModelBase:
             base_dir=base_dir,
         )
     raise ValueError(
-        "Unsupported accumulation model file format. Supported formats are: .csv, .json"
-        f" Got '{path.suffix}'."
+        "Unsupported accumulation model file format. Supported formats are: "
+        f".csv, .json Got '{path.suffix}'."
     )
 
 
@@ -158,15 +159,18 @@ def loadAccumulationModelFromJsonObj(
     """Parse an AccumulationModel JSON object into an AccumulationModel.
 
     The JSON must match the on-disk format used by this project:
+
     - format: "pyWellSFM.AccumulationModelData"
     - version: "1.0"
 
-    Notes:
-    - EnvironmentOptimum model curves can be embedded objects or relative paths.
-      When paths are used, they are resolved against ``base_dir``.
+    .. Note::
+
+        EnvironmentOptimum model curves can be embedded objects or relative paths
+        When paths are used, they are resolved against ``base_dir``.
+
 
     :param dict[str, Any] obj: Parsed accumulation model JSON object.
-    :param Path | None base_dir: Directory to resolve relative curve references.
+    :param Path | None base_dir: Directory to resolve relative curve references
     :return AccumulationModelBase: Loaded accumulation model.
     """
     expect_format_version(
@@ -220,15 +224,14 @@ def loadAccumulationModelGaussianFromCsv(
     """Load Gaussian accumulation model from csv file.
 
     The csv file must contain the following columns:
+
     - name: name of the element
     - mean: mean accumulation rate (m/My)
-    - stddevFactor: standard deviation factor (multiplied by mean to get stddev)
+    - stddevFactor: standard deviation factor (multiplied by mean to get
+      stddev)
 
-    Parameters:
-        filepath: Path to accumulation model csv file.
-
-    Returns:
-        A Gaussian accumulation model.
+    :params str filepath: Path to accumulation model csv file.
+    :returns AccumulationModelGaussian: A Gaussian accumulation model.
     """
     data = pd.read_csv(filepath)
     elements = set()
@@ -271,11 +274,13 @@ def _loadAccumulationModelGaussianFromJsonObj(
 ) -> None:
     """Load Gaussian accumulation model from json file.
 
-    The json file conforms to the schema in `jsonSchemas/AccumulationModelSchema.json`.
+    The json file conforms to the schema in
+    `jsonSchemas/AccumulationModelSchema.json`.
 
-    :params list[Any] elements_obj: Parsed accumulation model elements JSON object.
-    :params AccumulationModelGaussian model: An empty Gaussian accumulation model to
-        populate.
+    :params list[Any] elements_obj: Parsed accumulation model elements JSON
+        object.
+    :params AccumulationModelGaussian model: An empty Gaussian accumulation
+        model to populate.
     """
     if not isinstance(elements_obj, list) or len(elements_obj) < 1:
         raise ValueError(
@@ -292,24 +297,28 @@ def _loadAccumulationModelGaussianFromJsonObj(
         elt_name = elt.get("name")
         if not isinstance(elt_name, str) or elt_name.strip() == "":
             raise ValueError(
-                f"accumulationModel.elements[{idx}].name must be a non-empty string."
+                f"accumulationModel.elements[{idx}].name must be a non-empty" +
+                "string."
             )
         if elt_name in seen_names:
             raise ValueError(
-                f"Duplicate element name '{elt_name}' in accumulationModel.elements."
+                f"Duplicate element name '{elt_name}' in " +
+                "accumulationModel.elements."
             )
         seen_names.add(elt_name)
 
         mean = elt.get("accumulationRate")
         if not isinstance(mean, (int, float)):
             raise ValueError(
-                f"accumulationModel.elements[{idx}].accumulationRate must be a number."
+                f"accumulationModel.elements[{idx}].accumulationRate must be" +
+                " a number."
             )
 
         stddev_factor = elt.get("stddevFactor")
         if not isinstance(stddev_factor, (int, float)):
             raise ValueError(
-                f"accumulationModel.elements[{idx}].stddevFactor must be a number."
+                f"accumulationModel.elements[{idx}].stddevFactor must be" +
+                " a number."
             )
 
         model.addElement(
@@ -325,13 +334,15 @@ def _loadAccumulationModelEnvironmentOptimumFromJsonObj(
 ) -> None:
     """Load environment optimum accumulation model from json file.
 
-    The json file conforms to the schema in `jsonSchemas/AccumulationModelSchema.json`.
+    The json file conforms to the schema in
+    `jsonSchemas/AccumulationModelSchema.json`.
 
-    :params Path | None base_dir: Base directory for relative paths in accumulation
-        model json file.
-    :params list[Any] elements_obj: Parsed accumulation model elements JSON object.
-    :params AccumulationModelEnvironmentOptimum model: An empty environment optimum
-        accumulation model to populate.
+    :params Path | None base_dir: Base directory for relative paths in
+        accumulation model json file.
+    :params list[Any] elements_obj: Parsed accumulation model elements JSON
+        object.
+    :params AccumulationModelEnvironmentOptimum model: An empty environment
+        optimum accumulation model to populate.
     """
     if not isinstance(elements_obj, list) or len(elements_obj) < 1:
         raise ValueError(
@@ -348,29 +359,32 @@ def _loadAccumulationModelEnvironmentOptimumFromJsonObj(
         elt_name = elt.get("name")
         if not isinstance(elt_name, str) or elt_name.strip() == "":
             raise ValueError(
-                f"accumulationModel.elements[{idx}].name must be a non-empty string."
+                f"accumulationModel.elements[{idx}].name must be a " +
+                "non-empty string."
             )
         if elt_name in seen_names:
             raise ValueError(
-                f"Duplicate element name '{elt_name}' in accumulationModel.elements."
+                f"Duplicate element name '{elt_name}' in " +
+                "accumulationModel.elements."
             )
         seen_names.add(elt_name)
 
         rate = elt.get("accumulationRate")
         if not isinstance(rate, (int, float)):
             raise ValueError(
-                f"accumulationModel.elements[{idx}].accumulationRate must be a number."
+                f"accumulationModel.elements[{idx}].accumulationRate must " +
+                "be a number."
             )
         model.addElement(Element(name=elt_name, accumulationRate=float(rate)))
 
         curves_obj = elt.get("accumulationCurves")
         if not isinstance(curves_obj, list) or len(curves_obj) < 1:
             raise ValueError(
-                f"accumulationModel.elements[{idx}].accumulationCurves must be a "
-                "non-empty list."
+                f"accumulationModel.elements[{idx}].accumulationCurves must " +
+                "be a non-empty list."
             )
 
-        # NOTE: Current implementation stores curves globally (not per-element).
+        # NOTE: Current implementation stores curves globally (not per-element)
         for jdx, curve_def in enumerate(curves_obj):
             if isinstance(curve_def, dict):
                 abscissa_name, _ord_name, x, y = (
@@ -380,15 +394,16 @@ def _loadAccumulationModelEnvironmentOptimumFromJsonObj(
                 curve_path = resolve_ref_path(
                     base_dir=base_dir,
                     raw_url=curve_def,
-                    ctx=f"accumulationModel.elements[{idx}].accumulationCurves[{jdx}]",
+                    ctx=(f"accumulationModel.elements[{idx}]" +
+                    f".accumulationCurves[{jdx}]"),
                 )
                 abscissa_name, _ord_name, x, y = loadTabulatedFunctionFromFile(
                     curve_path
                 )
             else:
                 raise ValueError(
-                    f"accumulationModel.elements[{idx}].accumulationCurves[{jdx}] "
-                    "must be an object or non-empty string."
+                    f"accumulationModel.elements[{idx}].accumulationCurves"
+                    f"[{jdx}] must be an object or non-empty string."
                 )
 
             new_curve = AccumulationCurve(abscissa_name, x, y)
@@ -435,8 +450,10 @@ def saveAccumulationModelEnvironmentOptimumToJson(
     """Save EnvironmentOptimum accumulation model to json.
 
     Supports two curve serialization modes:
+
     - curves_mode="inline": embed TabulatedFunction objects in the model JSON.
-    - curves_mode="external": write curve files and reference them by relative paths.
+    - curves_mode="external": write curve files and reference them by relative
+      paths.
     """
     out_path = Path(filepath)
     out_dir = out_path.parent
@@ -498,7 +515,7 @@ def saveAccumulationModelEnvironmentOptimumToJson(
             }
         )
 
-    payload: dict[str, Any] = {
+    payload1: dict[str, Any] = {
         "format": "pyWellSFM.AccumulationModelData",
         "version": "1.0",
         "accumulationModel": {
@@ -510,7 +527,7 @@ def saveAccumulationModelEnvironmentOptimumToJson(
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+        json.dumps(payload1, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
 
@@ -542,7 +559,8 @@ def saveAccumulationModel(
     if isinstance(model, AccumulationModelEnvironmentOptimum):
         if ext != ".json":
             raise ValueError(
-                "EnvironmentOptimum accumulation model output must be a .json file."
+                "EnvironmentOptimum accumulation model output must be a " +
+                ".json file."
             )
         return saveAccumulationModelEnvironmentOptimumToJson(
             model,
@@ -553,5 +571,6 @@ def saveAccumulationModel(
         )
 
     raise ValueError(
-        f"Unsupported accumulation model type for saving: {model.__class__.__name__}"
+        "Unsupported accumulation model type for saving: " +
+        f"{model.__class__.__name__}"
     )

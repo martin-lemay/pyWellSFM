@@ -8,8 +8,9 @@ class Element:
     def __init__(self: Self, name: str, accumulationRate: float) -> None:
         """Defines an Element which is a sediment that is accumulated.
 
-        The element is accumulated (produced/deposited) at a rate that may be modulated
-        by external conditions depending on the accumulation model used.
+        The element is accumulated (produced/deposited) at a rate that may be
+        modulated by external conditions depending on the accumulation model
+        used.
 
         :param str name: name of the element
         :param float accumulationRate: Accumulation rate (m/My)
@@ -31,7 +32,7 @@ class Element:
         """
         return hash(self.name)
 
-    def __eq__(self: Self, other: Any) -> bool:
+    def __eq__(self: Self, other: Any) -> bool: # noqa: ANN401
         """Defines __eq__ method.
 
         :return bool: True if input object is an Element with the same name.

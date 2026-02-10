@@ -41,7 +41,7 @@ def curveToJsonObj(
     y_axis_name: str | None = None,
     x_axis_name_default: str = "Age",
 ) -> dict[str, Any]:
-    """Serialize a Curve to a JSON object matching `jsonSchemas/CurveSchema.json`."""
+    """Serialize a Curve to JSON matching `jsonSchemas/CurveSchema.json`."""
     x_axis_name = getattr(curve, "_xAxisName", None)
     if not isinstance(x_axis_name, str) or x_axis_name.strip() == "":
         x_axis_name = str(x_axis_name_default)
@@ -58,7 +58,8 @@ def curveToJsonObj(
     ordinate = np.asarray(getattr(curve, "_ordinate", []), dtype=float)
     if abscissa.size != ordinate.size:
         raise ValueError(
-            f"Curve abscissa/ordinate lengths differ: {abscissa.size} != {ordinate.size}"
+            f"Curve abscissa/ordinate lengths differ: {abscissa.size} != " +
+            f"{ordinate.size}"
         )
     if abscissa.size < 2:
         raise ValueError("Curve must have at least 2 points")
@@ -188,8 +189,8 @@ def _updateSubsidenceCurveName(curve: Curve) -> Curve:
     if curve._yAxisName.lower() != "subsidence":
         print(
             f"Warning: Subsidence curve yAxisName is '{curve._yAxisName}', "
-            "expected 'Subsidence'. Curve was renamed 'Subsidence' but check your input"
-            "file if this is unexpected."
+            "expected 'Subsidence'. Curve was renamed 'Subsidence' but check "
+            "your input file if this is unexpected."
         )
     curve._yAxisName = "Subsidence"
     return curve
@@ -212,8 +213,8 @@ def _updateEustaticCurveName(curve: Curve) -> Curve:
     if curve._yAxisName.lower() != "eustatism":
         print(
             f"Warning: Eustatic curve yAxisName is '{curve._yAxisName}', "
-            "expected 'Eustatic'. Curve was renamed 'Eustatic' but check your input"
-            "file if this is unexpected."
+            "expected 'Eustatic'. Curve was renamed 'Eustatic' but check your "
+            "inputfile if this is unexpected."
         )
     curve._yAxisName = "Eustatism"
     return curve
@@ -222,16 +223,17 @@ def _updateEustaticCurveName(curve: Curve) -> Curve:
 def loadCurvesFromCsv(path: Path) -> list[Curve]:
     """Load one or multiple Curve from a CSV file.
 
-    The csv file is expected to have a row header defining axis names and at least two
-    columns (the first one defines the x values and the other ones the y values of the
-    curves):
+    The csv file is expected to have a row header defining axis names and at
+    least two columns (the first one defines the x values and the other ones
+    the y values of the curves):
+
     - depth: depth value
     - Curve 1 values: the value of the first curve at the given depth.
     - Curve 2 values: the value of the second curve at the given depth.
     - ...
 
     :param Path path: Path to the CSV file.
-    :return list[Curve]: Loaded curves.
+    :returns list[Curve]: Loaded curves.
     """
     if not path.exists():
         raise FileNotFoundError(str(path))
@@ -272,7 +274,8 @@ def loadCurvesFromCsv(path: Path) -> list[Curve]:
         y = clean["y"].to_numpy(dtype=float)
         if x.size < 1 or x.size != y.size:
             raise ValueError(
-                f"Curve CSV column {col_idx} must have same non-zero x/y length."
+                f"Curve CSV column {col_idx} must have same non-zero x/y "
+                "length."
             )
 
         # Default interpolation: linear.
@@ -285,17 +288,23 @@ def loadCurvesFromCsv(path: Path) -> list[Curve]:
 def loadCurveFromJsonObj(obj: dict[str, Any]) -> Curve:
     """Parse a Curve JSON object into a Curve.
 
-    CurveSchema.json expects:
-    {
-      "format": "pyWellSFM.CurveData",
-      "version": "1.0",
-      "curve": {
-        "xAxisName": str,
-        "yAxisName": str,
-        "interpolationMethod": str | {"degree": int, "nbPoints": int},
-        "data": [{"x": number, "y": number}, ...]
-      }
-    }
+    CurveSchema.json expects as an example:
+
+    .. code-block:: json
+
+        {
+          "format": "pyWellSFM.CurveData",
+          "version": "1.0",
+          "curve": {
+            "xAxisName": "Depth",
+            "yAxisName": "Value",
+            "interpolationMethod": "linear",
+            "data": [
+              {"x": 0, "y": 0},
+              {"x": 1, "y": 1}
+            ]
+          }
+        }
 
     :returns Curve: Curve object.
     """
@@ -331,11 +340,13 @@ def loadCurveFromJsonObj(obj: dict[str, Any]) -> Curve:
         nb_points = interpolation_method.get("nbPoints")
         if not isinstance(degree, int) or degree < 1:
             raise ValueError(
-                "Curve.curve.interpolationMethod.degree must be an integer >= 1."
+                "Curve.curve.interpolationMethod.degree must be an" \
+                " integer >= 1."
             )
         if not isinstance(nb_points, int) or nb_points < 2:
             raise ValueError(
-                "Curve.curve.interpolationMethod.nbPoints must be an integer >= 2."
+                "Curve.curve.interpolationMethod.nbPoints must be an" \
+                " integer >= 2."
             )
         interpolation_function = PolynomialInterpolator()
         # PolynomialInterpolator expects 'deg' and 'nbPts'.
@@ -408,10 +419,12 @@ def loadCurvesFromFile(
 ) -> list[Curve]:
     """Load one or multiple Curve from a `.json` or `.csv` file.
 
-    json files contain a single Curve object, csv files may contain multiple curves.
+    json files contain a single Curve object, csv files may contain multiple
+    curves.
 
     - `.json`: must match the Curve JSON structure.
-    - `.csv`: expects two numeric columns (x,y), 1 row header defining axis names.
+    - `.csv`: expects two numeric columns (x,y), 1 row header defining axis
+      names.
 
     :returns list[Curve]: list of curve objects.
     """
@@ -439,8 +452,8 @@ def loadUncertaintyCurveFromFile(
     """Load an UncertaintyCurve from a `.json` or `.csv` file.
 
     - `.json`: must match the Curve JSON structure.
-    - `.csv`: expects two to four numeric columns (x,y, ymin, ymax), 1 row header
-        defining axis names.
+    - `.csv`: expects two to four numeric columns (x,y, ymin, ymax), 1 row
+      header defining axis names.
 
     :returns Curve: curve object.
     """
@@ -466,6 +479,7 @@ def loadUncertaintyCurveFromJsonObj(obj: dict[str, Any]) -> UncertaintyCurve:
     """Parse an UncertaintyCurve JSON object into an UncertaintyCurve.
 
     Schema in jsonSchemas/UncertaintyCurveSchema.json uses:
+
     - format: "pyWellSFM.UncertaintyCurveData"
     - version: "1.0"
     - data: {"name": str, "curves": [<CurveSchema objects>]}
@@ -498,7 +512,8 @@ def loadUncertaintyCurveFromJsonObj(obj: dict[str, Any]) -> UncertaintyCurve:
         )
     if len(curves_obj) > 3:
         raise ValueError(
-            "UncertaintyCurve.data.curves supports at most 3 curves (median/min/max)."
+            "UncertaintyCurve.data.curves supports at most 3 curves"
+            " (median/min/max)."
         )
 
     parsed_curves: list[Curve] = []
@@ -515,14 +530,16 @@ def loadUncertaintyCurveFromJsonObj(obj: dict[str, Any]) -> UncertaintyCurve:
     for i, c in enumerate(parsed_curves[1:], start=1):
         if c._xAxisName != x_axis_name:
             raise ValueError(
-                "All curves in an UncertaintyCurve must share the same xAxisName. "
-                f"Got '{x_axis_name}' and '{c._xAxisName}' at index {i}."
+                "All curves in an UncertaintyCurve must share the same "
+                f"xAxisName. Got '{x_axis_name}' and '{c._xAxisName}' at "
+                f"index {i}."
             )
         if c._abscissa.shape != abscissa.shape or not np.allclose(
             c._abscissa, abscissa, equal_nan=True
         ):
             raise ValueError(
-                "All curves in an UncertaintyCurve must share the same abscissa values."
+                "All curves in an UncertaintyCurve must share the same" \
+                " abscissa values."
             )
 
     def _infer_role(curve: Curve) -> str | None:
@@ -590,20 +607,23 @@ def loadUncertaintyCurveFromCsv(
 ) -> UncertaintyCurve:
     """Load an UncertaintyCurve from a CSV file.
 
-    The csv file is expected to have a row header defining axis names and two to
-    four columns:
+    The csv file is expected to have a row header defining axis names and two
+    to four columns:
+
     - depth: depth value
     - value: the value of the curve at the given depth.
     - ymin (optional): minimum value at the given depth.
     - ymax (optional): maximum value at the given depth.
 
-    Depending on csv file format, the UncertaintyCurve object is populated as follows:
+    Depending on csv file format, the UncertaintyCurve object is populated as
+    follows:
+
     - if 1 column, set ymin=ymax=value by default
     - if 2 columns, search for min or max keywords in header to set ymin/ymax.
-    Otherwise, compare the values to the mean, if values < mean, then set ymin=value,
-    ymax=mean, else set ymin=mean, ymax=value
+      Otherwise, compare the values to the mean, if values < mean, then set
+      ymin=value, ymax=mean, else set ymin=mean, ymax=value
     - if 3 columns, search for min or max keywords in header to set ymin/ymax,
-    or compare values to mean as above.
+      or compare values to mean as above.
 
     :param Path path: Path to the CSV file.
     :returns UncertaintyCurve: Loaded uncertainty curve.
@@ -618,7 +638,8 @@ def loadUncertaintyCurveFromCsv(
         print(first_line)
         if not any(ch.isalpha() for ch in first_line):
             raise ValueError(
-                "UncertaintyCurve CSV must have a header row defining axis names."
+                "UncertaintyCurve CSV must have a header row defining" \
+                " axis names."
             )
 
     df = pd.read_csv(
@@ -629,7 +650,8 @@ def loadUncertaintyCurveFromCsv(
 
     if df.shape[1] < 2 or df.shape[1] > 4:
         raise ValueError(
-            "UncertaintyCurve CSV must have 2 to 4 columns (x, y[, ymin[, ymax]])."
+            "UncertaintyCurve CSV must have 2 to 4 columns "
+            "(x, y[, ymin[, ymax]])."
         )
 
     x_axis_name = str(df.columns[0]).strip() or path.stem
@@ -697,11 +719,12 @@ def loadUncertaintyCurveFromCsv(
         ymin_present = True
         ymax_present = True
 
-    # Drop rows where x or median is not numeric. (Many bundled CSVs use trailing NaNs.)
+    # Drop rows where x or median is not numeric.
     clean = clean.dropna(subset=["x", "y"])
     if clean.shape[0] < 2:
         raise ValueError(
-            "UncertaintyCurve CSV must contain at least 2 valid numeric (x, y) rows."
+            "UncertaintyCurve CSV must contain at least 2 valid numeric "
+            "(x, y) rows."
         )
 
     # Ensure increasing x values for interpolation.

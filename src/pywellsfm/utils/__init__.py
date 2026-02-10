@@ -8,7 +8,7 @@ should prefer importing from `pywellsfm.io` instead of submodules.
 
 from __future__ import annotations
 
-from pywellsfm.utils.helpers import (
+from .helpers import (
     Interpolator,
     LinearInterpolator,
     PolynomialInterpolator,

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
+# ruff: noqa: E402 # disable Module level import not at top of file
 
 """Test suite for AccumulationModel classes and unified API."""
 
@@ -58,7 +59,7 @@ temp_curve = AccumulationCurve(
 def test_base_class_cannot_be_instantiated() -> None:
     """Test that the base class cannot be instantiated (abstract)."""
     with pytest.raises(TypeError):
-        AccumulationModelBase("TestModel")  # pyright: ignore[reportAbstractUsage]
+        AccumulationModelBase("TestModel")  # type: ignore[abstract]
 
 
 def test_base_addElement_adds_element() -> None:
@@ -74,7 +75,7 @@ def test_base_addElement_adds_element() -> None:
 
 
 def test_base_addElement_deduplicates_by_name() -> None:
-    """Test addElement uses Element hashing/equality (name) to avoid duplicates."""
+    """Test addElement uses Element hashing/equality to avoid duplicates."""
     model = AccumulationModelGaussian("ProbModel")
     element1 = Element("sand", 100.0)
     element2 = Element("sand", 999.0)  # Same name => equal to element1
@@ -140,14 +141,14 @@ def test_gaussian_model_without_env_conditions() -> None:
 
     # Verify it returns a float
     assert isinstance(rate, float)
-    # With mean=100 and stddev=200, result should be reasonable (not exact due to
-    # randomness)
+    # With mean=100 and stddev=200, result should be reasonable (not exact due
+    # to randomness)
     # but we can check it's in a plausible range (say, -400 to 600 for 3 sigma)
     assert -400 < rate < 600
 
 
 def test_gaussian_model_with_env_conditions() -> None:
-    """Test AccumulationModelProbabilistic with environment conditions (ignored)."""
+    """Test AccumulationModelProbabilistic with environment conditions."""
     model = AccumulationModelGaussian("ProbModel")
     element = Element("sand", 100.0)
     model.addElement(element)
@@ -209,7 +210,7 @@ def test_gaussian_model_std_dev_factor() -> None:
 
 
 def test_environment_optimum_model_without_env_conditions_raises() -> None:
-    """Test that AccumulationModelEnvironmentOptimum raises error without conditions."""
+    """Test raises error without conditions."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     element = Element("sand", 100.0)
     model.addElement(element)
@@ -226,9 +227,8 @@ def test_environment_optimum_model_without_env_conditions_raises() -> None:
     assert "sand" in error_msg  # Element name should be in error
 
 
-def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve() -> (
-    None
-):
+def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve(
+) -> None:
     """Test adding curves stores them by x-axis name and can be retrieved."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
 
@@ -241,10 +241,10 @@ def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve() -> 
     assert model.getAccumulationCurve("Energy") is energy_curve
 
 
-def test_environment_optimum_removeCurve_removes_and_is_noop_when_missing() -> (
-    None
-):
-    """Test removeAccumulationCurve removes by name and doesn't error if missing."""
+def test_environment_optimum_removeCurve_removes_and_is_noop_when_missing(
+
+) -> None:
+    """Test removes by name and doesn't error if missing."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     model.addAccumulationCurve(bathy_curve)
 
@@ -263,9 +263,9 @@ def test_environment_optimum_getAccumulationCurve_raises_for_missing() -> None:
         model.getAccumulationCurve("Bathymetry")
 
 
-def test_environment_optimum_getElementAccumulationAt_matches_curve_product() -> (
-    None
-):
+def test_environment_optimum_getElementAccumulationAt_matches_curve_product(
+
+) -> None:
     """Migrated behavior test: accumulation equals rate * product(coeffs)."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     element = Element("Sand", 10.0)
@@ -295,7 +295,7 @@ def test_environment_optimum_model_with_env_conditions() -> None:
 
 
 def test_environment_optimum_model_multiple_factors() -> None:
-    """Test AccumulationModelEnvironmentOptimum with multiple environmental factors."""
+    """Test with multiple environmental factors."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     element = Element("sand", 100.0)
     model.addElement(element)
@@ -419,7 +419,7 @@ def test_generic_client_code_pattern() -> None:
 
 
 def _write_json(tmp_path: Path, payload: dict[str, Any], filename: str) -> str:
-    """Helper for tests: write JSON to a temp file and return its filesystem path."""
+    """Helper: write JSON to a temp file and return its filesystem path."""
     path = tmp_path / filename
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return str(path)
@@ -428,7 +428,7 @@ def _write_json(tmp_path: Path, payload: dict[str, Any], filename: str) -> str:
 def _write_csv(
     tmp_path: Path, rows: list[list[float | str]], filename: str
 ) -> str:
-    """Helper for tests: write a simple CSV file and return its filesystem path."""
+    """Helper: write a simple CSV file and return its filesystem path."""
     path = tmp_path / filename
     lines = [",".join(str(v) for v in row) for row in rows]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -449,7 +449,7 @@ def _gaussian_signature(
 def _envopt_signature(
     model: AccumulationModelEnvironmentOptimum,
 ) -> tuple[dict[str, float], dict[str, tuple[list[float], list[float]]]]:
-    """Canonical signature used by tests to compare EnvironmentOptimum models."""
+    """Canonical signature to compare EnvironmentOptimum models."""
     elements = {e.name: float(e.accumulationRate) for e in model.elements}
     curves: dict[str, tuple[list[float], list[float]]] = {}
     for name, curve in model.prodCurves.items():
@@ -471,9 +471,9 @@ def test_loadAccumulationModelGaussianFromCsv_happy_path(
     """Test loading a Gaussian accumulation model from a CSV file.
 
     Objective:
-    - Ensure `loadAccumulationModelGaussianFromCsv` parses the expected columns and
-      creates the corresponding `AccumulationModelGaussian` with elements and
-      per-element stddev factors.
+    - Ensure `loadAccumulationModelGaussianFromCsv` parses the expected columns
+      and creates the corresponding `AccumulationModelGaussian` with elements
+      and per-element stddev factors.
 
     Input data:
     - A temporary CSV file with header: name, mean, stddevFactor.
@@ -502,18 +502,19 @@ def test_loadAccumulationModelGaussianFromCsv_happy_path(
 
 
 def test_saveAccumulationModelGaussianToCsv_round_trip(tmp_path: Path) -> None:
-    """Test exporting then re-loading a Gaussian model via CSV preserves values.
+    """Test exporting then reloading a Gaussian model via CSV preserves values.
 
     Objective:
-    - Verify `saveAccumulationModelGaussianToCsv` produces a CSV that round-trips
-      through `loadAccumulationModelGaussianFromCsv` without losing element means or
-      stddev factors.
+    - Verify `saveAccumulationModelGaussianToCsv` produces a CSV that
+      round-trips through `loadAccumulationModelGaussianFromCsv` without losing
+      element means or stddev factors.
 
     Input data:
     - A Gaussian model with two elements and explicit stddev factors.
 
     Expected outputs:
-    - After export + load, the signature (element rate + stddev factor) is identical.
+    - After export + load, the signature (element rate + stddev factor) is
+      identical.
     """
     elements = {Element("sand", 100.0), Element("shale", 50.0)}
     model = AccumulationModelGaussian(
@@ -542,7 +543,8 @@ def test_loadAccumulationModelGaussian_happy_path(tmp_path: Path) -> None:
       payload and builds the correct model.
 
     Input data:
-    - A JSON file matching `AccumulationModelSchema.json` with modelType="Gaussian".
+    - A JSON file matching `AccumulationModelSchema.json` with
+      modelType="Gaussian".
 
     Expected outputs:
     - Returned model has the expected name, elements, and stddev factors.
@@ -579,7 +581,7 @@ def test_loadAccumulationModelGaussian_happy_path(tmp_path: Path) -> None:
 
 
 def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
-    """Test exporting then re-loading a Gaussian model via JSON preserves values.
+    """Test exporting/reloading a Gaussian model via JSON preserves values.
 
     Objective:
     - Verify `saveAccumulationModelGaussianToJson` produces a JSON file that
@@ -661,7 +663,7 @@ def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
 )
 def test_loadAccumulationModel_rejects_invalid_payloads(
     tmp_path: Path,
-    payload: Any,
+    payload: Any, # noqa: ANN401
     expected_message: str,
 ) -> None:
     """Test JSON loader rejects invalid shapes/metadata.
@@ -671,11 +673,12 @@ def test_loadAccumulationModel_rejects_invalid_payloads(
       (format/version) and the expected object shapes and modelType.
 
     Input data:
-    - A set of invalid payloads (wrong type, wrong format/version, wrong modelType).
+    - A set of invalid payloads (wrong type, wrong format/version,
+      wrong modelType).
 
     Expected outputs:
-    - Each invalid payload raises ValueError with a message containing the expected
-      substring.
+    - Each invalid payload raises ValueError with a message containing the
+      expected substring.
     """
     path = tmp_path / "bad.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
@@ -693,15 +696,15 @@ def test_loadAccumulationModel_rejects_invalid_payloads(
 def test_loadAccumulationModelEnvironmentOptimumFromJson_inline_curves(
     tmp_path: Path,
 ) -> None:
-    """Test loading an EnvironmentOptimum model with inline TabulatedFunction curves.
+    """Test loading an EnvironmentOptimum model with inline TabulatedFunction.
 
     Objective:
     - Ensure `loadAccumulationModelEnvironmentOptimumFromJson` supports inline
       TabulatedFunction objects inside `accumulationCurves`.
 
     Input data:
-    - A schema-shaped EnvironmentOptimum JSON file with one element and two inline
-      curves (Bathymetry and Energy).
+    - A schema-shaped EnvironmentOptimum JSON file with one element and two
+      inline curves (Bathymetry and Energy).
 
     Expected outputs:
     - Returned model contains the element with correct accumulationRate.
@@ -754,19 +757,21 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_inline_curves(
     assert float(model.prodCurves["Bathymetry"](5.0)) == pytest.approx(0.5)
 
 
-def test_loadAccuModelEnvironmentOptimumFromJson_external_curve_files_json_and_csv(
+def test_loadAccuModelEnvironmentOptimumFromJson_external_curve_files(
     tmp_path: Path,
 ) -> None:
-    """Test loading an EnvironmentOptimum model referencing external curve files.
+    """Test loading an EnvironmentOptimum model referencing external files.
 
     Objective:
     - Ensure `loadAccumulationModelEnvironmentOptimumFromJson` supports
-      `accumulationCurves` entries that are paths to external JSON and CSV files.
+      `accumulationCurves` entries that are paths to external JSON and CSV
+      files.
     - Ensure relative paths resolve relative to the model JSON directory.
 
     Input data:
     - Curve1: JSON TabulatedFunction file for Bathymetry.
-    - Curve2: CSV numeric x,y file for Energy (name inferred from filename stem).
+    - Curve2: CSV numeric x,y file for Energy (name inferred from filename
+      stem).
     - Model JSON referencing both with relative paths.
 
     Expected outputs:
@@ -818,10 +823,11 @@ def test_loadAccuModelEnvironmentOptimumFromJson_external_curve_files_json_and_c
 def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
     tmp_path: Path,
 ) -> None:
-    """Test exporting an EnvironmentOptimum model with inline curves round-trips.
+    """Test exporting an EnvironmentOptimum model with inline round-trips.
 
     Objective:
-    - Verify `saveAccumulationModelEnvironmentOptimumToJson(curves_mode='inline')`
+    - Verify
+      `saveAccumulationModelEnvironmentOptimumToJson(curves_mode='inline')`
       produces a single JSON file that loads back to an equivalent model.
 
     Input data:
@@ -855,13 +861,14 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
     assert _envopt_signature(reloaded) == _envopt_signature(model)
 
 
-def test_saveAccumulationModelEnvironmentOptimumToJson_external_json_round_trip(
+def test_saveAccumulationModelEnvironmentOptimumToJson_external_json_roundTrip(
     tmp_path: Path,
 ) -> None:
     """Test exporting an EnvironmentOptimum model with external JSON curves.
 
     Objective:
-    - Verify `saveAccumulationModelEnvironmentOptimumToJson(curves_mode='external',
+    - Verify
+      `saveAccumulationModelEnvironmentOptimumToJson(curves_mode='external',
       curves_format='json')` produces multiple files (model + curve files) that
       load back to an equivalent model.
 
@@ -909,9 +916,10 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_external_csv_round_trip(
     """Test exporting an EnvironmentOptimum model with external CSV curves.
 
     Objective:
-    - Verify `saveAccumulationModelEnvironmentOptimumToJson(curves_mode='external',
-      curves_format='csv')` produces multiple files (model + curve CSV files) that
-      load back to an equivalent model.
+    - Verify
+      `saveAccumulationModelEnvironmentOptimumToJson(curves_mode='external',
+      curves_format='csv')` produces multiple files (model + curve CSV files)
+      that load back to an equivalent model.
 
     Input data:
     - An EnvironmentOptimum model with 1 element and 2 curves.

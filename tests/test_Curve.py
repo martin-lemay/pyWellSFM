@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
+# ruff: noqa: E402 # disable Module level import not at top of file
+
 import os
 import sys
 from pathlib import Path
@@ -405,9 +407,9 @@ def test_loadCurvesFromFile_csv(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    curve = loadCurvesFromFile(csv_path)
-    assert len(curve) == 1
-    curve = curve[0]
+    curves: list[Curve] = loadCurvesFromFile(csv_path)
+    assert len(curves) == 1
+    curve: Curve = curves[0]
     assert curve._xAxisName == "Depth"
     assert curve._yAxisName == "Value"
     assert curve.getValueAt(0.25) == pytest.approx(0.25)
@@ -430,7 +432,7 @@ def test_loadCurvesFromFile_unsupported_extension(tmp_path: Path) -> None:
 
 # Test UncertaintyCurve IO functions
 def test_loadUncertaintyCurveFromJsonObj_single_curve() -> None:
-    """Load an UncertaintyCurve from UncertaintyCurveSchema.json-compatible object."""
+    """Load an UncertaintyCurve from schema-compatible object."""
     obj = {
         "format": "pyWellSFM.UncertaintyCurveData",
         "version": "1.0",
@@ -464,7 +466,7 @@ def test_loadUncertaintyCurveFromJsonObj_single_curve() -> None:
 
 
 def test_loadUncertaintyCurveFromJsonObj_three_curves_ordered() -> None:
-    """Load an UncertaintyCurve from 3 curves (convention: median, min, max)."""
+    """Load an UncertaintyCurve from 3 curves."""
     obj = {
         "format": "pyWellSFM.UncertaintyCurveData",
         "version": "1.0",
@@ -549,7 +551,7 @@ def test_loadUncertaintyCurveFromJsonObj_abscissa_mismatch_raises() -> None:
 
 
 def test_loadUncertaintyCurveFromJsonObj_invalid_format_raises() -> None:
-    """Test loadUncertaintyCurveFromJsonObj with invalid format raises ValueError."""
+    """Test loadUncertaintyCurveFromJsonObj with invalid format."""
     obj = {
         "format": "pyWellSFM.NotUncertaintyCurve",
         "version": "1.0",
@@ -560,7 +562,7 @@ def test_loadUncertaintyCurveFromJsonObj_invalid_format_raises() -> None:
         loadUncertaintyCurveFromJsonObj(obj)
 
 
-def test_loadUncertaintyCurveFromCsv_no_header_four_columns_drops_nan_and_sorts(
+def test_loadUncertaintyCurveFromCsv_no_header_4_columns_drops_nan_and_sorts(
     tmp_path: Path,
 ) -> None:
     """Load UncertaintyCurve from a headerless 4-column CSV."""
@@ -576,7 +578,7 @@ def test_loadUncertaintyCurveFromCsv_no_header_four_columns_drops_nan_and_sorts(
         loadUncertaintyCurveFromCsv(csv_path)
 
 
-def test_loadUncertaintyCurveFromCsv_header_two_columns_defaults_min_max_to_median(
+def test_loadUncertaintyCurveFromCsv_header_two_columns_defaults(
     tmp_path: Path,
 ) -> None:
     """With only x,y columns, min/max default to median."""
@@ -638,7 +640,7 @@ def test_loadUncertaintyCurveFromFile_csv(tmp_path: Path) -> None:
 
 
 def test_loadUncertaintyCurveFromFile_json(tmp_path: Path) -> None:
-    """Load UncertaintyCurve from a JSON file matching UncertaintyCurveSchema."""
+    """Load UncertaintyCurve from a JSON file matching schema."""
     json_path = tmp_path / "unc.json"
     json_path.write_text(
         """

@@ -28,7 +28,7 @@ def _json_schema_store() -> dict[str, Any]:
     """Load all schemas in jsonSchemas/ and index them by a few common keys.
 
     This supports offline resolution for $ref values that look like remote URLs
-    (via $id) as well as short local-like names (e.g. "TabulatedFunction.json").
+    (via $id) as well as short local-like names (e.g. "TabulatedFunction.json")
     """
     schema_dir = _json_schema_dir()
     if not schema_dir.exists():
@@ -54,7 +54,7 @@ def _json_schema_store() -> dict[str, Any]:
     return store
 
 
-def _format_jsonschema_path(path_items: Any) -> str:
+def _format_jsonschema_path(path_items: Any) -> str: # noqa: ANN401
     try:
         items = list(path_items)
     except TypeError:
@@ -69,7 +69,10 @@ def _format_jsonschema_path(path_items: Any) -> str:
     return out
 
 
-def _iter_schema_errors(instance: Any, schema_filename: str) -> list[Any]:
+def _iter_schema_errors(
+        instance: Any, # noqa: ANN401
+        schema_filename: str
+    ) -> list[Any]:
     """Return jsonschema validation errors for instance (does not raise)."""
     try:
         from jsonschema import RefResolver
@@ -106,14 +109,14 @@ def _raise_first_schema_error(
     at = _format_jsonschema_path(getattr(first, "absolute_path", []))
     msg = getattr(first, "message", str(first))
     raise ValueError(
-        f"{instance_path} does not conform to schema '{schema_filename}': {msg} "
-        f"(at {at})"
+        f"{instance_path} does not conform to schema '{schema_filename}': "
+        f"{msg} (at {at})"
     )
 
 
 def validate_json_file_against_schema(
     filepath: str, schema_filename: str
-) -> Any:
+) -> Any: # noqa: ANN401
     """Validate a JSON file against a schema in jsonSchemas/.
 
     Returns the parsed JSON object when valid.
@@ -131,7 +134,7 @@ def validate_json_file_against_schema(
 
 
 def expect_format_version(
-    data: Any,
+    data: Any, # noqa: ANN401
     *,
     expected_format: str,
     expected_version: str,
@@ -140,17 +143,17 @@ def expect_format_version(
     """Validate the top-level format/version metadata of a JSON-like object.
 
     Many project file formats share the convention:
+
     - format: a string identifying the payload type
     - version: a string identifying the payload version
 
-    Parameters:
-        data: Parsed JSON object.
-        expected_format: Required value for the ``format`` field.
-        expected_version: Required value for the ``version`` field.
-        kind: Human-friendly label used in error messages.
+    :param Any data: The JSON-like object to validate. Must be a dict with
+        "format" and "version" keys.
+    :param str expected_format: Required value for the ``format`` field.
+    :param str expected_version: Required value for the ``version`` field.
+    :param str kind: Human-friendly label used in error messages.
 
-    Raises:
-        ValueError: If data is not a dict or if format/version do not match.
+    :raises ValueError: If data is not a dict or if format/version do not match.
     """
     if not isinstance(data, dict):
         raise ValueError(f"{kind} JSON must be an object.")
@@ -158,13 +161,15 @@ def expect_format_version(
     fmt = data.get("format")
     if fmt != expected_format:
         raise ValueError(
-            f"Invalid {kind} format: expected '{expected_format}', got '{fmt}'."
+            f"Invalid {kind} format: expected '{expected_format}', "
+            f"got '{fmt}'."
         )
 
     ver = data.get("version")
     if ver != expected_version:
         raise ValueError(
-            f"Invalid {kind} version: expected '{expected_version}', got '{ver}'."
+            f"Invalid {kind} version: expected '{expected_version}', "
+            f"got '{ver}'."
         )
 
 
@@ -179,7 +184,7 @@ def validateFaciesModelJsonFile(filepath: str) -> dict[str, Any]:
 
 
 def validateAccumulationModelJsonFile(filepath: str) -> dict[str, Any]:
-    """Validate an accumulation model JSON file against AccumulationModelSchema.json."""
+    """Validate an accumulation model JSON file against schema."""
     data = validate_json_file_against_schema(
         filepath, "AccumulationModelSchema.json"
     )
@@ -189,7 +194,7 @@ def validateAccumulationModelJsonFile(filepath: str) -> dict[str, Any]:
 
 
 def validateTabulatedFunctionJsonFile(filepath: str) -> dict[str, Any]:
-    """Validate a TabulatedFunction JSON file against TabulatedFunctionSchema.json."""
+    """Validate a TabulatedFunction JSON file against schema."""
     data = validate_json_file_against_schema(
         filepath, "TabulatedFunctionSchema.json"
     )
@@ -199,7 +204,7 @@ def validateTabulatedFunctionJsonFile(filepath: str) -> dict[str, Any]:
 
 
 def validateScenarioJsonFile(filepath: str) -> dict[str, Any]:
-    """Validate a top-level scenario/input JSON file against ScenarioSchema.json."""
+    """Validate a top-level scenario/input JSON file against schema."""
     data = validate_json_file_against_schema(filepath, "ScenarioSchema.json")
     if not isinstance(data, dict):
         raise ValueError("Scenario JSON must be an object.")
@@ -207,7 +212,7 @@ def validateScenarioJsonFile(filepath: str) -> dict[str, Any]:
 
 
 def validateUncertaintyCurveJsonFile(filepath: str) -> dict[str, Any]:
-    """Validate an UncertaintyCurve JSON file against UncertaintyCurveSchema.json."""
+    """Validate an UncertaintyCurve JSON file against schema."""
     data = validate_json_file_against_schema(
         filepath, "UncertaintyCurveSchema.json"
     )
@@ -217,7 +222,7 @@ def validateUncertaintyCurveJsonFile(filepath: str) -> dict[str, Any]:
 
 
 def validateCurveJsonFile(filepath: str) -> dict[str, Any]:
-    """Validate a Curve JSON file against CurveSchema.json."""
+    """Validate a Curve JSON file against schema."""
     data = validate_json_file_against_schema(filepath, "CurveSchema.json")
     if not isinstance(data, dict):
         raise ValueError("Curve JSON must be an object.")
@@ -225,7 +230,7 @@ def validateCurveJsonFile(filepath: str) -> dict[str, Any]:
 
 
 def validateWellJsonFile(filepath: str) -> dict[str, Any]:
-    """Validate a Well JSON file against WellSchema.json."""
+    """Validate a Well JSON file against schema."""
     data = validate_json_file_against_schema(filepath, "WellSchema.json")
     if not isinstance(data, dict):
         raise ValueError("Well JSON must be an object.")

@@ -8,7 +8,7 @@ should prefer importing from `pywellsfm.io` instead of submodules.
 
 from __future__ import annotations
 
-from pywellsfm.io.accumulation_model_io import (
+from .accumulation_model_io import (
     loadAccumulationModel,
     loadAccumulationModelGaussianFromCsv,
     saveAccumulationModel,
@@ -16,7 +16,7 @@ from pywellsfm.io.accumulation_model_io import (
     saveAccumulationModelGaussianToCsv,
     saveAccumulationModelGaussianToJson,
 )
-from pywellsfm.io.curve_io import (
+from .curve_io import (
     loadCurvesFromFile,
     loadEustaticCurve,
     loadSubsidenceCurve,
@@ -25,18 +25,18 @@ from pywellsfm.io.curve_io import (
     saveCurveToCsv,
     saveCurveToJson,
 )
-from pywellsfm.io.facies_model_io import (
+from .facies_model_io import (
     loadFaciesModel,
     saveFaciesModel,
 )
-from pywellsfm.io.json_schema_validation import (
+from .json_schema_validation import (
     validate_json_file_against_schema,
     validateAccumulationModelJsonFile,
     validateFaciesModelJsonFile,
     validateScenarioJsonFile,
     validateTabulatedFunctionJsonFile,
 )
-from pywellsfm.io.simulation_io import (
+from .simulation_io import (
     loadRealizationData,
     loadScenario,
     loadSimulationData,
@@ -44,13 +44,13 @@ from pywellsfm.io.simulation_io import (
     saveScenario,
     saveSimulationData,
 )
-from pywellsfm.io.striplog_io import importStriplog
-from pywellsfm.io.tabulated_function_io import (
+from .striplog_io import importStriplog
+from .tabulated_function_io import (
     loadTabulatedFunctionFromFile,
     saveTabulatedFunctionToCsv,
     saveTabulatedFunctionToJson,
 )
-from pywellsfm.io.well_io import loadWell, saveWell
+from .well_io import loadWell, saveWell
 
 __all__ = [
     "importStriplog",

@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
+# ruff: noqa: E402 # disable Module level import not at top of file
+
 """Unit tests for Element."""
 
 import os
@@ -85,7 +87,8 @@ def test_set_Element() -> None:
 
     elementSet.add(element4)
     assert len(elementSet) == 3, (
-        "The length of the set of elements after addition of element4 is wrong."
+        "The length of the set of elements after addition of "
+        "element4 is wrong."
     )
 
 

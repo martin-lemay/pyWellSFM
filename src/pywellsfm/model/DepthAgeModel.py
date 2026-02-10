@@ -10,17 +10,24 @@ import pandas as pd
 from pywellsfm.model.Curve import Curve
 from pywellsfm.model.Marker import Marker
 
-# ..WARNING:: consider only 1 depth per age (no stratigraphic layer duplication)
+__doc__ = """
+Defines a depth-age model and conversion methods.
 
+..WARNING::
+
+  consider only 1 depth per age (no stratigraphic layer duplication)
+"""
 
 class DepthAgeModel:
     def __init__(
-        self: Self, interpolationMethod: str | Any = "linear", **args: Any
+        self: Self,
+        interpolationMethod: str | Any = "linear", # noqa: ANN401
+        **args: Any
     ) -> None:
         """Defines depth-age model and conversion methods.
 
-        : param str | Any, optional interpolationMethod: Interpolation methods between
-            time markers. Defaults to "linear".
+        : param str | Any, optional interpolationMethod: Interpolation methods
+            between time markers. Defaults to "linear".
         : param dict[Any, Any] **args: any other arguments.
         """
         self._xaxisName: str = "Age"
@@ -43,8 +50,8 @@ class DepthAgeModel:
     def updateCurve(self: Self, ageDepths: npt.NDArray[np.float64]) -> None:
         """Update depth-age curve.
 
-        : param npt.NDArray[np.float64] ageDepths: array of shape (n,2) with age in
-            first column and depth in second column.
+        : param npt.NDArray[np.float64] ageDepths: array of shape (n,2) with
+            age in first column and depth in second column.
         """
         self.depthAgeCurve = Curve(
             self._xaxisName,
@@ -110,13 +117,45 @@ class DepthAgeModel:
         return (invCurve(depth),)
 
     def convertContinuousLogToDepth(self: Self, inputLog: Curve) -> Curve:
-        return None
+        """Convert a continuous log from age to depth domain.
+
+        Args:
+            inputLog (Curve): input log in age domain
+
+        Returns:
+            Curve: output log in depth domain
+        """
+        raise NotImplementedError("Method not implemented yet.")
 
     def convertContinuousLogToAge(self: Self, inputLog: Curve) -> Curve:
-        return None
+        """Convert a continuous log from depth to age domain.
+
+        Args:
+            inputLog (Curve): input log in depth domain
+
+        Returns:
+            Curve: output log in age domain
+        """
+        raise NotImplementedError("Method not implemented yet.")
 
     def convertDiscreteLogToDepth(self: Self, inputLog: Curve) -> Curve:
-        return None
+        """Convert a discrete log from age to depth domain.
+
+        Args:
+            inputLog (Curve): input log in age domain
+
+        Returns:
+            Curve: output log in depth domain
+        """
+        raise NotImplementedError("Method not implemented yet.")
 
     def convertDiscreteLogToAge(self: Self, inputLog: Curve) -> Curve:
-        return None
+        """Convert a discrete log from depth to age domain.
+
+        Args:
+            inputLog (Curve): input log in depth domain
+
+        Returns:
+            Curve: output log in age domain
+        """
+        raise NotImplementedError("Method not implemented yet.")

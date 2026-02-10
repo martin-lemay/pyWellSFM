@@ -33,15 +33,15 @@ from pywellsfm.model.Well import Well
 
 
 def wellToJsonObj(well: Well) -> dict[str, Any]:
-    """Serialize a Well to a JSON object matching `jsonSchemas/WellSchema.json`."""
+    """Serialize a Well to JSON matching `jsonSchemas/WellSchema.json`."""
 
-    def _as_float(value: Any) -> float:
+    def _as_float(value: Any) -> float: # noqa: ANN401
         try:
             return float(value)
         except Exception as exc:
             raise ValueError(f"Value '{value}' is not a number") from exc
 
-    def _depth_from_position(pos: Any) -> float:
+    def _depth_from_position(pos: Any) -> float: # noqa: ANN401
         if hasattr(pos, "z"):
             return _as_float(pos.z)
         return _as_float(pos)
@@ -162,7 +162,7 @@ def wellToJsonObj(well: Well) -> dict[str, Any]:
     return {"format": "pyWellSFM.WellData", "version": "1.0", "well": well_obj}
 
 
-def _parse_stratigraphic_type(raw: Any) -> StratigraphicSurfaceType:
+def _parse_stratigraphic_type(raw: Any) -> StratigraphicSurfaceType: # noqa: ANN401
     print("Debug: Parsing stratigraphic type from raw value:", raw)
     if not isinstance(raw, str) or raw.strip() == "":
         return StratigraphicSurfaceType.UNKNOWN
@@ -211,8 +211,8 @@ def _load_striplog_from_json_obj(obj: dict[str, Any]) -> tuple[str, Striplog]:
             )
         if not isinstance(litho, str) or litho.strip() == "":
             raise ValueError(
-                f"Striplog '{name}' intervals[{i}].lithology must be a non-empty "
-                "string."
+                f"Striplog '{name}' intervals[{i}].lithology must be a "
+                "non-empty string."
             )
 
         if float(base) < float(top):
@@ -260,14 +260,16 @@ def loadWell(filepath: str) -> Well:
     """Load a Well from a file.
 
     Supported file formats are:
+
     - json file matching `jsonSchemas/WellSchema.json`.
     - las file matching LAS 2.0 format.
 
-    Notes:
-    - `well.location` defines the well head (x,y,z).
-    - `continuousLogs` items use the Curve schema and are stored under the log name
-      derived from `curve.yAxisName`.
-    - `striplogs` items are stored under the striplog `name`.
+    .. Note::
+
+        - `well.location` defines the well head (x,y,z).
+        - `continuousLogs` items use the Curve schema and are stored under the
+          log name derived from `curve.yAxisName`.
+        - `striplogs` items are stored under the striplog `name`.
 
     :param str filepath: path to the well file
     """
@@ -293,11 +295,12 @@ def loadWellFromJsonObj(
 ) -> Well:
     """Load a Well from a JSON file matching `jsonSchemas/WellSchema.json`.
 
-    Notes:
-    - `well.location` defines the well head (x,y,z).
-    - `continuousLogs` items use the Curve schema and are stored under the log name
-      derived from `curve.yAxisName`.
-    - `striplogs` items are stored under the striplog `name`.
+    .. Note::
+
+        - `well.location` defines the well head (x,y,z).
+        - `continuousLogs` items use the Curve schema and are stored under the
+          log name derived from `curve.yAxisName`.
+        - `striplogs` items are stored under the striplog `name`.
     """
     expect_format_version(
         obj,
@@ -409,7 +412,8 @@ def loadWellFromJsonObj(
                 well.addLog(path.stem, striplog)
             else:
                 raise ValueError(
-                    f"Well.well.striplogs[{i}] must be an object or a string path."
+                    f"Well.well.striplogs[{i}] must be an object or a "
+                    "string path."
                 )
 
     # Optional continuous logs
@@ -418,7 +422,8 @@ def loadWellFromJsonObj(
         for i, item in enumerate(cont_raw):
             if not isinstance(item, dict):
                 raise ValueError(
-                    f"Well.well.continuousLogs[{i}] must be a Curve JSON object."
+                    f"Well.well.continuousLogs[{i}] must be a Curve "
+                    "JSON object."
                 )
             curve = loadCurveFromJsonObj(item)
             # Store using yAxisName (log name) from the JSON object.
@@ -462,6 +467,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
     Uses `lasio` to parse well header and curves.
 
     Populates:
+
     - `Well.name`
     - `Well.wellHeadCoords` (defaults to [0,0,0] if not found)
     - `Well.depth` (prefers STOP if present, else max depth index)
@@ -478,7 +484,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
 
     las = lasio.read(str(path), ignore_header_errors=True)
 
-    def _get_header_value(*keys: str) -> Any:
+    def _get_header_value(*keys: str) -> Any: # noqa: ANN401
         for key in keys:
             try:
                 if hasattr(las, "well") and key in las.well:
@@ -492,7 +498,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
                 pass
         return None
 
-    def _to_float(value: Any) -> float | None:
+    def _to_float(value: Any) -> float | None: # noqa: ANN401
         if value is None:
             return None
         try:
@@ -500,7 +506,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
         except (TypeError, ValueError):
             return None
 
-    def _to_non_empty_str(value: Any) -> str | None:
+    def _to_non_empty_str(value: Any) -> str | None: # noqa: ANN401
         if value is None:
             return None
         s = str(value).strip()
@@ -516,17 +522,17 @@ def loadWellFromLasFile(filepath: str) -> Well:
     )
 
     # --- Well head coordinates ---
-    x = _to_float(_get_header_value("X", "XCOORD", "EASTING", "LONG", "LON"))
-    y = _to_float(_get_header_value("Y", "YCOORD", "NORTHING", "LAT"))
+    x0 = _to_float(_get_header_value("X", "XCOORD", "EASTING", "LONG", "LON"))
+    y0 = _to_float(_get_header_value("Y", "YCOORD", "NORTHING", "LAT"))
     # Elevation/KB/GL are various variants; store as z if present.
-    z = _to_float(
+    z0 = _to_float(
         _get_header_value("Z", "ELEV", "ELEVATION", "KB", "GL", "DATUM")
     )
     well_head = np.asarray(
         [
-            x if x is not None else 0.0,
-            y if y is not None else 0.0,
-            z if z is not None else 0.0,
+            x0 if x0 is not None else 0.0,
+            y0 if y0 is not None else 0.0,
+            z0 if z0 is not None else 0.0,
         ],
         dtype=float,
     )
@@ -590,7 +596,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
         if null_value is not None:
             nv = _to_float(null_value)
             if nv is not None and np.isfinite(nv):
-                y = np.where(y == nv, np.nan, y)
+                y = np.where(y == nv, np.nan, y) # type: ignore[arg-type]
 
         mask = np.isfinite(x) & np.isfinite(y)
         x = x[mask]
@@ -626,7 +632,8 @@ def loadWellFromLasFile(filepath: str) -> Well:
 def saveWellToJson(well: Well, filepath: str) -> None:
     """Save a Well to a JSON file.
 
-    Output json file follows the schema defined by `jsonSchemas/WellSchema.json`.
+    Output json file follows the schema defined by
+    `jsonSchemas/WellSchema.json`.
 
     :param Well well: well object to save
     :param str filepath: path to output well file
@@ -646,6 +653,7 @@ def saveWell(well: Well, filepath: str) -> None:
     """Save a Well to a file.
 
     Supported output formats are:
+
     - json file following the schema defined by `jsonSchemas/WellSchema.json`.
 
     :param Well well: well object to save

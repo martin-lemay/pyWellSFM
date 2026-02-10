@@ -14,12 +14,13 @@ from pywellsfm.model.Well import Well
 class Scenario:
     """Defines a simulation scenario.
 
-    A scenario defines all the parameters that are supposed to be uniform over a
-    given area. It includes the accumulation model and the eustatic curve.
+    A scenario defines all the parameters that are supposed to be uniform over
+    a given area. It includes the accumulation model and the eustatic curve.
 
     :param str name: name of the scenario
-    :param AccumulationModelBase accumulationModel: accumulation model used in the
-    scenario. It defines the list of elements and their default accumulation rates.
+    :param AccumulationModelBase accumulationModel: accumulation model used in
+        the scenario. It defines the list of elements and their default
+        accumulation rates.
     :param Curve | None eustaticCurve: Eustatic curve, defaults to None
     """
 

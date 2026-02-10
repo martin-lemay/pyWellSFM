@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
+# ruff: noqa: E402 # disable Module level import not at top of file
 
 import json
 import os
@@ -81,7 +82,7 @@ def test_loadRealizationData_from_json(tmp_path: Path) -> None:
 
 
 def test_loadRealizationData_from_json_reference(tmp_path: Path) -> None:
-    """Loads RealizationData from a JSON file with reference to well and curve."""
+    """Loads RealizationData from a JSON with reference to well and curve."""
     realization_path = tmp_path / "realization.json"
 
     payload = {
@@ -309,12 +310,12 @@ def test_loadScenario_from_json_with_references(tmp_path: Path) -> None:
 
 
 def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
-    """Loads SimulationData where scenario and realizations are URL references."""
+    """SimulationData where scenario and realizations are URL references."""
     scenario_path = tmp_path / "scenario.json"
     realization_path = tmp_path / "realization.json"
     simulation_path = tmp_path / "simulation.json"
 
-    # Scenario uses inline internals here; we're validating SimulationData oneOf.
+    # Scenario uses inline internals here; we're validating SimulationData.
     facies_model_path = (
         Path(__file__).resolve().parent / "data" / "facies_model.json"
     )
@@ -344,7 +345,8 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
     }
     scenario_path.write_text(json.dumps(scenario_payload), encoding="utf-8")
 
-    # Realization references repo data (absolute path is OK; we keep it relative)
+    # Realization references repo data
+    # (absolute path is OK; we keep it relative)
     realization_payload = {
         "format": "pyWellSFM.RealizationData",
         "version": "1.0",
@@ -771,7 +773,7 @@ def test_loadSimulationData_rejects_non_object_realization_item(
 
 
 def test_exportScenario_writes_inline_objects(tmp_path: Path) -> None:
-    """Exports Scenario with inline facies model, accumulation model, and curve."""
+    """Exports Scenario with inline objects."""
     scenario_path = tmp_path / "scenario_in.json"
     scenario_out = tmp_path / "scenario_out.json"
 

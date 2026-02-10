@@ -10,10 +10,12 @@ class FaciesCriteriaType(StrEnum):
 
     Criteria types include:
         - sedimentatological criteria (e.g., grain size, element composition,
-            classifications)
+          classifications)
         - petrophysical criteria (e.g., porosity, permeability, density)
-        - environmental conditions (e.g., water depth, energy level, temperature)
-        - uncategorized criteria (e.g., any other property used to define facies)
+        - environmental conditions (e.g., water depth, energy level,
+          temperature)
+        - uncategorized criteria (e.g., any other property used to define
+          facies)
     """
 
     SEDIMENTOLOGICAL = "sedimentological"
@@ -30,12 +32,15 @@ class FaciesCriteria:
         maxRange: float = float("inf"),
         type: FaciesCriteriaType = FaciesCriteriaType.UNCATEGORIZED,
     ) -> None:
-        """Defines a criteria to classify rocks based on a range of a given property.
+        """Defines a criteria to classify rocks based on a range of a property.
 
         :param str name: property name
-        :param float minRange: minimum value of the property. Default is -infinity.
-        :param float maxRange: maximum value of the property. Default is infinity.
-        :param FaciesCriteriaType type: type of the criteria. Default is UNCATEGORIZED.
+        :param float minRange: minimum value of the property.
+            Default is -infinity.
+        :param float maxRange: maximum value of the property.
+            Default is infinity.
+        :param FaciesCriteriaType type: type of the criteria.
+            Default is UNCATEGORIZED.
         """
         self.name: str = name
         self.type: FaciesCriteriaType = type
@@ -56,10 +61,11 @@ class FaciesCriteria:
         """
         return hash(self.name)
 
-    def __eq__(self: Self, other: Any) -> bool:
+    def __eq__(self: Self, other: Any) -> bool: # noqa: ANN401
         """Defines __eq__ method.
 
-        :return bool: True if input object is an Element with the same name and type.
+        :return bool: True if input object is an Element with the same name
+            and type.
         """
         if isinstance(other, FaciesCriteria):
             return (other.name == self.name) & (other.type == self.type)
@@ -95,16 +101,18 @@ class FaciesCriteriaCollection:
 
         Criteria types include:
         - sedimentatological criteria (e.g., grain size, element composition,
-            classifications)
+          classifications)
         - petrophysical criteria (e.g., porosity, permeability, density)
-        - environmental conditions (e.g., water depth, energy level, temperature)
-        - uncategorized criteria (e.g., any other property used to define facies)
+        - environmental conditions (e.g., water depth, energy level,
+          temperature)
+        - uncategorized criteria (e.g., any other property used to define
+          facies)
 
         All criteria of the collection must be unique by name.
 
         :param FaciesCriteriaType criteriaType: type of criteria allowed in the
-            collection. Default is UNCATEGORIZED that means that any criteria type can
-            be added.
+            collection. Default is UNCATEGORIZED that means that any criteria
+            type can be added.
         """
         self.criteria: set[FaciesCriteria] = set()
         self.type: FaciesCriteriaType = criteriaType
@@ -114,24 +122,24 @@ class FaciesCriteriaCollection:
     ) -> None:
         """Add a criteria or set of criteria to the collection.
 
-        If a criteria with the same name already exists in the collection, it is not
-        added.
+        If a criteria with the same name already exists in the collection, it
+        is not added.
 
-        :param FaciesCriteria | set[FaciesCriteria] criteria: criteria or set of
-            criteria to add
+        :param FaciesCriteria | set[FaciesCriteria] criteria: criteria or set
+            of criteria to add
         """
         if isinstance(criteria, FaciesCriteria):
             if not self.criteriaIsAllowed(criteria):
                 print(
                     f"Criteria with name '{criteria.name}' and type "
-                    f"'{criteria.type.value}'is not allowed in this collection of "
-                    f"{self.type.value} criteria."
+                    f"'{criteria.type.value}' is not allowed in this "
+                    f"collection of {self.type.value} criteria."
                 )
                 return
             if self.criteriaExists(criteria.name):
                 print(
-                    f"Criteria with name '{criteria.name}' already exists, cannot add "
-                    f"a duplicate."
+                    f"Criteria with name '{criteria.name}' already exists, "
+                    f"cannot add a duplicate."
                 )
                 return
             self.criteria.add(criteria)
@@ -146,8 +154,8 @@ class FaciesCriteriaCollection:
     def criteriaIsAllowed(self: Self, criteria: FaciesCriteria) -> bool:
         """Check if a criteria can be added to the collection.
 
-        A criteria can be added if its type matches the collection type, or if the
-        collection type is UNCATEGORIZED.
+        A criteria can be added if its type matches the collection type, or if
+        the collection type is UNCATEGORIZED.
 
         :param FaciesCriteria criteria: criteria to check
         :return bool: True if the criteria can be added to the collection
@@ -167,7 +175,8 @@ class FaciesCriteriaCollection:
     def removeCriteria(self: Self, criteriaNames: str | set[str]) -> None:
         """Remove a criteria or set of criteria from the collection by name.
 
-        :param str | set[str] criteriaNames: name or set of names of criteria to remove
+        :param str | set[str] criteriaNames: name or set of names of criteria
+            to remove
         """
         if isinstance(criteriaNames, str):
             for critSet in (self.criteria,):
@@ -197,8 +206,8 @@ class FaciesCriteriaCollection:
         """Get criteria from the collection by name.
 
         :param str criteriaName: name of the criteria to get
-        :return FaciesCriteria | None: criteria with the given name, or None if not
-            found
+        :return FaciesCriteria | None: criteria with the given name, or None if
+            not found
         """
         for crit in self.criteria:
             if crit.isNamed(criteriaName):
@@ -222,7 +231,7 @@ class FaciesCriteriaCollection:
     def clearCriteriaByType(
         self: Self, criteriaType: FaciesCriteriaType
     ) -> int:
-        """Remove all criteria of a given type from the collection from its name.
+        """Remove all criteria of a given type from the collection.
 
         :param FaciesCriteriaType criteriaType: type of criteria to remove
         :return int: number of criteria removed
@@ -257,11 +266,11 @@ class Facies:
         """A facies is a category of rock defined from some criteria.
 
         :param str name: name of the facies
-        :param FaciesCriteria | set[FaciesCriteria] criteria: criteria or set of
-            criteria used to define the facies
-        :param FaciesCriteriaType criteriaType: type of criteria used to define the
-            facies. Default is UNCATEGORIZED that means that any criteria type can be
-            used.
+        :param FaciesCriteria | set[FaciesCriteria] criteria: criteria or set
+            of criteria used to define the facies
+        :param FaciesCriteriaType criteriaType: type of criteria used to define
+            the facies. Default is UNCATEGORIZED that means that any criteria
+            type can be used.
         """
         if isinstance(criteria, (set, list, tuple)) and len(criteria) == 0:
             raise ValueError(
@@ -291,45 +300,48 @@ class Facies:
         """Get a criteria defining the facies by name.
 
         :param str criteriaName: name of the criteria to get
-        :return FaciesCriteria | None: criteria with the given name, or None if not
-            found
+        :return FaciesCriteria | None: criteria with the given name, or None
+            if not found
         """
         return self.criteriaCollection.getCriteriaByName(criteriaName)
 
 
 class PetrophysicalFacies(Facies):
     def __init__(self: Self, name: str, criteria: set[FaciesCriteria]) -> None:
-        """A petrophysical facies is a facies defined from petrophysical criteria only.
+        """A facies defined from petrophysical criteria only.
 
         A petrophysical facies contains the criteria from which it is defined.
 
         :param str name: name of the facies
-        :param set[FaciesCriteria] criteria: set of criteria used to define the facies
+        :param set[FaciesCriteria] criteria: set of criteria used to define
+            the facies
         """
         super().__init__(name, criteria, FaciesCriteriaType.PETROPHYSICAL)
 
 
 class SedimentaryFacies(Facies):
     def __init__(self: Self, name: str, criteria: set[FaciesCriteria]) -> None:
-        """A sedimentary facies is a facies defined from sedimentological criteria.
+        """A facies defined from sedimentological criteria.
 
-        A sedimentary facies contains the criteria and optionnaly the environmental
-        conditions from which it is deposited.
+        A sedimentary facies contains the criteria and optionnaly the
+        environmental conditions from which it is deposited.
 
         :param str name: name of the facies
-        :param set[FaciesCriteria] criteria: set of criteria used to define the facies
+        :param set[FaciesCriteria] criteria: set of criteria used to define
+            the facies
         """
         super().__init__(name, criteria, FaciesCriteriaType.SEDIMENTOLOGICAL)
 
 
 class EnvironmentalFacies(Facies):
     def __init__(self: Self, name: str, criteria: set[FaciesCriteria]) -> None:
-        """An environmental facies is a facies defined from environmental criteria.
+        """A facies defined from environmental criteria.
 
         An environmental facies contains the criteria from which it is defined.
 
         :param str name: name of the facies
-        :param set[FaciesCriteria] criteria: set of criteria used to define the facies
+        :param set[FaciesCriteria] criteria: set of criteria used to define
+            the facies
         """
         super().__init__(name, criteria, FaciesCriteriaType.ENVIRONMENTAL)
 
@@ -360,20 +372,21 @@ class FaciesModel:
 
         :param str faciesName: name of the facies
         :param str criteriaName: name of the criteria
-        :return tuple[float, float] | None: (min, max) range of the criteria for the
-            facies, or None if not found
+        :return tuple[float, float] | None: (min, max) range of the criteria
+            for the facies, or None if not found
         """
         facies = self.getFaciesByName(faciesName)
         if facies is None:
             print(
-                f"Facies with name '{faciesName}' not found in the facies model."
+                f"Facies with name '{faciesName}' not found in the "
+                "facies model."
             )
             return None
         criteria = facies.getCriteria(criteriaName)
         if criteria is None:
             print(
-                f"Criteria with name '{criteriaName}' not found for the facies "
-                f"'{faciesName}'."
+                f"Criteria with name '{criteriaName}' not found for the facies"
+                f" '{faciesName}'."
             )
             return None
         return (criteria.minRange, criteria.maxRange)

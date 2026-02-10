@@ -11,7 +11,8 @@ def importStriplog(filepath: str, csvDelimiter: str = ",") -> Striplog:
     """Load a stripLog from a file.
 
     Supported file format are:
-        - .csv : comma-separated values file
+
+    - .csv : comma-separated values file
 
     :param str filepath: Path to the striplog CSV file.
     :return Striplog: Loaded striplog object.

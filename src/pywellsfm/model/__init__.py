@@ -8,15 +8,15 @@ should prefer importing from `pywellsfm.model` instead of submodules.
 
 from __future__ import annotations
 
-from pywellsfm.model.AccumulationModel import (
+from .AccumulationModel import (
     AccumulationModelBase,
     AccumulationModelEnvironmentOptimum,
     AccumulationModelGaussian,
 )
-from pywellsfm.model.Curve import AccumulationCurve, Curve, UncertaintyCurve
-from pywellsfm.model.DepthAgeModel import DepthAgeModel
-from pywellsfm.model.Element import Element
-from pywellsfm.model.Facies import (
+from .Curve import AccumulationCurve, Curve, UncertaintyCurve
+from .DepthAgeModel import DepthAgeModel
+from .Element import Element
+from .Facies import (
     EnvironmentalFacies,
     Facies,
     FaciesCriteria,
@@ -26,9 +26,9 @@ from pywellsfm.model.Facies import (
     PetrophysicalFacies,
     SedimentaryFacies,
 )
-from pywellsfm.model.Marker import Marker
-from pywellsfm.model.SimulationParameters import RealizationData, Scenario
-from pywellsfm.model.Well import Well
+from .Marker import Marker
+from .SimulationParameters import RealizationData, Scenario
+from .Well import Well
 
 __all__ = [
     "AccumulationCurve",

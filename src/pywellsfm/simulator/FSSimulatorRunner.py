@@ -26,29 +26,34 @@ class FSSimulatorRunner:
     ) -> None:
         """Defines a Forward Stratigraphic Simulator runner.
 
-        The FS simulator runner is used to run one or multiple realizations of a
-        scenario over time using adaptive time steps. Time step is adjusted such as
-        accumulated thickness and bathymetry change do not exceed the given threshold
-        (by default 0.5m).
+        The FS simulator runner is used to run one or multiple realizations of
+        a scenario over time using adaptive time steps. Time step is adjusted
+        such as accumulated thickness and bathymetry change do not exceed the
+        given threshold (by default 0.5m).
 
-        The FS simulator runner also manages uncertainties over multiple realizations.
+        The FS simulator runner also manages uncertainties over multiple
+        realizations.
 
         :param Scenario scenario: scenario to simulate.
-        :param list[RealizationData] realizationDataList: list of realization data.
-        :param float max_bathymetry_change_per_step: maximum bathymetry change and
-            accumulated thickness per step. Unit is meters. Default is 0.5 m.
-        :param float dt_min: minimum time step. Unit is Myr. Default is 1e-3 Myr.
-        :param float dt_max: maximum time step. Unit is Myr. Default is 0.1 Myr.
-        :param float safety: safety factor for time step adjustment. Must be in (0, 1].
-            Default is 0.9.
+        :param list[RealizationData] realizationDataList: list of realization
+            data.
+        :param float max_bathymetry_change_per_step: maximum bathymetry change
+            and  accumulated thickness per step. Unit is meters.
+            Default is 0.5 m.
+        :param float dt_min: minimum time step. Unit is Myr.
+            Default is 1e-3 Myr.
+        :param float dt_max: maximum time step. Unit is Myr.
+            Default is 0.1 Myr.
+        :param float safety: safety factor for time step adjustment.
+            Must be in (0, 1]. Default is 0.9.
         :param int max_steps: maximum number of steps. Default is 1e9.
         """
         self.scenario: Scenario = scenario
         self.realizationDataList: list[RealizationData] = realizationDataList
         self.fsSimulators: list[FSSimulator] = []
 
-        # sea level is the same for all realizations, so we use the first FS simulator's
-        # accommodation simulator
+        # sea level is the same for all realizations, so we use the first
+        # FS simulator's accommodation simulator
         self.seaLevelSimulator: AccommodationSimulator
 
         # Adaptive step configuration
@@ -121,7 +126,7 @@ class FSSimulatorRunner:
             fsSimulator.prepare()
 
         # Extract initial bathymetries
-        # Initial bathymetry = -topographyStart (since topography = -bathymetry)
+        # Initial bathymetry = -topographyStart (since topography=-bathymetry)
         self.initial_bathymetries = np.array(
             [
                 fsSimulator.getInitialBathymetry()
@@ -171,8 +176,8 @@ class FSSimulatorRunner:
     def run(self: Self, markerEnd: Optional[Marker] = None) -> None:
         """Run the FS simulator until a given marker or to the top.
 
-        :param Optional[Marker] markerEnd: marker until which to run the simulation. If
-            None, the simulation runs to the top of wells.
+        :param Optional[Marker] markerEnd: marker until which to run the
+            simulation. If None, the simulation runs to the top of wells.
         """
         if not self.fsSimulators:
             raise RuntimeError("Must call prepare() before run()")
@@ -253,11 +258,18 @@ class FSSimulatorRunner:
             delta_bathy = self._getBathymetryVariation(
                 sea_level_t2, subs_t2, sea_level_t, subs_t, thickness_step
             )
+            delta_bathy_array: npt.NDArray[np.float64]
+            if isinstance(delta_bathy, np.ndarray):
+                delta_bathy_array = delta_bathy.copy()
+            else:
+                delta_bathy_array = np.full(
+                    (self.n_real,), delta_bathy, dtype=np.float64
+                )
 
             # Record state at time t (step-start)
             self.bathymetries.append(bathy_t.copy())
             self.thickness_steps.append(thickness_step)
-            self.delta_bathymetries.append(delta_bathy)
+            self.delta_bathymetries.append(delta_bathy_array)
             self.sea_levels.append(
                 np.full((self.n_real,), sea_level_t, dtype=np.float64)
             )
@@ -268,7 +280,7 @@ class FSSimulatorRunner:
             self.dts.append(dt)
 
             # Update bathymetry for next step
-            bathy_t = bathy_t + delta_bathy
+            bathy_t = bathy_t + delta_bathy_array
 
             # Advance time
             t = t + dt
@@ -281,10 +293,12 @@ class FSSimulatorRunner:
     ) -> float:
         """Choose an adaptive time step based on bathymetry change constraint.
 
-        Max time step duration is limited by the maximum accumulated thickness allowed.
+        Max time step duration is limited by the maximum accumulated thickness
+        allowed.
 
         :param float t: current time.
-        :param npt.NDArray[np.float64] rates: deposition rates for each realization.
+        :param npt.NDArray[np.float64] rates: deposition rates for each
+            realization.
         :param float remaining: remaining time to stop.
         :return float: chosen time step.
         """
@@ -318,7 +332,7 @@ class FSSimulatorRunner:
     def _computeMaxBathymetryChange(
         self: Self, t1: float, rates: npt.NDArray[np.float64], dt: float
     ) -> float:
-        """Compute maximum bathymetry change across realizations for a given dt.
+        """Compute maximum bathymetry change across realizations for a dt.
 
         :param float t1: start time of the step.
         :param npt.NDArray[np.float64] rates: deposition rates at t1.
@@ -428,7 +442,8 @@ class FSSimulatorRunner:
         n_real = len(self.fsSimulators)
 
         # Convert lists to arrays
-        # Note: we stored state at each step-start; last `times` entry has no state.
+        # Note: we stored state at each step-start; last `times` entry has
+        # no state.
         time_axis = np.array(self.times[:-1], dtype=np.float64)
         dt_axis = np.array(self.dts, dtype=np.float64)
 
@@ -481,12 +496,13 @@ class FSSimulatorRunner:
     def _getAccumulatedThickness(
         accumulationRate: npt.NDArray[np.float64], dt: float
     ) -> npt.NDArray[np.float64]:
-        """Get the deposited thickness over a time step given the accumulation rate.
+        """Get the deposited thickness at a step given the accumulation rate.
 
         :param npt.NDArray[np.float64] accumulationRate: accumulation rate
             (e.g., in m/Myr).
         :param float dt: time step duration (e.g., in Myr).
-        :return npt.NDArray[np.float64]: deposited thickness over the time step.
+        :return npt.NDArray[np.float64]: deposited thickness over the
+            time step.
         """
         return accumulationRate * dt
 
@@ -501,13 +517,14 @@ class FSSimulatorRunner:
         """Compute bathymetry variation over a time step.
 
         :param float seaLevel_t2: sea level at time t2.
-        :param npt.NDArray[np.float64] subs_t2: subsidence of each realization at time
-            t2.
+        :param npt.NDArray[np.float64] subs_t2: subsidence of each realization
+            at time t2.
         :param float seaLevel_t: sea level at time t1.
-        :param npt.NDArray[np.float64] subs_t: subsidence of each realization at time
-            t1.
-        :param npt.NDArray[np.float64] thickness_step: deposited thickness of each
-            realization over the time step.
-        :return npt.NDArray[np.float64]: bathymetry variation over the time step.
+        :param npt.NDArray[np.float64] subs_t: subsidence of each realization
+            at time t1.
+        :param npt.NDArray[np.float64] thickness_step: deposited thickness of
+            each realization over the time step.
+        :return float | npt.NDArray[np.float64]: bathymetry variation over the
+            time step.
         """
         return (seaLevel_t2 - seaLevel_t) + (subs_t2 - subs_t) - thickness_step

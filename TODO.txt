@@ -1,5 +1,6 @@
 Short-term:
 
+- fix ruff / mypy / sphinx
 - fix AccommodationSpaceWellCalculator
 - use subsidence rate curve instead of subsidence (in meters)
 - create simulated well from output xarray

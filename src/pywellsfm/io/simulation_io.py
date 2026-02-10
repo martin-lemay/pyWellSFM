@@ -83,16 +83,16 @@ def _loadRealizationDataFromJsonObj(
     # --- Well ---
     well_obj: Any = obj.get("well")
 
-    def _load_inline_well(well_json: dict[str, Any]) -> Any:
+    def _load_inline_well(well_json: dict[str, Any]) -> Any: # noqa: ANN401
         return loadWellFromJsonObj(well_json, base_dir=base_dir)
 
-    def _load_well_file(path: Path) -> Any:
+    def _load_well_file(path: Path) -> Any: # noqa: ANN401
         try:
             return loadWell(str(path))
         except ValueError as exc:
             raise ValueError(
-                "RealizationData.well.url must point to a supported well file (.json"
-                " or .las)."
+                "RealizationData.well.url must point to a supported well file "
+                "(.json or .las)."
             ) from exc
 
     well = load_inline_or_url(
@@ -118,8 +118,8 @@ def _loadRealizationDataFromJsonObj(
                 return loadSubsidenceCurve(str(path))
             except ValueError as exc:
                 raise ValueError(
-                    "RealizationData.subsidenceCurve.url must point to a supported "
-                    "curve file (.json or .csv)."
+                    "RealizationData.subsidenceCurve.url must point to a "
+                    "supported curve file (.json or .csv)."
                 ) from exc
 
         subsidence_curve = load_inline_or_url(
@@ -142,8 +142,8 @@ def exportRealizationDataToJsonObj(
 
     :param RealizationData realizationData: RealizationData object
     :raises ValueError: if realizationData.well is not defined
-    :return dict[str, Any]: JSON-serializable dictionary representing the realization
-        data
+    :return dict[str, Any]: JSON-serializable dictionary representing the
+        realization data
     """
     payload: dict[str, Any] = {
         "format": "pyWellSFM.RealizationData",
@@ -199,9 +199,8 @@ def loadScenario(filepath: str) -> Scenario:
 def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
     """Helper to load Scenario from json dict.
 
-    :param dict[str, Any] obj: json dict representing Scenario
-    :param Path base_dir: base directory for resolving relative file paths
     Supports inline or URL-referenced objects for:
+
     - faciesModel
     - accumulationModel
     - eustaticCurve
@@ -240,13 +239,13 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
     # --- Facies model ---
     facies_model_obj: Any = obj.get("faciesModel")
 
-    def _load_facies_file(path: Path) -> Any:
+    def _load_facies_file(path: Path) -> Any: # noqa: ANN401
         try:
             return loadFaciesModel(str(path))
         except (ValueError, FileNotFoundError, OSError) as exc:
             raise ValueError(
-                "Scenario.faciesModel.url must point to a supported facies model file "
-                "(.json)."
+                "Scenario.faciesModel.url must point to a supported facies "
+                "model file (.json)."
             ) from exc
 
     facies_model = load_inline_or_url(
@@ -260,16 +259,16 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
     # --- Accumulation model ---
     accumulation_model_obj: Any = obj.get("accumulationModel")
 
-    def _load_inline_am(am_json: dict[str, Any]) -> Any:
+    def _load_inline_am(am_json: dict[str, Any]) -> Any: # noqa: ANN401
         return loadAccumulationModelFromJsonObj(am_json, base_dir=base_dir)
 
-    def _load_am_file(path: Path) -> Any:
+    def _load_am_file(path: Path) -> Any: # noqa: ANN401
         try:
             return loadAccumulationModel(str(path))
         except (ValueError, FileNotFoundError, OSError) as exc:
             raise ValueError(
-                "Scenario.accumulationModel.url must point to a supported accumulation "
-                "model file (.json or .csv)."
+                "Scenario.accumulationModel.url must point to a supported "
+                "accumulation model file (.json or .csv)."
             ) from exc
 
     accumulation_model = load_inline_or_url(
@@ -295,8 +294,8 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
                 return loadEustaticCurve(str(path))
             except (ValueError, FileNotFoundError, OSError) as exc:
                 raise ValueError(
-                    "Scenario.eustaticCurve.url must point to a supported curve file "
-                    "(.json or .csv)."
+                    "Scenario.eustaticCurve.url must point to a supported "
+                    "curve file (.json or .csv)."
                 ) from exc
 
         eustatic_curve = load_inline_or_url(
@@ -322,7 +321,8 @@ def exportScenarioToJsonObj(scenario: Scenario) -> dict[str, Any]:
 
     :param Scenario scenario: Scenario object
     :raises ValueError: if Scenario.name is not a non-empty string
-    :return dict[str, Any]: JSON-serializable dictionary representing the scenario
+    :return dict[str, Any]: JSON-serializable dictionary representing the
+        scenario
     """
     if not isinstance(scenario.name, str) or scenario.name.strip() == "":
         raise ValueError("Scenario.name must be a non-empty string.")
@@ -375,8 +375,8 @@ def exportSimulationDataToJsonObj(
     :param str name: name of the simulation data
     :raises ValueError: if name is not a non-empty string
     :raises ValueError: if realizationsData is not a non-empty list
-    :return dict[str, Any]: JSON-serializable dictionary representing the simulation
-        data
+    :return dict[str, Any]: JSON-serializable dictionary representing the
+        simulation data
     """
     if not isinstance(name, str) or name.strip() == "":
         raise ValueError("Simulation.name must be a non-empty string.")

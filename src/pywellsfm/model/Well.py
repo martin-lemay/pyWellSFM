@@ -22,8 +22,8 @@ class Well:
         """Defines a well.
 
         :param str name: name of the well.
-        :param npt.NDArray[np.float64] wellHeadCoords: x,y,z coordinates of the well
-            head.
+        :param npt.NDArray[np.float64] wellHeadCoords: x,y,z coordinates of the
+            well head.
         :param float depth: depth of the well
         """
         #: name of the well
@@ -32,8 +32,8 @@ class Well:
         self.wellHeadCoords: npt.NDArray[np.float64] = wellHeadCoords
         #: well depth
         self.depth: float = depth
-        #: well path containing x,y,z coordinates of the path. By default, vertical
-        #: well from well head
+        #: well path containing x,y,z coordinates of the path. By default,
+        #: vertical well from well head
         self._wellPath: npt.NDArray[np.float64] = np.array(
             wellHeadCoords - np.array((0.0, 0.0, depth))
         )
@@ -71,7 +71,8 @@ class Well:
     def setWellPath(self: Self, wellPath: npt.NDArray[np.float64]) -> None:
         """Set well path for deviated wells.
 
-        :param npt.NDArray[np.float64] wellPath: array containing x,y,z coordinates
+        :param npt.NDArray[np.float64] wellPath: array containing
+            x,y,z coordinates
         """
         assert wellPath.shape[1] == 3, (
             "Well path array must contains 3 columns for x,y,z coordinates"
@@ -88,8 +89,8 @@ class Well:
     def setMarkers(self: Self, markers: set[Marker]) -> None:
         """Set well markers.
 
-        Existing makers are deleted. Use `Well.addMarkers` if you want to keep existing
-        markers instead.
+        Existing makers are deleted. Use `Well.addMarkers` if you want to keep
+        existing markers instead.
 
         :param set[Marker] markers: set of well markers
         """
@@ -109,16 +110,16 @@ class Well:
     def addLog(self: Self, logName: str, log: Curve | Striplog) -> None:
         """Add a well log.
 
-        Well log can be continuous or discrete. If a log with the name exists, it is
-        erased.
+        Well log can be continuous or discrete. If a log with the name exists,
+        it is erased.
 
         :param str logName: well log name
         :param Curve | Striplog log: input log
         """
         if logName in self._logs:
             print(
-                f"WARNING: log {logName} is already in the list of logs, the log will "
-                + "be erased."
+                f"WARNING: log {logName} is already in the list of logs, the "
+                + "log will be erased."
             )
         if isinstance(log, Striplog):
             self._addDiscreteLog(logName, log)
@@ -126,22 +127,23 @@ class Well:
             self._addContinuousLog(logName, log)
         else:
             print(
-                "ERROR: Log type is not managed. Use either Curve or Striplog types."
+                "ERROR: Log type is not managed. Use either Curve or" \
+                " Striplog types."
             )
 
     def addAgeLog(self: Self, logName: str, log: Curve | Striplog) -> None:
         """Add a well log in age domain.
 
-        Well log can be continuous or discrete. If a log with the name exists, it is
-        erased.
+        Well log can be continuous or discrete. If a log with the name exists,
+        it is erased.
 
         :param str logName: well log name
         :param Curve | Striplog log: input log
         """
         if logName in self._ageLogs:
             print(
-                f"WARNING: age log {logName} is already in the list of age logs, the "
-                + "log will be erased."
+                f"WARNING: age log {logName} is already in the list of age "
+                + "logs, the log will be erased."
             )
         self._ageLogs[logName] = log
 

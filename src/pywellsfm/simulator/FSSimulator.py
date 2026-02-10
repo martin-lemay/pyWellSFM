@@ -21,10 +21,11 @@ class FSSimulator:
         """Defines the Forward Stratigraphic Simulator.
 
         The FS simulator parameters include a scenario and realization data:
-          - A scenario defines global parameters for the simulation shared by multiple
-          realizations, including eustatic curve, facies model, accumulation model.
-          - A realization corresponds to a well location with its specific conditions
-          such as the well log and the subsidence curve.
+          - A scenario defines global parameters for the simulation shared by
+            multiple realizations, including eustatic curve, facies model,
+            accumulation model.
+          - A realization corresponds to a well location with its specific
+            conditions such as the well log and the subsidence curve.
 
         :param Scenario scenario: name of the scenario to simulate
         :param RealizationData realizationData: realization data to use.
@@ -92,10 +93,11 @@ class FSSimulator:
     def getElementAccumulationRate(
         self: Self, envCond: dict[str, float], elementName: str
     ) -> float:
-        """Get the accumulation rate of a given element for the current realization.
+        """Get the accumulation rate of a given element.
 
         :param float age: age at which to get the total accumulation rate.
-        :param str elementName: name of the element to get the accumulation rate for.
+        :param str elementName: name of the element to get the accumulation
+            rate for.
         :return float: accumulation rate of the given element.
         """
         return self.accumulationSimulator.computeElementAccumulationRate(
@@ -111,49 +113,6 @@ class FSSimulator:
         :return float: total accumulation rate.
         """
         return self.accumulationSimulator.computeTotalAccumulationRate(envCond)
-
-    # TODO: set accommodation parameters at age?
-    # TODO: set accumulation parameters at age?
-
-    # def run(self: Self, markerEnd: Optional[Marker]) -> None:
-    #     """Run the simulation until a given marker or to the top.
-
-    #     :param Optional[Marker] markerEnd: marker until which to run the
-    #         simulation. If None, the simulation runs to the top of wells.
-    #     """
-    #     # simulated ages
-    #     # get end age from marker
-    #     # TODO: implement single-realization forward simulation
-    #     # This method is for running a single FSSimulator instance.
-    #     # For ensemble runs, use FSSimulatorRunner instead.
-
-    #     # overall deposition rate
-    #     # depoRate = np.zeros_like(ages)
-    #     # rate per element
-
-    #     # thickness
-
-    #     # log per depth (element proportions, main element)
-
-    #     # log per time (subsidence, sea level, cumul deposited thickness,
-    #     # deposition rates)
-
-    #     # depth-age model
-
-    #     # TODO: input start and end ages, but adapt time step such as
-    #     # overall deposition thickness < 1m per time step
-    #     # for i, age in enumerate(ages):
-    #     #     # compute and store environment conditions
-    #     #     envCond = {}
-    #     #     elementsAccumulationRates = (
-    #     #         self.accumulationSimulator.computeElementAccumulationRate(
-    #     #             envCond
-    #     #         )
-    #     #     )
-    #     #     for elt in self.scenario.accumulationModel.elements:
-    #     #         # TODO: store this elt prod rate
-    #     #         depoRate[i] += elementsAccumulationRates[elt.name]
-    #     pass
 
     def finalize(
         self: Self,
@@ -190,7 +149,8 @@ class FSSimulator:
     def getInitialBathymetry(self: Self) -> float:
         """Get the initial bathymetry.
 
-        Take the middle value of the range as initial bathymetry get from facies log.
+        Take the middle value of the range as initial bathymetry get from
+        facies log.
 
         :return float: initial bathymetry value.
         """
@@ -201,7 +161,8 @@ class FSSimulator:
     def _getInitialBathymetryRange(self: Self) -> tuple[float, float]:
         """Get the initial bathymetry range.
 
-        The bathymetry is retreive from the facies log at and facies conditions.
+        The bathymetry is retreive from the facies log at and facies
+        conditions.
 
         :return tuple[float, float]: min and max initial bathymetry values.
         """
@@ -217,7 +178,8 @@ class FSSimulator:
         )
         if faciesLog is None:
             raise ValueError(
-                f"Facies log not found in well '{well.name}' to get initial bathymetry."
+                f"Facies log not found in well '{well.name}' to "
+                "get initial bathymetry."
             )
 
         interval: Interval = cast(Interval, faciesLog[-1])

@@ -57,13 +57,14 @@ def resolve_ref_path(*, base_dir: Path | None, raw_url: str, ctx: str) -> Path:
         return p
     if base_dir is None:
         raise ValueError(
-            f"Base directory must be provided to resolve relative path for {ctx}."
+            f"Base directory must be provided to resolve relative path "
+            f"for {ctx}."
         )
     return (base_dir / p).resolve()
 
 
 def load_inline_or_url(
-    raw: Any,
+    raw: Any, # noqa: ANN401
     *,
     base_dir: Path | None,
     ctx: str,
@@ -88,13 +89,13 @@ def relpath_posix(target: Path, *, start: Path) -> str:
     return rel.as_posix()
 
 
-def ensure_non_empty_list(value: Any, *, ctx: str) -> list[Any]:
+def ensure_non_empty_list(value: Any, *, ctx: str) -> list[Any]: # noqa: ANN401
     if not isinstance(value, list) or len(value) < 1:
         raise ValueError(f"{ctx} must be a non-empty list.")
     return value
 
 
-def ensure_dict(value: Any, *, ctx: str) -> dict[str, Any]:
+def ensure_dict(value: Any, *, ctx: str) -> dict[str, Any]: # noqa: ANN401
     if not isinstance(value, dict):
         raise ValueError(f"{ctx} must be an object.")
     return value

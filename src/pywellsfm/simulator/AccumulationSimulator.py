@@ -12,7 +12,7 @@ class AccumulationSimulator:
     def __init__(
         self: Self,
     ) -> None:
-        """Simulate sediment accumulation in wells based on a sedimentationModel."""
+        """Simulate accumulation in wells based on an accumulation model."""
         self.accumulationModel: AccumulationModelBase | None = None
 
     def setAccumulationModel(
@@ -20,7 +20,8 @@ class AccumulationSimulator:
     ) -> None:
         """Set the accumulation model used by the simulator.
 
-        :param AccumulationModelBase accumulationModel: accumulation model to set.
+        :param AccumulationModelBase accumulationModel: accumulation model
+            to set.
         """
         self.accumulationModel = accumulationModel
 
@@ -32,14 +33,14 @@ class AccumulationSimulator:
     def computeAccumulationRatesForAllElements(
         self: Self, environmentConditions: dict[str, float]
     ) -> dict[str, float]:
-        """Compute the accumulation rate of each element in the accumulation model.
+        """Compute the accumulation rate of each element from the model.
 
-        :param dict[str, float] environmentConditions: dictionary of environmental
-        conditions where keys are the names of the environmental factors and values are
-        the corresponding values.
+        :param dict[str, float] environmentConditions: dictionary of
+            environmental conditions where keys are the names of the
+            environmental factors and values are the corresponding values.
 
-        :return dict[str, float]: dictionary where keys are element names and values are
-        the corresponding production rates.
+        :return dict[str, float]: dictionary where keys are element names and
+            values are the corresponding accumulation rates.
         """
         if self.accumulationModel is None:
             raise ValueError("Accumulation model is not set in the simulator.")
@@ -61,12 +62,13 @@ class AccumulationSimulator:
     def computeElementAccumulationRate(
         self: Self, elementName: str, environmentConditions: dict[str, float]
     ) -> float:
-        """Compute the accumulation rate of a given element in the accumulation model.
+        """Compute the accumulation rate of a given element from the model.
 
-        :param str elementName: name of the element to compute the accumulation rate for.
-        :param dict[str, float] environmentConditions: dictionary of environmental
-        conditions where keys are the names of the environmental factors and values are
-        the corresponding values.
+        :param str elementName: name of the element to compute the accumulation
+            rate for.
+        :param dict[str, float] environmentConditions: dictionary of
+            environmental conditions where keys are the names of the
+            environmental factors and values are the corresponding values.
 
         :return float: accumulation rate of the given element.
         """
@@ -80,9 +82,9 @@ class AccumulationSimulator:
     ) -> float:
         """Compute the total accumulation rate in the accumulation model.
 
-        :param dict[str, float] environmentConditions: dictionary of environmental
-        conditions where keys are the names of the environmental factors and values are
-        the corresponding values.
+        :param dict[str, float] environmentConditions: dictionary of
+            environmental conditions where keys are the names of the
+            environmental factors and values are the corresponding values.
 
         :return float: total accumulation rate.
         """

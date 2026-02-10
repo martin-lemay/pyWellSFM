@@ -23,18 +23,21 @@ class Interpolator(Protocol):
 
         Input points are sorted in ascending order.
 
-        :param npt.NDArray[np.float64] x: sampled x coordinates. Must contains at least
-            2 elements.
-        :param npt.NDArray[np.float64] y: sampled y coordinates. Must contains at least
-            2 elements and have the same size as x.
+        :param npt.NDArray[np.float64] x: sampled x coordinates. Must contains
+            at least 2 elements.
+        :param npt.NDArray[np.float64] y: sampled y coordinates. Must contains
+            at least 2 elements and have the same size as x.
         """
         indices = np.argsort(x)
         self.x = x[indices]
         self.y = y[indices]
 
     def setAdditionalArgs(self: Self, **args: Any) -> None:
-        """Function to add any additional parameters the interpolator would require."""
-        pass
+        """Add any additional parameters the interpolator would require.
+
+        :param Any args: dictionnary of additional arguments
+        """
+        return
 
     def __call__(self: Self, xx: float) -> float:
         """Get the value at the given coordinate from interpolator.
@@ -61,8 +64,8 @@ class LinearInterpolator(Interpolator):
     def __call__(self: Self, xx: float) -> float:
         """Get the value at the given coordinate from linear interpolation.
 
-        Returns the first/last value if evaluated point is outside the definition
-        domain.
+        Returns the first/last value if evaluated point is outside the
+        definition domain.
 
         :param float xx: input coordinate
         :return float: output value
@@ -98,14 +101,14 @@ class PolynomialInterpolator(Interpolator):
     ) -> None:
         """Initialization method.
 
-        :param npt.NDArray[np.float64] x: sampled x coordinates. Must contains at least
-            2 elements.
-        :param npt.NDArray[np.float64] y: sampled y coordinates. Must contains at least
-            2 elements and have the same size as x.
+        :param npt.NDArray[np.float64] x: sampled x coordinates. Must contains
+            at least 2 elements.
+        :param npt.NDArray[np.float64] y: sampled y coordinates. Must contains
+            at least 2 elements and have the same size as x.
         :param int deg: polynom degree, defaults to 1
-        :param int nbPts: number of points at each side of evaluated value to compute
-            the polynom fit. 2*nbPts must be strictly greater than the polynom degree.
-            Defaults to 1.
+        :param int nbPts: number of points at each side of evaluated value to
+            compute the polynom fit. 2*nbPts must be strictly greater than the
+            polynom degree. Defaults to 1.
         """
         assert x.size > 1, "x array must contains at least 2 elements."
         assert x.size == y.size, "x and y arrays must have the same size."
@@ -116,7 +119,7 @@ class PolynomialInterpolator(Interpolator):
     def setAdditionalArgs(self: Self, **args: Any) -> None:
         """Set additional inputs for the Interpolator.
 
-        :param Any **args: dictionnary of additional arguments
+        :param Any args: dictionnary of additional arguments
         """
         self.deg = args["deg"]
         nbPtsTmp: int = args["nbPts"]
@@ -134,9 +137,9 @@ class PolynomialInterpolator(Interpolator):
     def __call__(self: Self, xx: float) -> float:
         """Get the value at the given coordinate from polynomial interpolation.
 
-        If evaluated point is close to domain boundaries, polynom is fitted using the
-        first/last 2*nbPts points. Returns the first/last value if evaluated point is
-        outside the definition domain.
+        If evaluated point is close to domain boundaries, polynom is fitted
+        using the first/last 2*nbPts points. Returns the first/last value if
+        evaluated point is outside the definition domain.
 
         :param float xx: input coordinate
         :return float: output value
@@ -161,14 +164,3 @@ class PolynomialInterpolator(Interpolator):
             start = end - 2 * self.nbPts
         p = np.polyfit(self.x[start:end], self.y[start:end], deg)
         return float(np.polyval(p, xx))
-
-
-# TODO: add function to convoluate step signal
-
-# window_length = 2.5  # metres.
-
-# N = int(window_length / step)
-# boxcar = 100 * np.ones(N) / N
-
-# z = np.linspace(start, stop, L.size)
-# prop = np.convolve(L, boxcar, mode='same')

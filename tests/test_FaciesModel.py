@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
+# ruff: noqa: E402 # disable Module level import not at top of file
+
 """Unit tests for Facies and related IO methods."""
 
 import json
@@ -41,7 +43,7 @@ def _write_json(
     payload: dict[str, Any],
     filename: str = "facies_model.json",
 ) -> str:
-    """Helper for tests: write JSON to a temp file and return its filesystem path."""
+    """Helper: write JSON to a temp file and return its filesystem path."""
     path = tmp_path / filename
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return str(path)
@@ -85,9 +87,12 @@ def test_FaciesCriteria_init_defaults_and_fields() -> None:
     """Test FaciesCriteria initialization with defaults and specified fields.
 
     Objective:
-    - Check that FaciesCriteria is correctly instantiated with default range and type.
+    - Check that FaciesCriteria is correctly instantiated with default range
+      and type.
+
     Input data:
     - name="Porosity" only.
+
     Expected outputs:
     - minRange=-inf, maxRange=+inf, type=UNCATEGORIZED, name is set.
     """
@@ -103,8 +108,10 @@ def test_FaciesCriteria_repr() -> None:
 
     Objective:
     - Validate __repr__ formatting (useful for debugging/logging).
+
     Input data:
     - name="Gamma", minRange=10, maxRange=20
+
     Expected outputs:
     - "Gamma [10.0, 20.0]" (exact string).
     """
@@ -117,8 +124,10 @@ def test_FaciesCriteria_hash_is_based_on_name_only() -> None:
 
     Objective:
     - Document current hashing behavior (hash uses only name).
+
     Input data:
     - Two criteria with same name but different type.
+
     Expected outputs:
     - Hashes are equal.
     """
@@ -131,9 +140,12 @@ def test_FaciesCriteria_equality_with_criteria_and_with_str() -> None:
     """Test FaciesCriteria __eq__ method for criteria and string comparison.
 
     Objective:
-    - Verify __eq__ supports comparing to another FaciesCriteria and to a string.
+    - Verify __eq__ supports comparing to another FaciesCriteria and to a
+      string.
+
     Input data:
     - Two criteria with same name/type; a third with same name/different type.
+
     Expected outputs:
     - Same name & same type => equal.
     - Same name & different type => not equal.
@@ -154,8 +166,10 @@ def test_FaciesCriteria_isNamed_is_case_insensitive() -> None:
 
     Objective:
     - Ensure isNamed compares case-insensitively.
+
     Input data:
     - Criteria name "Gamma".
+
     Expected outputs:
     - "gamma" matches, "GAMMA" matches, "Other" does not.
     """
@@ -170,8 +184,10 @@ def test_FaciesCriteria_hasType() -> None:
 
     Objective:
     - Verify hasType returns True only for the stored type.
+
     Input data:
     - Criteria type PETROPHYSICAL.
+
     Expected outputs:
     - hasType(PETROPHYSICAL)=True, hasType(ENVIRONMENTAL)=False.
     """
@@ -192,8 +208,10 @@ def test_FaciesCriteriaCollection_init_defaults() -> None:
 
     Objective:
     - Check default construction: empty set and UNCATEGORIZED type.
+
     Input data:
     - No inputs.
+
     Expected outputs:
     - isEmpty() is True; getCriteriaCount()==0; type==UNCATEGORIZED.
     """
@@ -206,12 +224,14 @@ def test_FaciesCriteriaCollection_init_defaults() -> None:
 def test_FaciesCriteriaCollection_addCriteria_single_and_duplicate(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Test FaciesCriteriaCollection addCriteria with single and duplicate criteria.
+    """Test addCriteria with single and duplicate criteria.
 
     Objective:
     - Add a criterion; adding a duplicate by name should be rejected.
+
     Input data:
     - Two criteria objects with the same name.
+
     Expected outputs:
     - Collection count remains 1 after attempting duplicate add.
     """
@@ -228,8 +248,10 @@ def test_FaciesCriteriaCollection_addCriteria_set() -> None:
 
     Objective:
     - Ensure addCriteria accepts a set and adds each criterion.
+
     Input data:
     - A set of two criteria.
+
     Expected outputs:
     - Collection count == 2.
     """
@@ -239,12 +261,14 @@ def test_FaciesCriteriaCollection_addCriteria_set() -> None:
 
 
 def test_FaciesCriteriaCollection_addCriteria_wrong_type_raises() -> None:
-    """Test FaciesCriteriaCollection addCriteria rejects unsupported input types.
+    """Test addCriteria rejects unsupported input types.
 
     Objective:
     - Ensure type checking: addCriteria rejects unsupported input types.
+
     Input data:
     - criteria=123
+
     Expected outputs:
     - TypeError.
     """
@@ -254,13 +278,15 @@ def test_FaciesCriteriaCollection_addCriteria_wrong_type_raises() -> None:
 
 
 def test_FaciesCriteriaCollection_criteriaIsAllowed_rules() -> None:
-    """Test FaciesCriteriaCollection criteriaIsAllowed method.
+    """Test criteriaIsAllowed method.
 
     Objective:
     - Validate criteriaIsAllowed behavior.
+
     Input data:
-    - A PETROPHYSICAL collection; one PETROPHYSICAL criterion; one ENVIRONMENTAL
-    criterion.
+    - A PETROPHYSICAL collection; one PETROPHYSICAL criterion;
+      one ENVIRONMENTAL criterion.
+
     Expected outputs:
     - Allowed for PETROPHYSICAL; not allowed for ENVIRONMENTAL.
     """
@@ -280,12 +306,15 @@ def test_FaciesCriteriaCollection_criteriaIsAllowed_rules() -> None:
 def test_FaciesCriteriaCollection_addCriteria_disallowed_type_is_ignored(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Test FaciesCriteriaCollection addCriteria ignores disallowed criterion types.
+    """Test addCriteria ignores disallowed criterion types.
 
     Objective:
-    - Document behavior when adding a criterion of disallowed type: it is not added.
+    - Document behavior when adding a criterion of disallowed type: it is not
+      added.
+
     Input data:
     - A PETROPHYSICAL collection; an ENVIRONMENTAL criterion.
+
     Expected outputs:
     - Collection remains empty; a message is printed.
     """
@@ -303,12 +332,14 @@ def test_FaciesCriteriaCollection_addCriteria_disallowed_type_is_ignored(
 
 
 def test_FaciesCriteriaCollection_criteriaExists_case_insensitive() -> None:
-    """Test FaciesCriteriaCollection criteriaExists method with case-insensitive match.
+    """Test criteriaExists method with case-insensitive match.
 
     Objective:
     - Ensure criteriaExists uses case-insensitive matching via isNamed().
+
     Input data:
     - Add criterion named "Gamma".
+
     Expected outputs:
     - criteriaExists("gamma") == True.
     """
@@ -318,12 +349,14 @@ def test_FaciesCriteriaCollection_criteriaExists_case_insensitive() -> None:
 
 
 def test_FaciesCriteriaCollection_removeCriteria_str_and_set() -> None:
-    """Test FaciesCriteriaCollection removeCriteria method with string and set inputs.
+    """Test removeCriteria method with string and set inputs.
 
     Objective:
     - Remove criteria by a single name and by a set of names.
+
     Input data:
     - Criteria A, B, C; remove "B" then remove {"A","C"}.
+
     Expected outputs:
     - Counts go from 3 -> 2 -> 0.
     """
@@ -339,12 +372,14 @@ def test_FaciesCriteriaCollection_removeCriteria_str_and_set() -> None:
 
 
 def test_FaciesCriteriaCollection_removeCriteria_wrong_type_raises() -> None:
-    """Test FaciesCriteriaCollection removeCriteria rejects unsupported input types.
+    """Test removeCriteria rejects unsupported input types.
 
     Objective:
     - Ensure removeCriteria rejects unsupported input types.
+
     Input data:
     - criteriaNames=123
+
     Expected outputs:
     - TypeError.
     """
@@ -354,13 +389,15 @@ def test_FaciesCriteriaCollection_removeCriteria_wrong_type_raises() -> None:
 
 
 def test_FaciesCriteriaCollection_getters_and_clear_methods() -> None:
-    """Test FaciesCriteriaCollection getters and clear methods.
+    """Test getters and clear methods.
 
     Objective:
     - Exercise: getAllCriteria, getCriteriaByName, getCriteriaSetByType,
       clearCriteriaByType, clearAllCriteria.
+
     Input data:
     - Add one PETROPHYSICAL and one ENVIRONMENTAL criterion.
+
     Expected outputs:
     - getCriteriaByName finds by case-insensitive name.
     - getCriteriaSetByType returns correct subset.
@@ -391,15 +428,16 @@ def test_FaciesCriteriaCollection_getters_and_clear_methods() -> None:
 # ------------------------------
 
 
-def test_Facies_init_requires_at_least_one_criteria_when_collection_provided() -> (
-    None
-):
+def test_Facies_init_requires_at_least_one_criteria_when_collection_provided(
+) -> None :
     """Test Facies __init__ rejects empty collections for criteria parameter.
 
     Objective:
     - Ensure Facies rejects empty collections (set/list/tuple).
+
     Input data:
     - criteria=set()
+
     Expected outputs:
     - ValueError.
     """
@@ -412,8 +450,10 @@ def test_Facies_init_accepts_single_FaciesCriteria() -> None:
 
     Objective:
     - Ensure Facies accepts a single FaciesCriteria object.
+
     Input data:
     - criteria=FaciesCriteria("Gamma")
+
     Expected outputs:
     - Facies is created and contains 1 criterion.
     """
@@ -433,12 +473,15 @@ def test_Facies_init_accepts_single_FaciesCriteria() -> None:
 def test_Facies_subclass_sets_collection_type(
     cls: type[Facies], expected_type: FaciesCriteriaType
 ) -> None:
-    """Test Facies subclasses set the expected criteriaType for their collection.
+    """Test Facies subclasses set the expected criteriaType for collection.
 
     Objective:
-    - Verify each Facies subclass sets the expected criteriaType for its collection.
+    - Verify each Facies subclass sets the expected criteriaType for its
+      collection.
+
     Input data:
     - Instantiate each subclass with one criterion of matching type.
+
     Expected outputs:
     - facies.criteria.type == expected_type.
     """
@@ -452,8 +495,10 @@ def test_Facies_getCriteria() -> None:
 
     Objective:
     - Ensure getCriteria returns the correct criterion by name.
+
     Input data:
     - Facies with criteria "A" and "B".
+
     Expected outputs:
     - getCriteria("A") returns that object.
     - getCriteria("Missing") returns None.
@@ -470,8 +515,10 @@ def test_Facies_addCriteria() -> None:
 
     Objective:
     - Ensure addCriteria adds a new criterion to the facies.
+
     Input data:
     - Facies with initial criterion "A"; add criterion "B".
+
     Expected outputs:
     - After addition, criteria count is 2 and "B" is present.
     """
@@ -493,8 +540,10 @@ def test_FaciesModel_getFaciesByName_found_and_not_found() -> None:
 
     Objective:
     - Ensure getFaciesByName returns a Facies when present, else None.
+
     Input data:
     - Model with facies named "A" and "B".
+
     Expected outputs:
     - getFaciesByName("A") returns that object.
     - getFaciesByName("Missing") returns None.
@@ -507,12 +556,15 @@ def test_FaciesModel_getFaciesByName_found_and_not_found() -> None:
 
 
 def test_FaciesModel_getCriteriaRangeForFacies_happy_path() -> None:
-    """Test FaciesModel getCriteriaRangeForFacies method in happy path scenario.
+    """Test FM getCriteriaRangeForFacies method in happy path scenario.
 
     Objective:
-    - Verify getCriteriaRangeForFacies returns (min,max) for existing facies/criteria.
+    - Verify getCriteriaRangeForFacies returns (min,max) for existing
+      facies/criteria.
+
     Input data:
     - One facies "A" with criterion "Gamma" range [10, 20].
+
     Expected outputs:
     - (10.0, 20.0)
     """
@@ -522,15 +574,17 @@ def test_FaciesModel_getCriteriaRangeForFacies_happy_path() -> None:
     assert model.getCriteriaRangeForFacies("A", "Gamma") == (10.0, 20.0)
 
 
-def test_FaciesModel_getCriteriaRangeForFacies_missing_facies_prints_and_returns_none(
+def test_FM_getCriteriaRangeForFacies_missing_facies_prints_and_returns_none(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test FaciesModel getCriteriaRangeForFacies when facies is missing.
 
     Objective:
     - When facies name is missing, method returns None and prints a message.
+
     Input data:
     - Model without requested facies.
+
     Expected outputs:
     - Returns None; stdout contains a "not found" message.
     """
@@ -540,15 +594,17 @@ def test_FaciesModel_getCriteriaRangeForFacies_missing_facies_prints_and_returns
     assert "not found" in out
 
 
-def test_FaciesModel_getCriteriaRangeForFacies_missing_criteria_prints_and_returns_none(
+def test_FM_getCriteriaRangeForFacies_missing_criteria_prints_and_returns_none(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test FaciesModel getCriteriaRangeForFacies when criterion is missing.
 
     Objective:
-    - When criteria name is missing for a valid facies, returns None and prints.
+    - When criteria name is missing for a valid facies, returns None and prints
+
     Input data:
     - Model with facies "A" but no "Gamma" criterion.
+
     Expected outputs:
     - Returns None; stdout contains a "Criteria with name" message.
     """
@@ -570,11 +626,13 @@ def test_loadFaciesModel_happy_path_creates_expected_facies_types(
     """Test loadFaciesModel happy path with various facies types.
 
     Objective:
-    - Ensure loadFaciesModel parses valid JSON and instantiates the correct Facies
-      subclass.
+    - Ensure loadFaciesModel parses valid JSON and instantiates the correct
+      Facies subclass.
+
     Input data:
-    - JSON with 4 facies definitions: sedimentological, petrophysical, environmental,
-      uncategorized.
+    - JSON with 4 facies definitions: sedimentological, petrophysical,
+      environmental, uncategorized.
+
     Expected outputs:
     - Returned object is a FaciesModel with 4 facies.
     - Each facies is instantiated as the correct class.
@@ -599,8 +657,10 @@ def test_loadFaciesModel_defaults_criteria_type_and_ranges(
       - missing facies.criteriaType defaults to UNCATEGORIZED
       - missing criterion.type defaults to the facies criteriaType
       - missing minRange/maxRange default to (-inf, +inf)
+
     Input data:
     - JSON with one facies, no criteriaType, one criterion with only name.
+
     Expected outputs:
     - Facies created with collection type UNCATEGORIZED.
     - Criterion type is UNCATEGORIZED.
@@ -660,8 +720,10 @@ def test_loadFaciesModel_rejects_invalid_top_level_structures(
 
     Objective:
     - Ensure loadFaciesModel validates top-level JSON structure.
+
     Input data:
     - Various malformed top-level payloads.
+
     Expected outputs:
     - ValueError with a helpful message.
     """
@@ -678,8 +740,10 @@ def test_loadFaciesModel_rejects_duplicate_facies_names(
 
     Objective:
     - Ensure duplicate facies names are rejected.
+
     Input data:
     - JSON with two facies entries having the same name.
+
     Expected outputs:
     - ValueError mentioning duplicate name.
     """
@@ -704,9 +768,11 @@ def test_loadFaciesModel_rejects_invalid_facies_definition_shapes(
 
     Objective:
     - Validate per-facies structure checks.
+
     Input data:
-    - faciesModel contains an item that is not an object, and an object with empty
-      name.
+    - faciesModel contains an item that is not an object, and an object with
+      empty name.
+
     Expected outputs:
     - ValueError.
     """
@@ -740,8 +806,10 @@ def test_loadFaciesModel_rejects_invalid_criteriaType_values(
 
     Objective:
     - Ensure invalid facies-level criteriaType values are rejected.
+
     Input data:
     - criteriaType="not-a-type".
+
     Expected outputs:
     - ValueError mentioning invalid criteriaType.
     """
@@ -769,8 +837,10 @@ def test_loadFaciesModel_rejects_invalid_criteria_list_and_items(
 
     Objective:
     - Validate criteria list constraints and per-criterion shape checks.
+
     Input data:
     - criteria is empty and criterion items that are not objects.
+
     Expected outputs:
     - ValueError with informative messages.
     """
@@ -807,8 +877,10 @@ def test_loadFaciesModel_rejects_invalid_criterion_fields(
       - name empty
       - type invalid
       - minRange/maxRange not numeric
+
     Input data:
     - JSON variants with invalid criterion fields.
+
     Expected outputs:
     - ValueError.
     """
@@ -867,7 +939,9 @@ def _model_signature(
 ) -> dict[str, dict[str, tuple[str, float, float]]]:
     """Build a deterministic signature for equality checks in tests.
 
-    Signature = {faciesName: {criteriaName: (criteriaType, minRange, maxRange)}}
+    Signature = {faciesName:
+      {criteriaName: (criteriaType, minRange, maxRange)}
+    }
     """
     sig: dict[str, dict[str, tuple[str, float, float]]] = {}
     for facies in model.faciesSet:
@@ -884,12 +958,15 @@ def test_saveFaciesModel_round_trip_preserves_model(
     """Test saveFaciesModel round-trip with loadFaciesModel.
 
     Objective:
-    - Ensure a model exported to JSON can be loaded back without losing facies or
-      criteria information.
+    - Ensure a model exported to JSON can be loaded back without losing facies
+      or criteria information.
+
     Input data:
     - A valid facies model loaded from tests/data/facies_model.json.
+
     Expected results:
-    - The reloaded model has the same facies/criteria content (names, types, ranges).
+    - The reloaded model has the same facies/criteria content
+      (names, types, ranges).
     - Known facies names map to expected Facies subclasses on reload.
     """
     model_in = loadFaciesModel(str(Path(dataDir) / "facies_model.json"))
@@ -910,17 +987,22 @@ def test_saveFaciesModel_round_trip_preserves_model(
 def test_saveFaciesModel_omits_defaults_and_infinite_ranges(
     tmp_path: pathlib.Path,
 ) -> None:
-    """Test saveFaciesModel omits optional/default fields for schema-friendly JSON.
+    """Test saveFaciesModel omits default fields for schema-friendly JSON.
 
     Objective:
     - Verify the exporter writes schema-friendly JSON and stays concise:
       - criteriaType omitted for UNCATEGORIZED facies
       - criterion.type omitted when it matches the facies default
-      - minRange/maxRange omitted when they are +/-inf (JSON can't represent inf)
+      - minRange/maxRange omitted when they are +/-inf
+        (JSON can't represent inf)
+
     Input data:
-    - A simple UNCATEGORIZED facies with one default criterion (infinite ranges).
+    - A simple UNCATEGORIZED facies with one default criterion
+      (infinite ranges).
+
     Expected results:
-    - Exported JSON has no criteriaType/type/minRange/maxRange for that criterion.
+    - Exported JSON has no criteriaType/type/minRange/maxRange for that
+      criterion.
     - Loading back recreates UNCATEGORIZED type and infinite ranges.
     """
     facies = Facies(name="X", criteria={FaciesCriteria(name="Gamma")})
@@ -955,7 +1037,7 @@ def test_saveFaciesModel_omits_defaults_and_infinite_ranges(
 def test_saveFaciesModel_sorts_facies_and_criteria(
     tmp_path: pathlib.Path,
 ) -> None:
-    """Test saveFaciesModel outputs deterministic (sorted) facies/criteria order.
+    """Test saveFaciesModel outputs deterministic facies/criteria order.
 
     Objective:
     - Ensure export is deterministic: facies and criteria are sorted by name.

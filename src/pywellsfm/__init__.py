@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from pywellsfm.io import validate_json_file_against_schema  # noqa: F401
-from pywellsfm.model.AccumulationModel import (
+from .io import validate_json_file_against_schema  # noqa: F401
+from .model.AccumulationModel import (
     AccumulationModelBase,
     AccumulationModelEnvironmentOptimum,
     AccumulationModelGaussian,
 )
-from pywellsfm.model.Curve import AccumulationCurve, Curve, UncertaintyCurve
-from pywellsfm.model.DepthAgeModel import DepthAgeModel
-from pywellsfm.model.Element import Element
-from pywellsfm.model.Facies import (
+from .model.Curve import AccumulationCurve, Curve, UncertaintyCurve
+from .model.DepthAgeModel import DepthAgeModel
+from .model.Element import Element
+from .model.Facies import (
     EnvironmentalFacies,
     Facies,
     FaciesCriteria,
@@ -21,11 +21,11 @@ from pywellsfm.model.Facies import (
     PetrophysicalFacies,
     SedimentaryFacies,
 )
-from pywellsfm.model.Marker import Marker
-from pywellsfm.model.SimulationParameters import RealizationData, Scenario
-from pywellsfm.model.Well import Well
-from pywellsfm.simulator.FSSimulator import FSSimulator
-from pywellsfm.simulator.FSSimulatorRunner import FSSimulatorRunner
+from .model.Marker import Marker
+from .model.SimulationParameters import RealizationData, Scenario
+from .model.Well import Well
+from .simulator.FSSimulator import FSSimulator
+from .simulator.FSSimulatorRunner import FSSimulatorRunner
 
 __version__ = "0.1.1"
 __all__ = [

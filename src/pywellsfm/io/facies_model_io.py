@@ -25,6 +25,7 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
     """Parse a FaciesModel JSON object into a FaciesModel.
 
     The JSON must match the on-disk format used by this project:
+
     - format: "pyWellSFM.FaciesModelData"
     - version: "1.0"
 
@@ -65,7 +66,8 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
         )
         if not isinstance(facies_type_raw, str):
             raise ValueError(
-                f"faciesModel[{idx}].criteriaType must be a string when provided."
+                f"faciesModel[{idx}].criteriaType must be a string "
+                "when provided."
             )
         try:
             facies_type = FaciesCriteriaType(facies_type_raw)
@@ -91,8 +93,8 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
             crit_name = crit_def.get("name")
             if not isinstance(crit_name, str) or crit_name.strip() == "":
                 raise ValueError(
-                    f"faciesModel[{idx}].criteria[{jdx}].name must be a non-empty "
-                    "string."
+                    f"faciesModel[{idx}].criteria[{jdx}].name must be "
+                    "a non-empty string."
                 )
 
             # If criterion type is missing, default to the facies criteriaType.
@@ -101,8 +103,8 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
                 crit_type_raw = facies_type.value
             if not isinstance(crit_type_raw, str):
                 raise ValueError(
-                    f"faciesModel[{idx}].criteria[{jdx}].type must be a string "
-                    "when provided."
+                    f"faciesModel[{idx}].criteria[{jdx}].type must be a "
+                    "string when provided."
                 )
             try:
                 crit_type = FaciesCriteriaType(crit_type_raw)
@@ -119,22 +121,22 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
                 not isinstance(min_range, (int, float))
             ):
                 raise ValueError(
-                    f"faciesModel[{idx}].criteria[{jdx}].minRange must be a number "
-                    "when provided."
+                    f"faciesModel[{idx}].criteria[{jdx}].minRange must be "
+                    "a number when provided."
                 )
             if (max_range is not None) and (
                 not isinstance(max_range, (int, float))
             ):
                 raise ValueError(
-                    f"faciesModel[{idx}].criteria[{jdx}].maxRange must be a number "
-                    "when provided."
+                    f"faciesModel[{idx}].criteria[{jdx}].maxRange must be "
+                    "a number when provided."
                 )
 
             criteria_set.add(
                 FaciesCriteria(
                     name=crit_name,
-                    minRange=float(min_range),
-                    maxRange=float(max_range),
+                    minRange=float(min_range), # type: ignore[arg-type]
+                    maxRange=float(max_range), # type: ignore[arg-type]
                     type=crit_type,
                 )
             )
@@ -167,6 +169,7 @@ def loadFaciesModel(filepath: str) -> FaciesModel:
     """Load a facies model from a JSON file.
 
     The JSON must match the on-disk format used by this project:
+
     - format: "pyWellSFM.FaciesModelData"
     - version: "1.0"
 
@@ -183,11 +186,13 @@ def faciesModelToJsonObj(faciesModel: FaciesModel) -> dict[str, Any]:
     """Serialize a FaciesModel to a JSON object.
 
     The returned object conforms to the on-disk format used by this project:
+
     - format: "pyWellSFM.FaciesModelData"
     - version: "1.0"
 
-    Notes:
-    JSON doesn't support +/-inf; infinite ranges are omitted.
+    .. Note::
+
+        JSON doesn't support +/-inf; infinite ranges are omitted.
     """
     payload: dict[str, Any] = {
         "format": "pyWellSFM.FaciesModelData",
@@ -202,7 +207,8 @@ def faciesModelToJsonObj(faciesModel: FaciesModel) -> dict[str, Any]:
             "name": facies.name,
             "criteria": [],
         }
-        # Keep file concise: only write facies-level criteriaType when meaningful.
+        # Keep file concise: only write facies-level criteriaType when
+        # meaningful.
         if facies_type != FaciesCriteriaType.UNCATEGORIZED:
             facies_obj["criteriaType"] = facies_type.value
 
@@ -212,7 +218,7 @@ def faciesModelToJsonObj(faciesModel: FaciesModel) -> dict[str, Any]:
         for crit in criteria_list:
             crit_obj: dict[str, Any] = {"name": crit.name}
 
-            # Only write criterion type when it differs from the facies default.
+            # Only write criterion type when it differs from the facies default
             if crit.type != facies_type:
                 crit_obj["type"] = crit.type.value
 
@@ -225,7 +231,8 @@ def faciesModelToJsonObj(faciesModel: FaciesModel) -> dict[str, Any]:
 
         if len(facies_obj["criteria"]) == 0:
             raise ValueError(
-                f"At least one criteria must be defined for the facies '{facies.name}'"
+                f"At least one criteria must be defined for the "
+                f"facies '{facies.name}'"
             )
 
         payload["faciesModel"].append(facies_obj)

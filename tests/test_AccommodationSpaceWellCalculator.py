@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
+# ruff: noqa: E402 # disable Module level import not at top of file
 import os
 import sys
 
@@ -164,16 +165,30 @@ def test_computeBathymetryCurve() -> None:
     ), "Bathymetry curves do not have same abscissa values."
 
     # plot bathymetry curves to check results
-    # bathymetryStepCurves = aspc._computeBathymetryStepCurve(lithoLog, depth, 0)
+    # bathymetryStepCurves = aspc._computeBathymetryStepCurve(
+    #     lithoLog, depth, 0
+    # )
     # fig, (ax0, ax1) = plt.subplots(figsize=(5, 10), ncols=2, sharey=True)
     # lithoLog.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
     # for row in bathymetryStepCurves:
     #     ax1.plot((row[2], row[2]), row[:2], ":", color="grey")
     #     ax1.plot((row[3], row[3]), row[:2], ":k")
-    # ax1.plot(bathymetryCurve.getMedianValues(), bathymetryCurve.getAbscissa(), "--r")
-    # ax1.plot(bathymetryCurve.getMinValues(), bathymetryCurve.getAbscissa(), "--b")
-    # ax1.plot(bathymetryCurve.getMaxValues(), bathymetryCurve.getAbscissa(), "--g")
+    # ax1.plot(
+    #     bathymetryCurve.getMedianValues(),
+    #     bathymetryCurve.getAbscissa(),
+    #     "--r"
+    # )
+    # ax1.plot(
+    #     bathymetryCurve.getMinValues(),
+    #     bathymetryCurve.getAbscissa(),
+    #     "--b"
+    # )
+    # ax1.plot(
+    #     bathymetryCurve.getMaxValues(),
+    #     bathymetryCurve.getAbscissa(),
+    #     "--g"
+    # )
     # ax1.set_xlabel("Bathymetry")
     # plt.show()
 
@@ -248,7 +263,8 @@ def test_computeAccommodationCurve01() -> None:
     ), "Accommodation curves do not have same abscissa values."
 
     # plot bathymetry curves to check results
-    # fig, (ax0, ax1, ax2) = plt.subplots(figsize=(5, 10), ncols=3, sharey=True)
+    # fig, (ax0, ax1, ax2) = plt.subplots(figsize=(5, 10), ncols=3,
+    #     sharey=True)
     # lithoLog0.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
     # for row in aspc._bathymetryStepCurve:
@@ -262,8 +278,10 @@ def test_computeAccommodationCurve01() -> None:
 
     # interval: Interval
     # for interval in lithoLog0:
-    #     ax1.hlines(interval.top.middle, 0, 10, colors="k", linestyles="--", linewidth=1)
-    #     ax2.hlines(interval.top.middle, 0, 50, colors="k", linestyles="--", linewidth=1)
+    #     ax1.hlines(interval.top.middle, 0, 10, colors="k",
+    #         linestyles="--", linewidth=1)
+    #     ax2.hlines(interval.top.middle, 0, 50, colors="k",
+    #         linestyles="--", linewidth=1)
     # plt.show()
 
     # outputArray1 = np.column_stack(
@@ -317,7 +335,7 @@ def test_computeAccommodationCurve02() -> None:
     ), "Accommodation curves do not have same abscissa values."
 
     # plot bathymetry curves to check results
-    # fig, (ax0, ax1, ax2) = plt.subplots(figsize=(5, 10), ncols=3, sharey=True)
+    # fig, (ax0, ax1, ax2) = plt.subplots(figsize=(5, 10), ncols=3,
     # lithoLog0.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
     # for row in aspc._bathymetryStepCurve:
@@ -331,8 +349,10 @@ def test_computeAccommodationCurve02() -> None:
 
     # interval: Interval
     # for interval in lithoLog0:
-    #     ax1.hlines(interval.top.middle, 0, 10, colors="k", linestyles="--", linewidth=1)
-    #     ax2.hlines(interval.top.middle, 0, 50, colors="k", linestyles="--", linewidth=1)
+    #     ax1.hlines(interval.top.middle, 0, 10, colors="k",
+    #          linestyles="--", linewidth=1)
+    #     ax2.hlines(interval.top.middle, 0, 50, colors="k",
+    #          linestyles="--", linewidth=1)
     # plt.show()
 
     # outputArray1 = np.column_stack(
@@ -385,7 +405,9 @@ def test_computeAccommodationCurve1() -> None:
     ), "Accommodation curves do not have same abscissa values."
 
     # plot bathymetry curves to check results
-    # fig, (ax0, ax1, ax2) = plt.subplots(figsize=(5, 10), ncols=3, sharey=True)
+    # fig, (ax0, ax1, ax2) = plt.subplots(
+    #     figsize=(5, 10), ncols=3, sharey=True
+    # )
     # lithoLog.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
     # for row in aspc._bathymetryStepCurve:
@@ -400,10 +422,12 @@ def test_computeAccommodationCurve1() -> None:
     # interval: Interval
     # for interval in lithoLog:
     #     ax1.hlines(
-    #         interval.top.middle, 0, 100, colors="k", linestyles="--", linewidth=1
+    #         interval.top.middle, 0, 100, colors="k",
+    #         linestyles="--", linewidth=1
     #     )
     #     ax2.hlines(
-    #         interval.top.middle, -50, 50, colors="k", linestyles="--", linewidth=1
+    #         interval.top.middle, -50, 50, colors="k",
+    #         linestyles="--", linewidth=1
     #     )
     # plt.show()
 
@@ -457,7 +481,8 @@ def test_computeAccommodationCurve2() -> None:
     ), "Accommodation curves do not have same abscissa values."
 
     # plot bathymetry curves to check results
-    # fig, (ax0, ax1, ax2) = plt.subplots(figsize=(5, 10), ncols=3, sharey=True)
+    # fig, (ax0, ax1, ax2) = plt.subplots(
+    #     figsize=(5, 10), ncols=3, sharey=True)
     # lithoLogBarbier.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
     # for row in aspc._bathymetryStepCurve:
@@ -472,10 +497,12 @@ def test_computeAccommodationCurve2() -> None:
     # interval: Interval
     # for interval in lithoLogBarbier:
     #     ax1.hlines(
-    #         interval.top.middle, 0, 100, colors="k", linestyles="--", linewidth=1
+    #         interval.top.middle, 0, 100, colors="k",
+    #         linestyles="--", linewidth=1
     #     )
     #     ax2.hlines(
-    #         interval.top.middle, -50, 50, colors="k", linestyles="--", linewidth=1
+    #         interval.top.middle, -50, 50, colors="k",
+    #         linestyles="--", linewidth=1
     #     )
     # plt.show()
 
@@ -522,7 +549,7 @@ def array_equal(array1: np.ndarray, array2: np.ndarray, tol: float) -> bool:
     :param float tol: tolerance for comparison
     :return bool: True if arrays are equal within tolerance, False otherwise
     """
-    __test__ = False
+    __test__ = False # noqa: F841
     if array1.shape != array2.shape:
         return False
     diff = np.abs(array1 - array2)
