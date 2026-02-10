@@ -174,8 +174,8 @@ class AccommodationSpaceWellCalculator:
         # accommodation array: depth, acco min 1, acco min 2, acco max 1,
         # acco max 2
         accoArray: npt.NDArray[np.float64] = np.full(
-            (self._bathymetryStepCurve.shape[0] + 1, 5),
-            np.nan,  # type: ignore
+            (self._bathymetryStepCurve.shape[0] + 1, 5),  # type: ignore
+            np.nan,
         )
         interval: Interval
         for i, interval in enumerate(faciesLog):
@@ -297,12 +297,12 @@ class AccommodationSpaceWellCalculator:
             self._computeAccommodationStepCurve(faciesLog, baseDepth, topDepth)
         # store uncertainty accommodation change curve
         self._convertIntervalCurve2UncertaintyCurve(
-            self._accommodationStepCurve,
-            self.accommodationChangeCurve,  # type: ignore
+            self._accommodationStepCurve,  # type: ignore[arg-type]
+            self.accommodationChangeCurve,
         )
 
         # compute cumulative accommodation
-        accommodationCumulStepCurve = np.copy(self._accommodationStepCurve)  # type: ignore
+        accommodationCumulStepCurve = np.copy(self._accommodationStepCurve)  # type: ignore[arg-type]
         for i in (2, 3):
             accommodationCumulStepCurve[:, i][::-1] = np.cumsum(
                 accommodationCumulStepCurve[:, i][::-1]

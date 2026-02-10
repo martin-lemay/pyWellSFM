@@ -283,7 +283,9 @@ class Facies:
         )
         self.addCriteria(criteria)
 
-    def addCriteria(self: Self, criteria: FaciesCriteria) -> None:
+    def addCriteria(
+        self: Self, criteria: FaciesCriteria | set[FaciesCriteria]
+    ) -> None:
         """Add a criteria to the facies.
 
         :param FaciesCriteria criteria: criteria to add
