@@ -428,9 +428,9 @@ def test_FaciesCriteriaCollection_getters_and_clear_methods() -> None:
 # ------------------------------
 
 
-def test_Facies_init_requires_at_least_one_criteria_when_collection_provided() -> (
-    None
-):
+def test_Facies_init_requires_at_least_one_criteria_when_collection_provided(
+
+) -> None:
     """Test Facies __init__ rejects empty collections for criteria parameter.
 
     Objective:
