@@ -227,9 +227,9 @@ def test_environment_optimum_model_without_env_conditions_raises() -> None:
     assert "sand" in error_msg  # Element name should be in error
 
 
-def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve(
-
-) -> None:
+def test_environmentOptimum_addAccumulationCurve_getAccumulationCurve() -> (
+    None
+):
     """Test adding curves stores them by x-axis name and can be retrieved."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
 
@@ -242,9 +242,9 @@ def test_environment_optimum_addAccumulationCurve_and_getAccumulationCurve(
     assert model.getAccumulationCurve("Energy") is energy_curve
 
 
-def test_environment_optimum_removeCurve_removes_and_is_noop_when_missing(
-
-) -> None:
+def test_environmentOptimum_removeCurve_removes_and_isNoopWhenMissing() -> (
+    None
+):
     """Test removes by name and doesn't error if missing."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     model.addAccumulationCurve(bathy_curve)
@@ -264,9 +264,9 @@ def test_environment_optimum_getAccumulationCurve_raises_for_missing() -> None:
         model.getAccumulationCurve("Bathymetry")
 
 
-def test_environment_optimum_getElementAccumulationAt_matches_curve_product(
-
-) -> None:
+def test_environmentOptimum_getElementAccumulationAt_matchesCurveProduct() -> (
+    None
+):
     """Migrated behavior test: accumulation equals rate * product(coeffs)."""
     model = AccumulationModelEnvironmentOptimum("EnvModel")
     element = Element("Sand", 10.0)
