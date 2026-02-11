@@ -6,12 +6,12 @@ The symbols re-exported here form the supported, stable entry points. Callers
 should prefer importing from `pywellsfm.model` instead of submodules.
 """
 
+from .AccommodationSpaceWellCalculator import AccommodationSpaceWellCalculator
 from .AccumulationModel import (
     AccumulationModelBase,
     AccumulationModelEnvironmentOptimum,
     AccumulationModelGaussian,
 )
-from .AccommodationSpaceWellCalculator import AccommodationSpaceWellCalculator
 from .Curve import AccumulationCurve, Curve, UncertaintyCurve
 from .DepthAgeModel import DepthAgeModel
 from .Element import Element

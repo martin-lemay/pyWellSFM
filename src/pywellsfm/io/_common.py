@@ -23,7 +23,25 @@ T = TypeVar("T")
 def reject_extra_keys(
     *, obj: dict[str, Any], allowed_keys: set[str], ctx: str
 ) -> None:
-    extra = set(obj.keys()) - allowed_keys
+    """Raises ValueError if json obj contains unallowed keys.
+
+    Args:
+        obj (dict[str, Any]): json object
+        allowed_keys (set[str]): allowed keys in obj
+        ctx (str): context for error messages
+
+    Raises:
+        ValueError: if obj contains keys not in allowed_keys or
+            allowed_keys_json
+    """
+    # add json schema keywords that are allowed in addition to the defined
+    # properties
+    allowed_keys_json: set[str] = {
+        "$schema",
+        "$id",
+        "description",
+    }
+    extra = set(obj.keys()) - allowed_keys.union(allowed_keys_json)
     if extra:
         raise ValueError(
             f"{ctx} contains unsupported properties: "

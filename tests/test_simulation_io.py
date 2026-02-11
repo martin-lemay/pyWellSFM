@@ -382,101 +382,10 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
     assert simulators[0].realizationData.subsidenceCurve is not None
 
 
-def test_loadSimulationData_from_json_two_realizations(tmp_path: Path) -> None:
+def test_loadSimulationData_from_json_two_realizations() -> None:
     """Loads SimulationData and returns one FSSimulator per realization."""
-    simulation_path = tmp_path / "simulation.json"
-
-    facies_model_path = (
-        Path(__file__).resolve().parent / "data" / "facies_model.json"
-    )
-    facies_model_obj = json.loads(
-        facies_model_path.read_text(encoding="utf-8")
-    )
-
-    payload = {
-        "format": "pyWellSFM.SimulationData",
-        "version": "1.0",
-        "name": "MySimulation",
-        "scenario": {
-            "format": "pyWellSFM.ScenarioData",
-            "version": "1.0",
-            "name": "Scenario1",
-            "faciesModel": facies_model_obj,
-            "accumulationModel": {
-                "format": "pyWellSFM.AccumulationModelData",
-                "version": "1.0",
-                "accumulationModel": {
-                    "name": "AM1",
-                    "modelType": "Gaussian",
-                    "elements": [
-                        {
-                            "name": "Carbonate",
-                            "accumulationRate": 100.0,
-                            "stddevFactor": 0.2,
-                        }
-                    ],
-                },
-            },
-        },
-        "realizations": [
-            {
-                "format": "pyWellSFM.RealizationData",
-                "version": "1.0",
-                "well": {
-                    "format": "pyWellSFM.WellData",
-                    "version": "1.0",
-                    "well": {
-                        "name": "Well1",
-                        "location": {"x": 1.0, "y": 2.0, "z": 3.0},
-                        "depth": 100.0,
-                    },
-                },
-                "subsidenceCurve": {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
-                    "curve": {
-                        "xAxisName": "Age",
-                        "yAxisName": "Subsidence",
-                        "interpolationMethod": "linear",
-                        "data": [
-                            {"x": 0.0, "y": 0.0},
-                            {"x": 10.0, "y": 100.0},
-                        ],
-                    },
-                },
-            },
-            {
-                "format": "pyWellSFM.RealizationData",
-                "version": "1.0",
-                "well": {
-                    "format": "pyWellSFM.WellData",
-                    "version": "1.0",
-                    "well": {
-                        "name": "Well2",
-                        "location": {"x": 4.0, "y": 5.0, "z": 6.0},
-                        "depth": 200.0,
-                    },
-                },
-                "subsidenceCurve": {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
-                    "curve": {
-                        "xAxisName": "Age",
-                        "yAxisName": "Subsidence",
-                        "interpolationMethod": "linear",
-                        "data": [
-                            {"x": 0.0, "y": 0.0},
-                            {"x": 10.0, "y": 50.0},
-                        ],
-                    },
-                },
-            },
-        ],
-    }
-
-    simulation_path.write_text(json.dumps(payload), encoding="utf-8")
-
-    simulators = loadSimulationData(str(simulation_path))
+    simulation_path = dataDir + "/simulation.json"
+    simulators = loadSimulationData(simulation_path)
 
     assert len(simulators) == 2
     # check scenario is shared
