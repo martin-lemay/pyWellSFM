@@ -32,3 +32,9 @@ sphinxcontrib-programoutput>=0.17
 
 # --- Optional dependencies: build tooling ---
 build~=1.2
+
+# --- Optional dependencies: jupyter notebook ---
+ipykernel
+ipython
+jupyter
+jupyterlab

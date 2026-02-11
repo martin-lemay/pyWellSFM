@@ -11,6 +11,7 @@ from .AccumulationModel import (
     AccumulationModelEnvironmentOptimum,
     AccumulationModelGaussian,
 )
+from .AccommodationSpaceWellCalculator import AccommodationSpaceWellCalculator
 from .Curve import AccumulationCurve, Curve, UncertaintyCurve
 from .DepthAgeModel import DepthAgeModel
 from .Element import Element
@@ -29,6 +30,7 @@ from .SimulationParameters import RealizationData, Scenario
 from .Well import Well
 
 __all__ = [
+    "AccommodationSpaceWellCalculator",
     "AccumulationCurve",
     "AccumulationModelBase",
     "AccumulationModelEnvironmentOptimum",

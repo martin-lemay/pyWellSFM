@@ -2,6 +2,7 @@
 
 from .io import validate_json_file_against_schema  # noqa: F401
 from .model import (
+    AccommodationSpaceWellCalculator,
     AccumulationCurve,
     AccumulationModelBase,
     AccumulationModelEnvironmentOptimum,
@@ -27,6 +28,7 @@ from .simulator import FSSimulator, FSSimulatorRunner
 
 __version__ = "0.0.1"
 __all__ = [
+    "AccommodationSpaceWellCalculator",
     "AccumulationCurve",
     "AccumulationModelBase",
     "AccumulationModelEnvironmentOptimum",

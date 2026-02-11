@@ -1,5 +1,5 @@
 [![CI](https://github.com/martin-lemay/pyWellSFM/actions/workflows/python-package.yml/badge.svg)](https://github.com/martin-lemay/pyWellSFM/actions)
-[![docs](https://readthedocs.com/projects/mlemay-pywellsfm/badge/?version=latest)](https://mlemay-pywellsfm.readthedocs.io/en/latest/)
+[![docs](https://readthedocs.com/projects/mlemay-pywellsfm/badge/?version=latest)](https://pywellsfm.readthedocs.io/en/latest/)
 
 # Welcome to pyWellSFM Repo!
 pyWellSFM stands for Python Well Stratigraphic Forward Modeling.
@@ -27,7 +27,7 @@ pip install git+https://github.com/martin-lemay/pyWellSFM.git
 Minimal example (data loading and simulation run):
 
 ```python
-from pywellsfm.io import load_centerline_dataset_from_csv
+from pywellsfm.io import loadSimulation
 from pywellsfm import (
     FSSimulator,
     FSSimulatorRunner,
