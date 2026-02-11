@@ -12,6 +12,7 @@ import pytest
 from striplog import Striplog
 
 from pywellsfm.model.Curve import Curve
+from pywellsfm.simulator.FSSimulatorRunner import FSSimulatorRunnerData
 
 m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
@@ -368,52 +369,55 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
         json.dumps(simulation_payload), encoding="utf-8"
     )
 
-    simulators = loadSimulationData(str(simulation_path))
-    assert len(simulators) == 1
-    assert simulators[0].scenario.name == "Scenario1"
+    simulationData: FSSimulatorRunnerData = loadSimulationData(
+        str(simulation_path)
+    )
+    assert len(simulationData.realizationDataList) == 1
+    assert simulationData.scenario.name == "Scenario1"
     assert (
-        simulators[0].scenario.faciesModel.getFaciesByName("Sand") is not None
+        simulationData.scenario.faciesModel.getFaciesByName("Sand") is not None
     )
     assert (
-        simulators[0].scenario.accumulationModel.getElement("Carbonate")
+        simulationData.scenario.accumulationModel.getElement("Carbonate")
         is not None
     )
-    assert simulators[0].realizationData.well.name == "Well-B"
-    assert simulators[0].realizationData.subsidenceCurve is not None
+    assert simulationData.realizationDataList[0].well.name == "Well-B"
+    assert simulationData.realizationDataList[0].subsidenceCurve is not None
 
 
 def test_loadSimulationData_from_json_two_realizations() -> None:
     """Loads SimulationData and returns one FSSimulator per realization."""
     simulation_path = dataDir + "/simulation.json"
-    simulators = loadSimulationData(simulation_path)
+    simulationData: FSSimulatorRunnerData = loadSimulationData(simulation_path)
 
-    assert len(simulators) == 2
-    # check scenario is shared
-    assert simulators[0].scenario is simulators[1].scenario
+    assert len(simulationData.realizationDataList) == 2
     # check scenario data
-    assert simulators[0].scenario.name == "Scenario1"
+    assert simulationData.scenario.name == "Scenario1"
     assert (
-        simulators[0].scenario.faciesModel.getFaciesByName("Sand") is not None
+        simulationData.scenario.faciesModel.getFaciesByName("CarbonateShallow")
+        is not None
     )
     assert (
-        simulators[0].scenario.accumulationModel.getElement("Carbonate")
+        simulationData.scenario.accumulationModel.getElement(
+            "CarbonateShallow"
+        )
         is not None
     )
 
     # realization 1
-    assert simulators[0].realizationData.well.name == "Well1"
-    assert simulators[0].realizationData.subsidenceCurve is not None
+    assert simulationData.realizationDataList[0].well.name == "Well1"
+    assert simulationData.realizationDataList[0].subsidenceCurve is not None
     assert np.isclose(
-        simulators[0].realizationData.subsidenceCurve.getValueAt(10.0),
-        100.0,
+        simulationData.realizationDataList[0].subsidenceCurve.getValueAt(10.0),
+        25.0,
     )
 
     # realization 2
-    assert simulators[1].realizationData.well.name == "Well2"
-    assert simulators[1].realizationData.subsidenceCurve is not None
+    assert simulationData.realizationDataList[1].well.name == "Well2"
+    assert simulationData.realizationDataList[1].subsidenceCurve is not None
     assert np.isclose(
-        simulators[1].realizationData.subsidenceCurve.getValueAt(10.0),
-        50.0,
+        simulationData.realizationDataList[1].subsidenceCurve.getValueAt(10.0),
+        20.0,
     )
 
 
@@ -904,9 +908,10 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
         isinstance(r, dict) and "url" not in r for r in out_obj["realizations"]
     )
 
-    simulators = loadSimulationData(str(simulation_out))
-    assert len(simulators) == 2
-    assert simulators[0].scenario is simulators[1].scenario
-    assert simulators[0].scenario.name == "ScenarioForSimulation"
-    assert simulators[0].realizationData.well.name == "Well1"
-    assert simulators[1].realizationData.well.name == "Well2"
+    simulationData: FSSimulatorRunnerData = loadSimulationData(
+        str(simulation_out)
+    )
+    assert len(simulationData.realizationDataList) == 2
+    assert simulationData.scenario.name == "ScenarioForSimulation"
+    assert simulationData.realizationDataList[0].well.name == "Well1"
+    assert simulationData.realizationDataList[1].well.name == "Well2"

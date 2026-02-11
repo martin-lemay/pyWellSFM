@@ -74,6 +74,9 @@ class Well:
         :param npt.NDArray[np.float64] wellPath: array containing
             x,y,z coordinates
         """
+        assert wellPath.shape[0] > 1, (
+            "Well path must contains at least 2 points."
+        )
         assert wellPath.shape[1] == 3, (
             "Well path array must contains 3 columns for x,y,z coordinates"
         )

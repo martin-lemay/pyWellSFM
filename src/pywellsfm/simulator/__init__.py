@@ -12,7 +12,7 @@ from .AccommodationSimulator import (
 )
 from .AccumulationSimulator import AccumulationSimulator
 from .FSSimulator import FSSimulator
-from .FSSimulatorRunner import FSSimulatorRunner
+from .FSSimulatorRunner import FSSimulatorRunner, FSSimulatorRunnerData
 
 __all__ = [
     "AccommodationSimulator",
@@ -20,4 +20,5 @@ __all__ = [
     "AccumulationSimulator",
     "FSSimulator",
     "FSSimulatorRunner",
+    "FSSimulatorRunnerData",
 ]

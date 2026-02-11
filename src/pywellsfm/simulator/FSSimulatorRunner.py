@@ -6,11 +6,32 @@ from typing import Any, Callable, Mapping, Optional, Self, Sequence
 import numpy as np
 import numpy.typing as npt
 import xarray as xr
+from attr import dataclass
 
 from pywellsfm.model.Marker import Marker
 from pywellsfm.model.SimulationParameters import RealizationData, Scenario
 from pywellsfm.simulator.AccommodationSimulator import AccommodationSimulator
 from pywellsfm.simulator.FSSimulator import FSSimulator
+
+
+@dataclass
+class FSSimulatorRunnerData:
+    #: scenario to simulate
+    scenario: Scenario
+    #: list of realization data, one per realization
+    realizationDataList: list[RealizationData]
+    #: maximum bathymetry change and accumulated thickness
+    #: per step (in meters). Default is 0.5 m.
+    max_bathymetry_change_per_step: float = 0.5
+    #: minimum time step (in Myr). Default is 1e-3 Myr.
+    dt_min: float = 1e-3
+    #: maximum time step (in Myr). Default is 0.1 Myr.
+    dt_max: float = 0.1
+    #: safety factor for time step adjustment. Must be in (0, 1].
+    #: Default is 0.9.
+    safety: float = 0.9
+    #: maximum number of steps. Default is 1e9.
+    max_steps: int = int(1e9)
 
 
 class FSSimulatorRunner:
@@ -72,10 +93,11 @@ class FSSimulatorRunner:
         self.times: list[float] = []
         self.sea_levels: list[npt.NDArray[np.float64]] = []
         self.subsidences: list[npt.NDArray[np.float64]] = []
-        self.topographies: list[npt.NDArray[np.float64]] = []
+        self.basements: list[npt.NDArray[np.float64]] = []
         self.accommodations: list[npt.NDArray[np.float64]] = []
         self.depo_rate_totals: list[npt.NDArray[np.float64]] = []
         self.thickness_steps: list[npt.NDArray[np.float64]] = []
+        self.thickness_cumul: list[npt.NDArray[np.float64]] = []
         self.bathymetries: list[npt.NDArray[np.float64]] = []
         self.delta_bathymetries: list[npt.NDArray[np.float64]] = []
         self.dts: list[float] = []
@@ -142,10 +164,11 @@ class FSSimulatorRunner:
         self.times = []
         self.sea_levels = []
         self.subsidences = []
-        self.topographies = []
+        self.basements = []
         self.accommodations = []
         self.depo_rate_totals = []
         self.thickness_steps = []
+        self.thickness_cumul = []
         self.bathymetries = []
         self.delta_bathymetries = []
         self.dts = []
@@ -176,6 +199,8 @@ class FSSimulatorRunner:
     def run(self: Self, markerEnd: Optional[Marker] = None) -> None:
         """Run the FS simulator until a given marker or to the top.
 
+        Time decreases from start to stop (e.g., from 100 Myr to 0 Myr).
+
         :param Optional[Marker] markerEnd: marker until which to run the
             simulation. If None, the simulation runs to the top of wells.
         """
@@ -187,22 +212,23 @@ class FSSimulatorRunner:
         start = self.getStartAge()
         # absolute geological age (in Myr) at end of simulation
         stop: float = self.getAgeEnd(markerEnd)
-        if stop <= start:
-            raise ValueError("stop must be > start")
+        if stop >= start:
+            raise ValueError("stop must be < start")
 
         # Initialize bathymetry state
         if self.initial_bathymetries is None:
             raise RuntimeError("initial_bathymetries not set")
         bathy_t = self.initial_bathymetries.copy()
 
-        # Record initial time
+        # Set initial time
         self.times.append(start)
 
         t = start
         for _ in range(self.max_steps):
-            if t >= stop:
+            if t <= stop:
                 break
 
+            print(f"Running time step at age {t:.4f} over {stop:.4f} Myr...")
             # Compute current state across all realizations
             sea_level_t: float = self.seaLevelSimulator.getSeaLevelAt(t)
             subs_t = np.array(
@@ -212,7 +238,8 @@ class FSSimulatorRunner:
                 ],
                 dtype=np.float64,
             )
-            topo_t = (-self.initial_bathymetries) + subs_t
+            # positive subsidence means sinking
+            basement_t = (-self.initial_bathymetries) - subs_t
             acco_t = subs_t + sea_level_t
 
             # Build state for environment function
@@ -220,7 +247,7 @@ class FSSimulatorRunner:
                 "time": float(t),
                 "sea_level": float(sea_level_t),
                 "subsidence": subs_t,
-                "topography": topo_t,
+                "basement": basement_t,
                 "accommodation": acco_t,
                 "bathymetry": bathy_t,
             }
@@ -239,11 +266,11 @@ class FSSimulatorRunner:
             )
 
             # Choose adaptive time step
-            remaining = stop - t
+            remaining = t - stop
             dt = self._adaptTimeStep(t, rates, remaining)
 
             # Compute state at t2 = t + dt
-            t2 = t + dt
+            t2 = t - dt
             sea_level_t2 = self.seaLevelSimulator.getSeaLevelAt(t2)
             subs_t2 = np.array(
                 [
@@ -269,12 +296,17 @@ class FSSimulatorRunner:
             # Record state at time t (step-start)
             self.bathymetries.append(bathy_t.copy())
             self.thickness_steps.append(thickness_step)
+            self.thickness_cumul.append(
+                thickness_step
+                if not self.thickness_cumul
+                else self.thickness_cumul[-1] + thickness_step
+            )
             self.delta_bathymetries.append(delta_bathy_array)
             self.sea_levels.append(
                 np.full((self.n_real,), sea_level_t, dtype=np.float64)
             )
             self.subsidences.append(subs_t)
-            self.topographies.append(topo_t)
+            self.basements.append(basement_t)
             self.accommodations.append(acco_t)
             self.depo_rate_totals.append(rates)
             self.dts.append(dt)
@@ -283,10 +315,15 @@ class FSSimulatorRunner:
             bathy_t = bathy_t + delta_bathy_array
 
             # Advance time
-            t = t + dt
+            t -= dt
             self.times.append(t)
         else:
             raise RuntimeError("Reached max_steps without reaching stop")
+
+        print(
+            f"Finished simulation at age {t:.4f} Myr after "
+            + f"{len(self.times) - 1} steps."
+        )
 
     def _adaptTimeStep(
         self: Self, t: float, rates: npt.NDArray[np.float64], remaining: float
@@ -425,19 +462,21 @@ class FSSimulatorRunner:
     def finalize(self: Self) -> None:
         """Finalize the FS simulator after running."""
         # create output xarray Dataset
-        self.outputs = self.buildEnsembleDataset()
+        self.outputs = self._buildEnsembleDataset()
 
         # create simulated wells
         for fsSimulator in self.fsSimulators:
             fsSimulator.finalize()
 
-    def buildEnsembleDataset(self: Self) -> xr.Dataset:
+    def _buildEnsembleDataset(self: Self) -> xr.Dataset:
         """Build the ensemble dataset after running all realizations.
 
         :return xr.Dataset: xarray.Dataset containing ensemble results.
         """
         if not self.times:
-            raise RuntimeError("Must call run() before buildEnsembleDataset()")
+            raise RuntimeError(
+                "Must call run() before _buildEnsembleDataset()"
+            )
 
         n_real = len(self.fsSimulators)
 
@@ -449,10 +488,11 @@ class FSSimulatorRunner:
 
         sea_level_arr = np.stack(self.sea_levels, axis=1)  # (real, time)
         subs_arr = np.stack(self.subsidences, axis=1)
-        topo_arr = np.stack(self.topographies, axis=1)
+        basement_arr = np.stack(self.basements, axis=1)
         acco_arr = np.stack(self.accommodations, axis=1)
         depo_arr = np.stack(self.depo_rate_totals, axis=1)
-        thickness_arr = np.stack(self.thickness_steps, axis=1)
+        thickness_step_arr = np.stack(self.thickness_steps, axis=1)
+        thickness_cumul_arr = np.stack(self.thickness_cumul, axis=1)
         bathy_arr = np.stack(self.bathymetries, axis=1)
         delta_bathy_arr = np.stack(self.delta_bathymetries, axis=1)
 
@@ -469,10 +509,17 @@ class FSSimulatorRunner:
                     self.initial_bathymetries,
                 ),
                 "subsidence": (("realization", "time"), subs_arr),
-                "topography": (("realization", "time"), topo_arr),
+                "basement": (("realization", "time"), basement_arr),
                 "accommodation": (("realization", "time"), acco_arr),
                 "depo_rate_total": (("realization", "time"), depo_arr),
-                "thickness_step": (("realization", "time"), thickness_arr),
+                "thickness_step": (
+                    ("realization", "time"),
+                    thickness_step_arr,
+                ),
+                "thickness_cumul": (
+                    ("realization", "time"),
+                    thickness_cumul_arr,
+                ),
                 "bathymetry": (("realization", "time"), bathy_arr),
                 "delta_bathymetry": (("realization", "time"), delta_bathy_arr),
             },

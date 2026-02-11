@@ -8,7 +8,43 @@
         "version": "1.0",
         "name": "Scenario1",
         "faciesModel": {
-            "url": "facies_model.json"
+            "format": "pyWellSFM.FaciesModelData",
+            "version": "1.0",
+            "faciesModel": [
+                {
+                    "name": "CarbonateShallow",
+                    "criteriaType": "environmental",
+                    "criteria": [
+                        {
+                        "name": "Bathymetry",
+                        "minRange": 0.0,
+                        "maxRange": 10.0
+                        }
+                    ]
+                },
+                {
+                    "name": "CarbonateIntermediate",
+                    "criteriaType": "environmental",
+                    "criteria": [
+                        {
+                        "name": "Bathymetry",
+                        "minRange": 10.0,
+                        "maxRange": 50.0
+                        }
+                    ]
+                },
+                {
+                    "name": "CarbonateDeep",
+                    "criteriaType": "environmental",
+                    "criteria": [
+                        {
+                        "name": "Bathymetry",
+                        "minRange": 50.0,
+                        "maxRange": 10000.0
+                        }
+                    ]
+                }
+            ]
         },
         "accumulationModel": {
             "format": "pyWellSFM.AccumulationModelData",
@@ -18,12 +54,25 @@
                 "modelType": "Gaussian",
                 "elements": [
                     {
-                        "name": "Carbonate",
-                        "accumulationRate": 100.0,
+                        "name": "CarbonateShallow",
+                        "accumulationRate": 1.0,
+                        "stddevFactor": 0.4
+                    },
+                    {
+                        "name": "CarbonateIntermediate",
+                        "accumulationRate": 0.5,
                         "stddevFactor": 0.2
+                    },
+                    {
+                        "name": "CarbonateDeep",
+                        "accumulationRate": 0.1,
+                        "stddevFactor": 0.05
                     }
                 ]
             }
+        },
+        "eustaticCurve": {
+            "url": "eustatic_curve.csv"
         }
     },
     "realizations": [
@@ -36,7 +85,48 @@
                 "well": {
                     "name": "Well1",
                     "location": {"x": 1.0, "y": 2.0, "z": 3.0},
-                    "depth": 100.0
+                    "depth": 100.0,
+                    "markers": [
+                        {
+                            "name": "M0",
+                            "depth": 90.0,
+                            "age": 30.0,
+                            "stratigraphicType": "Baselap"
+                        },
+                        {
+                            "name": "M1",
+                            "depth": 50.0,
+                            "age": 10.0,
+                            "stratigraphicType": "Conform"
+                        }
+                    ],
+                    "striplogs": [
+                        {
+                            "name": "lithology",
+                            "intervals": [
+                                {
+                                    "top": 50.0,
+                                    "base": 60.0,
+                                    "lithology": "CarbonateIntermediate"
+                                },
+                                {
+                                    "top": 60.0,
+                                    "base": 70.0,
+                                    "lithology": "CarbonateShallow"
+                                },
+                                {
+                                    "top": 70.0,
+                                    "base": 85.0,
+                                    "lithology": "CarbonateDeep"
+                                },
+                                {
+                                    "top": 85.0,
+                                    "base": 90.0,
+                                    "lithology": "CarbonateIntermediate"
+                                }
+                            ]
+                        }
+                    ]
                 }
             },
             "subsidenceCurve": {
@@ -47,8 +137,10 @@
                     "yAxisName": "Subsidence",
                     "interpolationMethod": "linear",
                     "data": [
-                        {"x": 0.0, "y": 0.0},
-                        {"x": 10.0, "y": 100.0}
+                        {"x": 0.0, "y": 25.0},
+                        {"x": 10.0, "y": 25.0},
+                        {"x": 20.0, "y": 15.0},
+                        {"x": 30.0, "y": 10.0}
                     ]
                 }
             }
@@ -62,7 +154,48 @@
                 "well": {
                     "name": "Well2",
                     "location": {"x": 4.0, "y": 5.0, "z": 6.0},
-                    "depth": 200.0
+                    "depth": 200.0,
+                    "markers": [
+                        {
+                            "name": "M0",
+                            "depth": 130.0,
+                            "age": 30.0,
+                            "stratigraphicType": "Baselap"
+                        },
+                        {
+                            "name": "M1",
+                            "depth": 80.0,
+                            "age": 10.0,
+                            "stratigraphicType": "Conform"
+                        }
+                    ],
+                    "striplogs": [
+                        {
+                            "name": "lithology",
+                            "intervals": [
+                                {
+                                    "top": 80.0,
+                                    "base": 90.0,
+                                    "lithology": "CarbonateIntermediate"
+                                },
+                                {
+                                    "top": 90.0,
+                                    "base": 100.0,
+                                    "lithology": "CarbonateShallow"
+                                },
+                                {
+                                    "top": 100.0,
+                                    "base": 115.0,
+                                    "lithology": "CarbonateDeep"
+                                },
+                                {
+                                    "top": 115.0,
+                                    "base": 130.0,
+                                    "lithology": "CarbonateIntermediate"
+                                }
+                            ]
+                        }
+                    ]
                 }
             },
             "subsidenceCurve": {
@@ -73,8 +206,10 @@
                     "yAxisName": "Subsidence",
                     "interpolationMethod": "linear",
                     "data": [
-                        {"x": 0.0, "y": 0.0},
-                        {"x": 10.0, "y": 50.0}
+                        {"x": 0.0, "y": 20.0},
+                        {"x": 10.0, "y": 20.0},
+                        {"x": 20.0, "y": 15.0},
+                        {"x": 30.0, "y": 5.0}
                     ]
                 }
             }

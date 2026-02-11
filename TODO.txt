@@ -1,7 +1,6 @@
 Short-term:
 
-- fix ruff / mypy / sphinx
-- fix AccommodationSpaceWellCalculator
+- add unit tests for simulators
 - use subsidence rate curve instead of subsidence (in meters)
 - create simulated well from output xarray
 - create output plots (acco/accumulation/topo... vs time) (from well in time or from xarray?)

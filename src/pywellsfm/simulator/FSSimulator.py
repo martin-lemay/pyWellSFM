@@ -21,6 +21,7 @@ class FSSimulator:
         """Defines the Forward Stratigraphic Simulator.
 
         The FS simulator parameters include a scenario and realization data:
+
           - A scenario defines global parameters for the simulation shared by
             multiple realizations, including eustatic curve, facies model,
             accumulation model.

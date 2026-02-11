@@ -163,7 +163,7 @@ def wellToJsonObj(well: Well) -> dict[str, Any]:
 
 
 def _parse_stratigraphic_type(raw: Any) -> StratigraphicSurfaceType:  # noqa: ANN401
-    print("Debug: Parsing stratigraphic type from raw value:", raw)
+    # print("Debug: Parsing stratigraphic type from raw value:", raw)
     if not isinstance(raw, str) or raw.strip() == "":
         return StratigraphicSurfaceType.UNKNOWN
 
@@ -356,6 +356,17 @@ def loadWellFromJsonObj(
                 "Well.well.wellPath must be an array of 2+ (x,y,z) points"
             )
         well.setWellPath(arr)
+    else:
+        # Default to vertical well path from head to depth.
+        well.setWellPath(
+            np.asarray(
+                [
+                    well_head,
+                    well_head + np.array([0.0, 0.0, -float(depth)]),
+                ],
+                dtype=float,
+            )
+        )
 
     # Optional markers
     markers_raw = well_obj.get("markers")

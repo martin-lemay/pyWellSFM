@@ -24,7 +24,7 @@ from .model import (
     UncertaintyCurve,
     Well,
 )
-from .simulator import FSSimulator, FSSimulatorRunner
+from .simulator import FSSimulatorRunner, FSSimulatorRunnerData
 
 __version__ = "0.0.1"
 __all__ = [
@@ -42,8 +42,8 @@ __all__ = [
     "FaciesCriteriaCollection",
     "FaciesCriteriaType",
     "FaciesModel",
-    "FSSimulator",
     "FSSimulatorRunner",
+    "FSSimulatorRunnerData",
     "Marker",
     "PetrophysicalFacies",
     "RealizationData",
