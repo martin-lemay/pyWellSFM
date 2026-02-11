@@ -1,0 +1,83 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/SimulationDataSchema.json",
+    "format": "pyWellSFM.SimulationData",
+    "version": "1.0",
+    "name": "MySimulation",
+    "scenario": {
+        "format": "pyWellSFM.ScenarioData",
+        "version": "1.0",
+        "name": "Scenario1",
+        "faciesModel": {
+            "url": "facies_model.json"
+        },
+        "accumulationModel": {
+            "format": "pyWellSFM.AccumulationModelData",
+            "version": "1.0",
+            "accumulationModel": {
+                "name": "AM1",
+                "modelType": "Gaussian",
+                "elements": [
+                    {
+                        "name": "Carbonate",
+                        "accumulationRate": 100.0,
+                        "stddevFactor": 0.2
+                    }
+                ]
+            }
+        }
+    },
+    "realizations": [
+        {
+            "format": "pyWellSFM.RealizationData",
+            "version": "1.0",
+            "well": {
+                "format": "pyWellSFM.WellData",
+                "version": "1.0",
+                "well": {
+                    "name": "Well1",
+                    "location": {"x": 1.0, "y": 2.0, "z": 3.0},
+                    "depth": 100.0
+                }
+            },
+            "subsidenceCurve": {
+                "format": "pyWellSFM.CurveData",
+                "version": "1.0",
+                "curve": {
+                    "xAxisName": "Age",
+                    "yAxisName": "Subsidence",
+                    "interpolationMethod": "linear",
+                    "data": [
+                        {"x": 0.0, "y": 0.0},
+                        {"x": 10.0, "y": 100.0}
+                    ]
+                }
+            }
+        },
+        {
+            "format": "pyWellSFM.RealizationData",
+            "version": "1.0",
+            "well": {
+                "format": "pyWellSFM.WellData",
+                "version": "1.0",
+                "well": {
+                    "name": "Well2",
+                    "location": {"x": 4.0, "y": 5.0, "z": 6.0},
+                    "depth": 200.0
+                }
+            },
+            "subsidenceCurve": {
+                "format": "pyWellSFM.CurveData",
+                "version": "1.0",
+                "curve": {
+                    "xAxisName": "Age",
+                    "yAxisName": "Subsidence",
+                    "interpolationMethod": "linear",
+                    "data": [
+                        {"x": 0.0, "y": 0.0},
+                        {"x": 10.0, "y": 50.0}
+                    ]
+                }
+            }
+        }
+    ]
+}

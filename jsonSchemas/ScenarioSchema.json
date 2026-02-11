@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/Scenario.json",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/Scenario.json",
     "title": "Input Scenario Data",
     "description": "Defines the input data to create a scenario data object.",
     "type": "object",
@@ -21,7 +21,7 @@
             "oneOf": [
                 {
                     "description": "Inline facies model definition.",
-                    "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/FaciesModel.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FaciesModel.json"
                 },
                 {
                     "type": "object",
@@ -43,7 +43,7 @@
             "oneOf": [
                 {
                     "description": "Inline accumulation model definition.",
-                    "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/AccumulationModel.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/AccumulationModel.json"
                 },
                 {
                     "type": "object",
@@ -65,7 +65,7 @@
             "oneOf": [
                 {
                     "description": "Inline curve definition.",
-                    "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/CurveSchema.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json"
                 },
                 {
                     "type": "object",

@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/SimulationDataSchema.json",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/SimulationDataSchema.json",
     "title": "Input Simulation Data",
     "description": "Defines the input data to create FSM simulations.",
     "type": "object",
@@ -22,7 +22,7 @@
             "oneOf": [
                 {
                     "description": "Inline scenario definition.",
-                    "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/ScenarioSchema.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/ScenarioSchema.json"
                 },
                 {
                     "type": "object",
@@ -48,7 +48,7 @@
                 "oneOf": [
                     {
                         "description": "Inline realization data definition.",
-                        "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/RealizationDataSchema.json"
+                        "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/RealizationDataSchema.json"
                     },
                     {
                         "type": "object",

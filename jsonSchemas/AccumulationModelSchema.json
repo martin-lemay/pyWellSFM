@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/AccumulationModelSchema.json",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/AccumulationModelSchema.json",
     "title": "Input Accumulation Model Data",
     "description": "Defines the input data to create an accumulation model.",
     "type": "object",
@@ -128,7 +128,7 @@
                         "description": "Either an inline TabulatedFunction object, or a path/URI to a JSON or csv file containing a TabulatedFunction object.",
                         "oneOf": [
                             {
-                                "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/TabulatedFunctionSchema.json"
+                                "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/TabulatedFunctionSchema.json"
                             },
                             {
                                 "type": "string",

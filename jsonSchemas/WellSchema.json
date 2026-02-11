@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/WellSchema.json",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/WellSchema.json",
     "title": "Input Well Data",
     "description": "Defines the input data to create a well.",
     "type": "object",
@@ -106,7 +106,7 @@
                         {
                             "type": "array",
                             "items": {
-                                "$ref": "https://github.com/martin-lemay/pyWellSFM/jsonSchemas/CurveSchema.json"
+                                "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json"
                             }
                         },
                         {
