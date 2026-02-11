@@ -24,23 +24,28 @@ API reference
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.simulator.AccommodationSimulator
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.simulator.AccumulationSimulator
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.simulator.FSSimulator
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.simulator.FSSimulatorRunner
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:

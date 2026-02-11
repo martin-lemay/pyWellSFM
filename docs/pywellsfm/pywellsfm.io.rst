@@ -53,6 +53,7 @@ API reference
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.io.simulation_io
    :members:

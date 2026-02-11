@@ -6,8 +6,6 @@ The symbols re-exported here form the supported, stable entry points. Callers
 should prefer importing from `pywellsfm.model` instead of submodules.
 """
 
-from __future__ import annotations
-
 from .AccumulationModel import (
     AccumulationModelBase,
     AccumulationModelEnvironmentOptimum,

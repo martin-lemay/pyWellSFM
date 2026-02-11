@@ -13,7 +13,7 @@ Time step duration is computed such as both deposited thickness and bathymetry v
 
 The simulator is designed such as it can easily be used through an optimization loop.
 
-A full documentation of the code can be found [here](https://mlemay-pywellsfm.readthedocs.io/en/latest/)
+A full documentation of the code can be found [here](https://pywellsfm.readthedocs.io/en/latest/)
 
 
 ## Quickstart

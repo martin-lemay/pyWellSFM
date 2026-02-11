@@ -29,48 +29,58 @@ API reference
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.AccommodationSpaceWellCalculator
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.AccumulationModel
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.Curve
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.DepthAgeModel
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.Element
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.Facies
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.Marker
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.SimulationParameters
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: pywellsfm.model.Well
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
