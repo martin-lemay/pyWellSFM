@@ -19,9 +19,9 @@ The main API can be imported directly from pywellsfm package:
 
     from pywellsfm import (
         AccumulationCurve,
-        AccumulationModelBase,
-        AccumulationModelEnvironmentOptimum,
-        AccumulationModelGaussian,
+        AccumulationModel,
+        AccumulationModelElementEnvironmentOptimum,
+        AccumulationModelElementGaussian,
         Curve,
         DepthAgeModel,
         Element,
@@ -48,9 +48,9 @@ The main API can be imported directly from pywellsfm package:
 Core model
 ^^^^^^^^^^^^
 
-* :class:`~pywellsfm.model.AccumulationModel.AccumulationModelBase`
-* :class:`~pywellsfm.model.AccumulationModel.AccumulationModelEnvironmentOptimum`
-* :class:`~pywellsfm.model.AccumulationModel.AccumulationModelGaussian`
+* :class:`~pywellsfm.model.AccumulationModel.AccumulationModel`
+* :class:`~pywellsfm.model.AccumulationModel.AccumulationModelElementEnvironmentOptimum`
+* :class:`~pywellsfm.model.AccumulationModel.AccumulationModelElementGaussian`
 * :class:`~pywellsfm.model.Curve.Curve`
 * :class:`~pywellsfm.model.Curve.AccumulationCurve`
 * :class:`~pywellsfm.model.Curve.UncertaintyCurve`

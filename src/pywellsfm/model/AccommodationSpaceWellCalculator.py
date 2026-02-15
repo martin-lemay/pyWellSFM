@@ -65,6 +65,50 @@ class AccommodationSpaceWellCalculator:
             Curve("Depth", "Accommodation", abscissa, ordinate),
         )
 
+    def getInitialBathymetry(self: Self) -> float:
+        """Get the initial bathymetry.
+
+        Take the middle value of the range as initial bathymetry get from
+        facies log.
+
+        :return float: initial bathymetry value.
+        """
+        bathyRange: tuple[float, float] = self._getInitialBathymetryRange()
+        return 0.5 * (bathyRange[0] + bathyRange[1])
+
+    # Helper functions
+    def _getInitialBathymetryRange(self: Self) -> tuple[float, float]:
+        """Get the initial bathymetry range.
+
+        The bathymetry is retreive from the facies log at and facies
+        conditions.
+
+        :return tuple[float, float]: min and max initial bathymetry values.
+        """
+        faciesLogNames: set[str] = self._well.getDiscreteLogNames()
+        if len(faciesLogNames) == 0:
+            raise ValueError(
+                f"No discrete log found in well '{self._well.name}' "
+                "to get initial bathymetry."
+            )
+        faciesLog: Striplog = cast(
+            Striplog, self._well.getDepthLog(faciesLogNames.pop())
+        )
+        if faciesLog is None:
+            raise ValueError(
+                f"Facies log not found in well '{self._well.name}' to "
+                "get initial bathymetry."
+            )
+
+        interval: Interval = cast(Interval, faciesLog[-1])
+        faciesName: str = interval.primary["lithology"]  # type: ignore
+        bathyRange = self._getBathymetryRangeFromFaciesName(faciesName)
+        if bathyRange is None:
+            raise ValueError(
+                f"Bathymetry condition not found for facies {faciesName}."
+            )
+        return bathyRange
+
     def computeAccommodationCurve(
         self: Self,
         faciesLogName: str,

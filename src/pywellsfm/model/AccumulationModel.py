@@ -7,170 +7,107 @@ from typing import Self
 import numpy as np
 
 from .Curve import AccumulationCurve
-from .Element import Element
 
 
-class AccumulationModelBase(ABC):
+class AccumulationModelElementBase(ABC):
     def __init__(
         self: Self,
-        name: str,
-        elements: set[Element] | None = None,
+        elementName: str,
+        accumulationRate: float,
     ) -> None:
-        """Defines the base class for sediment accumulation models.
+        """Defines the base class for accumulation models based on elements.
 
-        An accumulation model defines a list of elements and the rules that
-        govern their accumulation through time.
-
-        :param str name: name of the accumulation model
-        :param set[Element] elements: set of elements in the accumulation model
+        :param str elementName: name of the element the model applies to
+        :param float accumulationRate: reference accumulation rate of the
+            element (m/My)
         """
-        self.name = name
-        self.elements = elements if elements is not None else set()
-
-    def addElement(self: Self, element: Element) -> None:
-        """Add an element to the accumulation model.
-
-        :param Element element: element to add
-        """
-        self.elements.add(element)
-
-    def removeElement(self: Self, elementName: str) -> None:
-        """Remove an element from the model.
-
-        :param str elementName: name of the element to remove
-        """
-        element_to_remove: Element | None = None
-        for elt in self.elements:
-            if elt.name == elementName:
-                element_to_remove = elt
-                break
-
-        if element_to_remove is not None:
-            self.elements.remove(element_to_remove)
-
-    def getElement(self: Self, elementName: str) -> Element | None:
-        """Get an element of the model from its name.
-
-        :param str elementName: name of the element to get
-        :return Element | None: element with the given name, or None if not
-            found
-        """
-        for elt in self.elements:
-            if elt.name == elementName:
-                return elt
-        return None
+        self.elementName = elementName
+        self.accumulationRate: float = accumulationRate
 
     @abstractmethod
     def getElementAccumulationAt(
         self: Self,
-        element: Element,
         environmentConditions: dict[str, float] | None = None,
     ) -> float:
-        """Compute the accumulation rate of an element in the model.
+        """Compute the accumulation rate of the element.
 
         This method should be implemented in derived classes.
 
-        :param Element element: element to compute the accumulation rate for
         :param dict[str, float] | None environmentConditions: optional
             environmental conditions. Keys are environmental factor names,
             values are the conditions.
         :return float: accumulation rate (m/My)
-        :raise NotImplementedError: if the method is not implemented in derived
-            class
         """
-        raise NotImplementedError(
-            "getElementAccumulationAt() must be implemented "
-            "in derived classes."
-        )
+        pass
 
 
-class AccumulationModelGaussian(AccumulationModelBase):
+class AccumulationModelElementGaussian(AccumulationModelElementBase):
     def __init__(
         self: Self,
-        name: str,
-        elements: set[Element] | None = None,
-        std_dev_factors: dict[str, float] | None = None,
+        elementName: str,
+        accumulationRate: float,
+        std_dev_factor: float | None = None,
     ) -> None:
         """Defines an accumulation model based on a probabilistic approach.
 
-        In this accumulation model, the accumulation rate of each element
+        In this accumulation model, the accumulation rate of the element
         follows a Gaussian distribution centered around the reference
         accumulation rate of the element, with a standard deviation defined as
         twice the reference rate.
 
-        :param str name: name of the accumulation model
-        :param set[Element] elements: set of elements in the accumulation model
-        :param float std_dev_factor: factor to multiply the standard deviation
-            by
+        :param str elementName: name of the element the model applies to
+        :param float accumulationRate: reference accumulation rate of the
+            element (m/My)
+        :param float | None std_dev_factor: factor to multiply the standard
+            deviation by
         """
-        super().__init__(name, elements)
+        super().__init__(elementName, accumulationRate)
 
-        # default standard deviation factor
-        self.defaultStdDev = 0.2  # 20% of mean
-        if std_dev_factors is None:
-            self.std_dev_factors = dict.fromkeys(
-                [elt.name for elt in self.elements], self.defaultStdDev
-            )
-        else:
-            self.std_dev_factors = std_dev_factors
-
-    def addElement(
-        self: Self, element: Element, std_dev_factor: float | None = None
-    ) -> None:
-        """Add an element together with the standard deviation factor.
-
-        :param Element element: element to add
-        :param float | None std_dev_factor: standard deviation factor,
-            defaults to None
-        """
-        super().addElement(element)
-        factor = (
-            self.defaultStdDev if std_dev_factor is None else std_dev_factor
+        # default standard deviation factor is 0.2
+        self.std_dev_factor = (
+            std_dev_factor if std_dev_factor is not None else 0.2
         )
-        self.std_dev_factors[element.name] = factor
 
     def getElementAccumulationAt(
         self: Self,
-        element: Element,
         environmentConditions: dict[str, float] | None = None,
     ) -> float:
         """Get the accumulation rate according to the Gaussian distribution.
 
-        :param Element element: element to get the accumulation rate for
         :param dict[str, float] | None environmentConditions: environmental
             conditions (ignored by this model, accepted for API consistency)
         :return float: accumulation rate (m/My)
         """
-        mean = element.accumulationRate
-        stdDev_factor = self.std_dev_factors.get(
-            element.name, self.defaultStdDev
-        )
-        stddev = stdDev_factor * mean
-        return float(np.random.normal(mean, stddev))
+        stddev = self.std_dev_factor * self.accumulationRate
+        return float(np.random.normal(self.accumulationRate, stddev))
 
 
-class AccumulationModelEnvironmentOptimum(AccumulationModelBase):
+class AccumulationModelElementEnvironmentOptimum(AccumulationModelElementBase):
     def __init__(
         self: Self,
-        name: str,
-        elements: set[Element] | None = None,
+        elementName: str,
+        accumulationRate: float,
+        accumulationCurves: dict[str, AccumulationCurve] | None = None,
     ) -> None:
         """Defines an accumulation model based on environmental optimums.
 
-        For a given element, the accumulation rate is maximal if all
+        The accumulation rate is maximal if all
         environmental conditions are at their optimum value. The accumulation
         rate decreases as the environmental values deviate from their optimum.
         The rate equals the reference accumulation rate of the element
         multiplied by the product of all the reduction coefficients defined by
         the accumulation curves.
 
-        :param str name: name of the accumulation model
-        :param set[Element] elements: set of elements in the accumulation model
+        :param str elementName: name of the element
+        :param float accumulationRate: reference accumulation rate of the
+            element (m/My)
+        :param dict[str, AccumulationCurve] | None accumulationCurves: element
+            accumulation reduction curves
         """
-        if elements is None:
-            elements = set()
-        super().__init__(name, elements)
-        self.prodCurves: dict[str, AccumulationCurve] = {}
+        super().__init__(elementName, accumulationRate)
+        self.accumulationCurves: dict[str, AccumulationCurve] = (
+            accumulationCurves if accumulationCurves is not None else {}
+        )
 
     def addAccumulationCurve(self: Self, curve: AccumulationCurve) -> None:
         """Add a reduction coefficient curve that modulate the accumulation.
@@ -180,31 +117,32 @@ class AccumulationModelEnvironmentOptimum(AccumulationModelBase):
 
         :param AccumulationCurve curve: reduction coefficient curve
         """
-        self.prodCurves[curve._xAxisName] = curve
+        self.accumulationCurves[curve._xAxisName] = curve
 
     def removeAccumulationCurve(self: Self, curveName: str) -> None:
         """Remove an accumulation curve from the model.
 
         :param str curveName: name of the accumulation curve to remove
         """
-        self.prodCurves.pop(curveName, None)
+        if curveName in self.accumulationCurves:
+            self.accumulationCurves.pop(curveName)
 
-    def getAccumulationCurve(self: Self, name: str) -> AccumulationCurve:
+    def getAccumulationCurve(
+        self: Self, curveName: str
+    ) -> AccumulationCurve | None:
         """Get the reduction coefficient curve corresponding to the name.
 
-        :param str name: name of the environmental factor
-        :return AccumulationCurve: reduction coefficient curve
+        :param str curveName: name of the accumulation curve
+        :return AccumulationCurve | None: reduction coefficient curve
         """
-        return self.prodCurves[name]
+        return self.accumulationCurves.get(curveName, None)
 
     def getElementAccumulationAt(
         self: Self,
-        element: Element,
         environmentConditions: dict[str, float] | None = None,
     ) -> float:
-        """Get accumulation rate of an element from environmental condition.
+        """Get accumulation rate of the element from environmental conditions.
 
-        :param Element element: element to get the accumulation rate for
         :param dict[str, float] | None environmentConditions: environment
             conditions. The keys are the name of the curves, the values are
             the corresponding conditions. Required for this model type.
@@ -214,12 +152,107 @@ class AccumulationModelEnvironmentOptimum(AccumulationModelBase):
         if environmentConditions is None:
             raise ValueError(
                 f"{self.__class__.__name__} requires environmentConditions "
-                f"to compute accumulation rate for element '{element.name}'"
+                f"to compute accumulation rate."
             )
+        # get reduction coefficients for each environmental condition
+        values = []
+        for curveName, value in environmentConditions.items():
+            curve = self.getAccumulationCurve(curveName)
+            if curve is not None:
+                values.append(curve.getValueAt(value))
+        product: float = float(np.prod(values)) if len(values) > 0 else 1.0
+        return self.accumulationRate * product
 
-        values = [
-            self.prodCurves[name](value)
-            for name, value in environmentConditions.items()
-            if name in self.prodCurves
-        ]
-        return element.accumulationRate * float(np.prod(values))
+
+class AccumulationModel:
+    def __init__(
+        self: Self,
+        name: str,
+        elementAccumulationModels: dict[str, AccumulationModelElementBase]
+        | None = None,
+    ) -> None:
+        """Defines the accumulation model for sediments.
+
+        An accumulation model defines a list of elements and the rules that
+        govern their accumulation through time.
+
+        :param str name: name of the accumulation model
+        :param dict | None elementAccumulationModels: dictionary
+            of element names to their corresponding accumulation models
+        """
+        self.name: str = name
+        self.elements: dict[str, AccumulationModelElementBase] = {}
+        if elementAccumulationModels is not None:
+            for elementName, model in elementAccumulationModels.items():
+                self.addElement(elementName, model)
+
+    def addElement(
+        self: Self,
+        elementName: str,
+        accumulationModel: AccumulationModelElementBase,
+    ) -> None:
+        """Add an element to the accumulation model.
+
+        :param str elementName: name of the element to add
+        :param AccumulationModelElementBase accumulationModel: accumulation
+            model associated to the element
+        """
+        self.elements[elementName] = accumulationModel
+
+    def removeElement(self: Self, elementName: str) -> None:
+        """Remove an element from the model.
+
+        :param str elementName: name of the element to remove
+        """
+        self.elements.pop(elementName, None)
+
+    def getElementModel(
+        self: Self, elementName: str
+    ) -> AccumulationModelElementBase | None:
+        """Get an element of the model from its name.
+
+        :param str elementName: name of the element to get
+        :return AccumulationModelElementBase | None: element with the given
+            name, or None if not found
+        """
+        for name, model in self.elements.items():
+            if name == elementName:
+                return model
+        return None
+
+    def getElementAccumulationAt(
+        self: Self,
+        elementName: str,
+        environmentConditions: dict[str, float] | None = None,
+    ) -> float:
+        """Compute the accumulation rate of an element in the model.
+
+        This method should be implemented in derived classes.
+
+        :param str elementName: name of the element to compute the accumulation
+            rate of
+        :param dict[str, float] | None environmentConditions: optional
+            environmental conditions. Keys are environmental factor names,
+            values are the conditions.
+        :return float: accumulation rate of the element (m/My)
+        """
+        elementModel = self.getElementModel(elementName)
+        if elementModel is not None:
+            return elementModel.getElementAccumulationAt(environmentConditions)
+        return 0.0
+
+    def getTotalAccumulationAt(
+        self: Self,
+        environmentConditions: dict[str, float] | None = None,
+    ) -> float:
+        """Compute the total accumulation rate from element models.
+
+        :param dict[str, float] | None environmentConditions: optional
+            environmental conditions. Keys are environmental factor names,
+            values are the conditions.
+        :return float: total accumulation rate (m/My)
+        """
+        return sum(
+            elementModel.getElementAccumulationAt(environmentConditions)
+            for elementModel in self.elements.values()
+        )

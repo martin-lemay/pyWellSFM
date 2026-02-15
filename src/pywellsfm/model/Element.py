@@ -5,7 +5,7 @@ from typing import Any, Self
 
 
 class Element:
-    def __init__(self: Self, name: str, accumulationRate: float) -> None:
+    def __init__(self: Self, name: str) -> None:
         """Defines an Element which is a sediment that is accumulated.
 
         The element is accumulated (produced/deposited) at a rate that may be
@@ -13,10 +13,8 @@ class Element:
         used.
 
         :param str name: name of the element
-        :param float accumulationRate: Accumulation rate (m/My)
         """
         self.name: str = name
-        self.accumulationRate: float = accumulationRate
 
     def __repr__(self: Self) -> str:
         """Defines __repr__ method.

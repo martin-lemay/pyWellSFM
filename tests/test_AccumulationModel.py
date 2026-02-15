@@ -25,12 +25,13 @@ from pywellsfm.io import (  # noqa: E402
     saveAccumulationModelGaussianToCsv,
     saveAccumulationModelGaussianToJson,
 )
-from pywellsfm.model import (  # noqa: E402
-    AccumulationCurve,
-    AccumulationModelBase,
-    AccumulationModelEnvironmentOptimum,
-    AccumulationModelGaussian,
-    Element,
+from pywellsfm.io.curve_io import curveToJsonObj  # noqa: E402
+from pywellsfm.model import AccumulationCurve  # noqa: E402
+from pywellsfm.model.AccumulationModel import (  # noqa: E402
+    AccumulationModel,
+    AccumulationModelElementBase,
+    AccumulationModelElementEnvironmentOptimum,
+    AccumulationModelElementGaussian,
 )
 
 # accumulation curve for environment optimum model tests
@@ -52,92 +53,43 @@ temp_curve = AccumulationCurve(
 
 
 # ---------------------------------------
-# AccumulationModel.AccumulationModelBase
+# AccumulationModel.AccumulationModelElementBase
 # ---------------------------------------
 
 
 def test_base_class_cannot_be_instantiated() -> None:
     """Test that the base class cannot be instantiated (abstract)."""
     with pytest.raises(TypeError):
-        AccumulationModelBase("TestModel")  # type: ignore[abstract]
+        AccumulationModelElementBase("sand", 100.0)  # type: ignore[abstract]
 
 
-def test_base_addElement_adds_element() -> None:
-    """Test AccumulationModelBase.addElement adds an element to the set."""
-    model = AccumulationModelGaussian("ProbModel")
+def test_model_add_remove_get_element_model() -> None:
+    """Test AccumulationModel manages element models by name."""
+    model = AccumulationModel("Test")
     assert len(model.elements) == 0
 
-    element = Element("sand", 100.0)
-    model.addElement(element)
-
+    sand_model = AccumulationModelElementGaussian("sand", 100.0)
+    model.addElement("sand", sand_model)
     assert len(model.elements) == 1
-    assert element in model.elements
+    assert model.getElementModel("sand") is sand_model
 
-
-def test_base_addElement_deduplicates_by_name() -> None:
-    """Test addElement uses Element hashing/equality to avoid duplicates."""
-    model = AccumulationModelGaussian("ProbModel")
-    element1 = Element("sand", 100.0)
-    element2 = Element("sand", 999.0)  # Same name => equal to element1
-
-    model.addElement(element1)
-    model.addElement(element2)
-
-    assert len(model.elements) == 1
-    retrieved = model.getElement("sand")
-    assert retrieved is element1
-
-
-def test_base_getElement_returns_element_or_none() -> None:
-    """Test getElement returns the matching element or None when missing."""
-    model = AccumulationModelGaussian("ProbModel")
-    sand = Element("sand", 100.0)
-    model.addElement(sand)
-
-    assert model.getElement("sand") is sand
-    assert model.getElement("clay") is None
-
-
-def test_base_removeElement_removes_existing() -> None:
-    """Test removeElement removes by name and leaves other elements intact."""
-    model = AccumulationModelGaussian("ProbModel")
-    sand = Element("sand", 100.0)
-    clay = Element("clay", 50.0)
-    model.addElement(sand)
-    model.addElement(clay)
-
+    # Remove
     model.removeElement("sand")
-
-    assert model.getElement("sand") is None
-    assert model.getElement("clay") is clay
-    assert len(model.elements) == 1
+    assert model.getElementModel("sand") is None
 
 
-def test_base_removeElement_noop_when_missing() -> None:
-    """Test removeElement does nothing when the name is not found."""
-    model = AccumulationModelGaussian("ProbModel")
-    sand = Element("sand", 100.0)
-    model.addElement(sand)
-
-    model.removeElement("does-not-exist")
-
-    assert model.getElement("sand") is sand
-    assert len(model.elements) == 1
-
-
-# -------------------------------------------
-# AccumulationModel.AccumulationModelGaussian
-# -------------------------------------------
+# -------------------------------------------------
+# AccumulationModel.AccumulationModelElementGaussian
+# -------------------------------------------------
 
 
 def test_gaussian_model_without_env_conditions() -> None:
-    """Test AccumulationModelProbabilistic without environment conditions."""
-    model = AccumulationModelGaussian("ProbModel")
-    element = Element("sand", 100.0)
-    model.addElement(element)
+    """Gaussian element model works without environment conditions."""
+    model = AccumulationModel("ProbModel")
+    model.addElement("sand", AccumulationModelElementGaussian("sand", 100.0))
 
     # Should work without environmentConditions (it's optional for this model)
-    rate = model.getElementAccumulationAt(element)
+    rate = model.getElementAccumulationAt("sand")
 
     # Verify it returns a float
     assert isinstance(rate, float)
@@ -148,14 +100,13 @@ def test_gaussian_model_without_env_conditions() -> None:
 
 
 def test_gaussian_model_with_env_conditions() -> None:
-    """Test AccumulationModelProbabilistic with environment conditions."""
-    model = AccumulationModelGaussian("ProbModel")
-    element = Element("sand", 100.0)
-    model.addElement(element)
+    """Gaussian element model ignores environment conditions."""
+    model = AccumulationModel("ProbModel")
+    model.addElement("sand", AccumulationModelElementGaussian("sand", 100.0))
 
     # Should work with environmentConditions (they're just ignored)
     env_conditions = {"Bathymetry": 10.0, "Temperature": 25.0}
-    rate = model.getElementAccumulationAt(element, env_conditions)
+    rate = model.getElementAccumulationAt("sand", env_conditions)
 
     assert isinstance(rate, float)
     assert -400 < rate < 600
@@ -163,13 +114,12 @@ def test_gaussian_model_with_env_conditions() -> None:
 
 def test_gaussian_model_consistent_behavior() -> None:
     """Test that Gaussian model produces varying results (stochastic)."""
-    model = AccumulationModelGaussian("ProbModel")
-    element = Element("sand", 100.0)
-    model.addElement(element)
+    model = AccumulationModel("ProbModel")
+    model.addElement("sand", AccumulationModelElementGaussian("sand", 100.0))
 
     # Generate multiple samples
     np.random.seed(42)  # Set seed for reproducibility in test
-    samples = [model.getElementAccumulationAt(element) for _ in range(200)]
+    samples = [model.getElementAccumulationAt("sand") for _ in range(200)]
 
     # Check that we get variation (not all the same)
     assert len(set(samples)) > 50  # Should have many unique values
@@ -184,13 +134,15 @@ def test_gaussian_model_consistent_behavior() -> None:
 
 def test_gaussian_model_std_dev_factor() -> None:
     """Test that Gaussian model produces varying results (stochastic)."""
-    model = AccumulationModelGaussian("ProbModel")
-    element = Element("sand", 100.0)
-    model.addElement(element, std_dev_factor=5.0)  # 5x mean
+    model = AccumulationModel("ProbModel")
+    model.addElement(
+        "sand",
+        AccumulationModelElementGaussian("sand", 100.0, std_dev_factor=5.0),
+    )
 
     # Generate multiple samples
     np.random.seed(42)  # Set seed for reproducibility in test
-    samples = [model.getElementAccumulationAt(element) for _ in range(200)]
+    samples = [model.getElementAccumulationAt("sand") for _ in range(200)]
 
     # Check that we get variation (not all the same)
     assert len(set(samples)) > 50  # Should have many unique values
@@ -204,92 +156,91 @@ def test_gaussian_model_std_dev_factor() -> None:
     assert 450 < std_dev_sample < 550  # Roughly around 500 (5*mean)
 
 
-# -----------------------------------------------------
-# AccumulationModel.AccumulationModelEnvironmentOptimum
-# -----------------------------------------------------
+# ----------------------------------------------------------
+# AccumulationModel.AccumulationModelElementEnvironmentOptimum
+# ----------------------------------------------------------
 
 
 def test_environment_optimum_model_without_env_conditions_raises() -> None:
     """Test raises error without conditions."""
-    model = AccumulationModelEnvironmentOptimum("EnvModel")
-    element = Element("sand", 100.0)
-    model.addElement(element)
-
-    # Add a production curve
-    model.addAccumulationCurve(bathy_curve)
+    element_model = AccumulationModelElementEnvironmentOptimum(
+        "sand", 100.0, accumulationCurves={"Bathymetry": bathy_curve}
+    )
+    model = AccumulationModel("EnvModel", {"sand": element_model})
 
     # Should raise ValueError when environmentConditions is None
     with pytest.raises(ValueError) as exc_info:
-        model.getElementAccumulationAt(element)
+        model.getElementAccumulationAt("sand")
 
     error_msg = str(exc_info.value)
     assert "requires environmentConditions" in error_msg
-    assert "sand" in error_msg  # Element name should be in error
 
 
 def test_environmentOptimum_addAccumulationCurve_getAccumulationCurve() -> (
     None
 ):
     """Test adding curves stores them by x-axis name and can be retrieved."""
-    model = AccumulationModelEnvironmentOptimum("EnvModel")
+    element_model = AccumulationModelElementEnvironmentOptimum("sand", 10.0)
+    element_model.addAccumulationCurve(bathy_curve)
+    element_model.addAccumulationCurve(energy_curve)
 
-    model.addAccumulationCurve(bathy_curve)
-    model.addAccumulationCurve(energy_curve)
-
-    assert "Bathymetry" in model.prodCurves
-    assert "Energy" in model.prodCurves
-    assert model.getAccumulationCurve("Bathymetry") is bathy_curve
-    assert model.getAccumulationCurve("Energy") is energy_curve
+    assert "Bathymetry" in element_model.accumulationCurves
+    assert "Energy" in element_model.accumulationCurves
+    assert element_model.getAccumulationCurve("Bathymetry") is bathy_curve
+    assert element_model.getAccumulationCurve("Energy") is energy_curve
 
 
 def test_environmentOptimum_removeCurve_removes_and_isNoopWhenMissing() -> (
     None
 ):
     """Test removes by name and doesn't error if missing."""
-    model = AccumulationModelEnvironmentOptimum("EnvModel")
-    model.addAccumulationCurve(bathy_curve)
+    element_model = AccumulationModelElementEnvironmentOptimum("sand", 10.0)
+    element_model.addAccumulationCurve(bathy_curve)
 
-    model.removeAccumulationCurve("Bathymetry")
-    assert "Bathymetry" not in model.prodCurves
+    element_model.removeAccumulationCurve("Bathymetry")
+    assert "Bathymetry" not in element_model.accumulationCurves
 
     # no-op
-    model.removeAccumulationCurve("Bathymetry")
-    assert "Bathymetry" not in model.prodCurves
+    element_model.removeAccumulationCurve("Bathymetry")
+    assert "Bathymetry" not in element_model.accumulationCurves
 
 
 def test_environment_optimum_getAccumulationCurve_raises_for_missing() -> None:
     """Test getAccumulationCurve raises KeyError when curve is missing."""
-    model = AccumulationModelEnvironmentOptimum("EnvModel")
+    element_model = AccumulationModelElementEnvironmentOptimum("sand", 10.0)
     with pytest.raises(KeyError):
-        model.getAccumulationCurve("Bathymetry")
+        element_model.accumulationCurves["Bathymetry"]
 
 
 def test_environmentOptimum_getElementAccumulationAt_matchesCurveProduct() -> (
     None
 ):
     """Migrated behavior test: accumulation equals rate * product(coeffs)."""
-    model = AccumulationModelEnvironmentOptimum("EnvModel")
-    element = Element("Sand", 10.0)
-    model.addElement(element)
-
-    model.addAccumulationCurve(bathy_curve)
-    model.addAccumulationCurve(energy_curve)
+    element_model = AccumulationModelElementEnvironmentOptimum(
+        "Sand",
+        10.0,
+        accumulationCurves={
+            "Bathymetry": bathy_curve,
+            "Energy": energy_curve,
+        },
+    )
+    model = AccumulationModel("EnvModel", {"Sand": element_model})
 
     conditions = {"Bathymetry": 5.0, "Energy": 0.9}
-    rate = model.getElementAccumulationAt(element, conditions)
+    rate = model.getElementAccumulationAt("Sand", conditions)
     assert rate == pytest.approx(10.0 * 0.5 * 0.9, rel=1e-12)
 
 
 def test_environment_optimum_model_with_env_conditions() -> None:
     """Test AccumulationModelEnvironmentOptimum with environment conditions."""
-    model = AccumulationModelEnvironmentOptimum("EnvModel")
-    element = Element("sand", 100.0)
-    model.addElement(element)
-    model.addAccumulationCurve(bathy_curve)
+    element_model = AccumulationModelElementEnvironmentOptimum(
+        "sand", 100.0, accumulationCurves={"Bathymetry": bathy_curve}
+    )
+    model = AccumulationModel("EnvModel", {"sand": element_model})
 
     # Test at optimum bathymetry
     env_conditions = {"Bathymetry": 10.0}
-    rate = model.getElementAccumulationAt(element, env_conditions)
+    rate = model.getElementAccumulationAt("sand", env_conditions)
 
     # At optimum (coeff=1.0), rate should equal element.accumulationRate
     assert rate == pytest.approx(100.0, rel=1e-6)
@@ -297,17 +248,19 @@ def test_environment_optimum_model_with_env_conditions() -> None:
 
 def test_environment_optimum_model_multiple_factors() -> None:
     """Test with multiple environmental factors."""
-    model = AccumulationModelEnvironmentOptimum("EnvModel")
-    element = Element("sand", 100.0)
-    model.addElement(element)
-
-    # Add multiple production curves
-    model.addAccumulationCurve(bathy_curve)
-    model.addAccumulationCurve(temp_curve)
+    element_model = AccumulationModelElementEnvironmentOptimum(
+        "sand",
+        100.0,
+        accumulationCurves={
+            "Bathymetry": bathy_curve,
+            "Temperature": temp_curve,
+        },
+    )
+    model = AccumulationModel("EnvModel", {"sand": element_model})
 
     # Test with both factors at optimum
     env_conditions = {"Bathymetry": 10.0, "Temperature": 25.0}
-    rate = model.getElementAccumulationAt(element, env_conditions)
+    rate = model.getElementAccumulationAt("sand", env_conditions)
 
     # Both coefficients = 1.0, so rate = 100.0 * 1.0 * 1.0
     assert rate == pytest.approx(100.0, rel=1e-6)
@@ -317,7 +270,7 @@ def test_environment_optimum_model_multiple_factors() -> None:
         "Bathymetry": 10.0,
         "Temperature": 12.5,
     }  # temp coeff = 0.5
-    rate = model.getElementAccumulationAt(element, env_conditions)
+    rate = model.getElementAccumulationAt("sand", env_conditions)
 
     # Bathy coeff = 1.0, temp coeff = 0.5, so rate = 100.0 * 1.0 * 0.5 = 50.0
     assert rate == pytest.approx(50.0, rel=1e-6)
@@ -325,12 +278,10 @@ def test_environment_optimum_model_multiple_factors() -> None:
 
 def test_environment_optimum_model_ignores_unknown_factors() -> None:
     """Test that unknown environmental factors are ignored."""
-    model = AccumulationModelEnvironmentOptimum("EnvModel")
-    element = Element("sand", 100.0)
-    model.addElement(element)
-
-    # Add only bathymetry curve
-    model.addAccumulationCurve(bathy_curve)
+    element_model = AccumulationModelElementEnvironmentOptimum(
+        "sand", 100.0, accumulationCurves={"Bathymetry": bathy_curve}
+    )
+    model = AccumulationModel("EnvModel", {"sand": element_model})
 
     # Provide extra factors not in model
     env_conditions = {
@@ -338,30 +289,36 @@ def test_environment_optimum_model_ignores_unknown_factors() -> None:
         "Temperature": 25.0,  # Not defined in model
         "Salinity": 35.0,  # Not defined in model
     }
-    rate = model.getElementAccumulationAt(element, env_conditions)
+    rate = model.getElementAccumulationAt("sand", env_conditions)
 
     # Should only use Bathymetry, ignore others
     assert rate == pytest.approx(100.0, rel=1e-6)
 
 
 def test_unified_api_consistency() -> None:
-    """Test that both models can be called with the same unified API."""
-    # Create both model types
-    prob_model = AccumulationModelGaussian("ProbModel")
-    env_model = AccumulationModelEnvironmentOptimum("EnvModel")
-
-    # Setup env model
-    env_model.addAccumulationCurve(bathy_curve)
-
-    element = Element("sand", 100.0)
-    env_model.addElement(element)
-    prob_model.addElement(element)
+    """All element models share the same call signature."""
+    prob_model = AccumulationModel(
+        "ProbModel",
+        {
+            "sand": AccumulationModelElementGaussian("sand", 100.0),
+        },
+    )
+    env_model = AccumulationModel(
+        "EnvModel",
+        {
+            "sand": AccumulationModelElementEnvironmentOptimum(
+                "sand",
+                100.0,
+                accumulationCurves={"Bathymetry": bathy_curve},
+            ),
+        },
+    )
 
     env_conditions = {"Bathymetry": 10.0}
 
     # Both should accept this calling convention
-    prob_rate = prob_model.getElementAccumulationAt(element, env_conditions)
-    env_rate = env_model.getElementAccumulationAt(element, env_conditions)
+    prob_rate = prob_model.getElementAccumulationAt("sand", env_conditions)
+    env_rate = env_model.getElementAccumulationAt("sand", env_conditions)
 
     assert isinstance(prob_rate, float)
     assert isinstance(env_rate, float)
@@ -372,24 +329,29 @@ def test_generic_client_code_pattern() -> None:
     """Test a realistic client code pattern using polymorphism."""
 
     def compute_total_accumulation(
-        model: AccumulationModelBase,
+        model: AccumulationModel,
         env_conditions: dict[str, float] | None = None,
     ) -> dict[str, float]:
         """Example client function that works with any accumulation model."""
         results: dict[str, float] = {}
-        for element in model.elements:
+        for element_name in model.elements:
             try:
-                results[element.name] = model.getElementAccumulationAt(
-                    element, env_conditions
+                results[element_name] = model.getElementAccumulationAt(
+                    element_name, env_conditions
                 )
             except ValueError:
                 # Handle models that require env conditions
-                results[element.name] = np.nan
+                results[element_name] = np.nan
         return results
 
     # Test with probabilistic model (doesn't need env conditions)
-    elements = [Element("sand", 100.0), Element("clay", 50.0)]
-    prob_model = AccumulationModelGaussian("ProbModel", set(elements))
+    prob_model = AccumulationModel(
+        "ProbModel",
+        {
+            "sand": AccumulationModelElementGaussian("sand", 100.0),
+            "clay": AccumulationModelElementGaussian("clay", 50.0),
+        },
+    )
 
     np.random.seed(42)
     results1 = compute_total_accumulation(prob_model)
@@ -399,8 +361,21 @@ def test_generic_client_code_pattern() -> None:
     assert isinstance(results1["clay"], float)
 
     # Test with environment optimum model (requires env conditions)
-    env_model = AccumulationModelEnvironmentOptimum("EnvModel", set(elements))
-    env_model.addAccumulationCurve(bathy_curve)
+    env_model = AccumulationModel(
+        "EnvModel",
+        {
+            "sand": AccumulationModelElementEnvironmentOptimum(
+                "sand",
+                100.0,
+                accumulationCurves={"Bathymetry": bathy_curve},
+            ),
+            "clay": AccumulationModelElementEnvironmentOptimum(
+                "clay",
+                50.0,
+                accumulationCurves={"Bathymetry": bathy_curve},
+            ),
+        },
+    )
 
     # Without env conditions - should get nan
     results2 = compute_total_accumulation(env_model)
@@ -437,27 +412,35 @@ def _write_csv(
 
 
 def _gaussian_signature(
-    model: AccumulationModelGaussian,
+    model: AccumulationModel,
 ) -> dict[str, tuple[float, float]]:
     """Canonical signature used by tests to compare Gaussian models."""
     out: dict[str, tuple[float, float]] = {}
-    for element in model.elements:
-        factor = model.std_dev_factors.get(element.name, model.defaultStdDev)
-        out[element.name] = (float(element.accumulationRate), float(factor))
+    for element_name, element_model in model.elements.items():
+        assert isinstance(element_model, AccumulationModelElementGaussian)
+        out[element_name] = (
+            float(element_model.accumulationRate),
+            float(element_model.std_dev_factor),
+        )
     return dict(sorted(out.items()))
 
 
 def _envopt_signature(
-    model: AccumulationModelEnvironmentOptimum,
+    model: AccumulationModel,
 ) -> tuple[dict[str, float], dict[str, tuple[list[float], list[float]]]]:
     """Canonical signature to compare EnvironmentOptimum models."""
-    elements = {e.name: float(e.accumulationRate) for e in model.elements}
+    elements: dict[str, float] = {}
     curves: dict[str, tuple[list[float], list[float]]] = {}
-    for name, curve in model.prodCurves.items():
-        curves[name] = (
-            [float(v) for v in curve._abscissa],
-            [float(v) for v in curve._ordinate],
+    for element_name, element_model in model.elements.items():
+        assert isinstance(
+            element_model, AccumulationModelElementEnvironmentOptimum
         )
+        elements[element_name] = float(element_model.accumulationRate)
+        for curve_name, curve in element_model.accumulationCurves.items():
+            curves[curve_name] = (
+                [float(v) for v in curve._abscissa],
+                [float(v) for v in curve._ordinate],
+            )
     return dict(sorted(elements.items())), dict(sorted(curves.items()))
 
 
@@ -488,7 +471,7 @@ def test_loadAccumulationModelGaussianFromCsv_happy_path(
     csv_path = _write_csv(
         tmp_path,
         [
-            ["name", "mean", "stddevFactor"],
+            ["name", "accumulationRate", "stddevFactor"],
             ["sand", 100.0, 0.2],
             ["shale", 50.0, 0.1],
         ],
@@ -497,7 +480,7 @@ def test_loadAccumulationModelGaussianFromCsv_happy_path(
 
     model = loadAccumulationModelGaussianFromCsv(csv_path)
 
-    assert isinstance(model, AccumulationModelGaussian)
+    assert isinstance(model, AccumulationModel)
     sig = _gaussian_signature(model)
     assert sig == {"sand": (100.0, 0.2), "shale": (50.0, 0.1)}
 
@@ -517,11 +500,12 @@ def test_saveAccumulationModelGaussianToCsv_round_trip(tmp_path: Path) -> None:
     - After export + load, the signature (element rate + stddev factor) is
       identical.
     """
-    elements = {Element("sand", 100.0), Element("shale", 50.0)}
-    model = AccumulationModelGaussian(
-        name="MyGaussian",
-        elements=elements,
-        std_dev_factors={"sand": 0.25, "shale": 0.1},
+    model = AccumulationModel(
+        "MyGaussian",
+        {
+            "sand": AccumulationModelElementGaussian("sand", 100.0, 0.25),
+            "shale": AccumulationModelElementGaussian("shale", 50.0, 0.1),
+        },
     )
 
     out_csv = tmp_path / "gaussian_out.csv"
@@ -544,8 +528,8 @@ def test_loadAccumulationModelGaussian_happy_path(tmp_path: Path) -> None:
       payload and builds the correct model.
 
     Input data:
-    - A JSON file matching `AccumulationModelSchema.json` with
-      modelType="Gaussian".
+        - A JSON file matching `AccumulationModelSchema.json` with per-element
+            modelType="Gaussian".
 
     Expected outputs:
     - Returned model has the expected name, elements, and stddev factors.
@@ -555,24 +539,27 @@ def test_loadAccumulationModelGaussian_happy_path(tmp_path: Path) -> None:
         "version": "1.0",
         "accumulationModel": {
             "name": "G",
-            "modelType": "Gaussian",
-            "elements": [
-                {
-                    "name": "sand",
+            "elements": {
+                "sand": {
                     "accumulationRate": 100.0,
-                    "stddevFactor": 0.2,
+                    "model": {
+                        "modelType": "Gaussian",
+                        "stddevFactor": 0.2,
+                    },
                 },
-                {
-                    "name": "shale",
+                "shale": {
                     "accumulationRate": 50.0,
-                    "stddevFactor": 0.1,
+                    "model": {
+                        "modelType": "Gaussian",
+                        "stddevFactor": 0.1,
+                    },
                 },
-            ],
+            },
         },
     }
 
     json_path = _write_json(tmp_path, payload, "gaussian.json")
-    model = cast(AccumulationModelGaussian, loadAccumulationModel(json_path))
+    model = cast(AccumulationModel, loadAccumulationModel(json_path))
 
     assert model.name == "G"
     assert _gaussian_signature(model) == {
@@ -595,19 +582,18 @@ def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
     Expected outputs:
     - After export + load, the signature is identical.
     """
-    elements = {Element("sand", 100.0), Element("shale", 50.0)}
-    model = AccumulationModelGaussian(
-        name="MyGaussian",
-        elements=elements,
-        std_dev_factors={"sand": 0.25, "shale": 0.1},
+    model = AccumulationModel(
+        "MyGaussian",
+        {
+            "sand": AccumulationModelElementGaussian("sand", 100.0, 0.25),
+            "shale": AccumulationModelElementGaussian("shale", 50.0, 0.1),
+        },
     )
 
     out_json = tmp_path / "gaussian_out.json"
     saveAccumulationModelGaussianToJson(model, str(out_json))
 
-    reloaded = cast(
-        AccumulationModelGaussian, loadAccumulationModel(str(out_json))
-    )
+    reloaded = cast(AccumulationModel, loadAccumulationModel(str(out_json)))
     assert reloaded.name == "MyGaussian"
     assert _gaussian_signature(reloaded) == _gaussian_signature(model)
 
@@ -622,8 +608,7 @@ def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
                 "version": "1.0",
                 "accumulationModel": {
                     "name": "G",
-                    "modelType": "Gaussian",
-                    "elements": [],
+                    "elements": {},
                 },
             },
             "Invalid accumulation model format",
@@ -634,8 +619,7 @@ def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
                 "version": "x",
                 "accumulationModel": {
                     "name": "G",
-                    "modelType": "Gaussian",
-                    "elements": [],
+                    "elements": {},
                 },
             },
             "Invalid accumulation model version",
@@ -654,11 +638,10 @@ def test_save_AccumulationModel_round_trip(tmp_path: Path) -> None:
                 "version": "1.0",
                 "accumulationModel": {
                     "name": "G",
-                    "modelType": "EnvironmentOptimum",
-                    "elements": [],
+                    "elements": {},
                 },
             },
-            "must be a non-empty list",
+            "must be a non-empty object",
         ),
     ],
 )
@@ -697,7 +680,7 @@ def test_loadAccumulationModel_rejects_invalid_payloads(
 def test_loadAccumulationModelEnvironmentOptimumFromJson_inline_curves(
     tmp_path: Path,
 ) -> None:
-    """Test loading an EnvironmentOptimum model with inline TabulatedFunction.
+    """Test loading an EnvironmentOptimum element model with inline curves.
 
     Objective:
     - Ensure `loadAccumulationModelEnvironmentOptimumFromJson` supports inline
@@ -712,113 +695,114 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_inline_curves(
     - prodCurves contains both curves keyed by abscissaName.
     - Curve interpolation behaves as expected at an intermediate point.
     """
-    bathy_curve = {
-        "format": "pyWellSFM.TabulatedFunctionData",
-        "version": "1.0",
-        "abscissaName": "Bathymetry",
-        "ordinateName": "ReductionCoeff",
-        "values": {"xValues": [0.0, 10.0], "yValues": [0.0, 1.0]},
-    }
-    energy_curve = {
-        "format": "pyWellSFM.TabulatedFunctionData",
-        "version": "1.0",
-        "abscissaName": "Energy",
-        "ordinateName": "ReductionCoeff",
-        "values": {"xValues": [0.0, 1.0], "yValues": [0.0, 1.0]},
-    }
+    bathy_curve_obj = curveToJsonObj(
+        AccumulationCurve(
+            "Bathymetry",
+            np.array([0.0, 10.0]),
+            np.array([0.0, 1.0]),
+        ),
+        y_axis_name="ReductionCoeff",
+        x_axis_name_default="Bathymetry",
+    )
+    energy_curve_obj = curveToJsonObj(
+        AccumulationCurve(
+            "Energy",
+            np.array([0.0, 1.0]),
+            np.array([0.0, 1.0]),
+        ),
+        y_axis_name="ReductionCoeff",
+        x_axis_name_default="Energy",
+    )
 
     payload: dict[str, Any] = {
         "format": "pyWellSFM.AccumulationModelData",
         "version": "1.0",
         "accumulationModel": {
             "name": "Env",
-            "modelType": "EnvironmentOptimum",
-            "elements": [
-                {
-                    "name": "sand",
+            "elements": {
+                "sand": {
                     "accumulationRate": 10.0,
-                    "accumulationCurves": [bathy_curve, energy_curve],
+                    "model": {
+                        "modelType": "EnvironmentOptimum",
+                        "accumulationCurves": [
+                            bathy_curve_obj,
+                            energy_curve_obj,
+                        ],
+                    },
                 }
-            ],
+            },
         },
     }
 
     json_path = _write_json(tmp_path, payload, "env_inline.json")
-    model = model = cast(
-        AccumulationModelEnvironmentOptimum,
-        loadAccumulationModel(json_path),
-    )
+    model = cast(AccumulationModel, loadAccumulationModel(json_path))
 
     assert model.name == "Env"
-    assert model.getElement("sand") is not None
-    assert "Bathymetry" in model.prodCurves
-    assert "Energy" in model.prodCurves
+    sand_model = model.getElementModel("sand")
+    assert isinstance(sand_model, AccumulationModelElementEnvironmentOptimum)
+    assert "Bathymetry" in sand_model.accumulationCurves
+    assert "Energy" in sand_model.accumulationCurves
 
     # Linear curve between 0 and 10 -> at 5 = 0.5
-    assert float(model.prodCurves["Bathymetry"](5.0)) == pytest.approx(0.5)
+    assert sand_model.getElementAccumulationAt(
+        {"Bathymetry": 5.0}
+    ) == pytest.approx(10.0 * 0.5)
 
 
-def test_loadAccuModelEnvironmentOptimumFromJson_external_curve_files(
+def test_loadAccumulationModelEnvironmentOptimumFromJson_url_curves(
     tmp_path: Path,
 ) -> None:
-    """Test loading an EnvironmentOptimum model referencing external files.
+    """Test loading an EnvironmentOptimum element model with curves by url.
 
     Objective:
-    - Ensure `loadAccumulationModelEnvironmentOptimumFromJson` supports
-      `accumulationCurves` entries that are paths to external JSON and CSV
-      files.
-    - Ensure relative paths resolve relative to the model JSON directory.
-
-    Input data:
-    - Curve1: JSON TabulatedFunction file for Bathymetry.
-    - Curve2: CSV numeric x,y file for Energy (name inferred from filename
-      stem).
-    - Model JSON referencing both with relative paths.
+    - Ensure `accumulationCurves` supports schema refs: {"url": "curve.json"}
+      resolved relative to the accumulation model JSON file location.
 
     Expected outputs:
-    - Returned model has both curves loaded in prodCurves.
-    - Bathymetry curve name comes from the JSON field abscissaName.
-    - Energy curve name comes from CSV filename stem.
+    - Returned model contains the curve loaded from file.
     """
-    bathy_payload = {
-        "format": "pyWellSFM.TabulatedFunctionData",
-        "version": "1.0",
-        "abscissaName": "Bathymetry",
-        "ordinateName": "ReductionCoeff",
-        "values": {"xValues": [0.0, 10.0], "yValues": [0.0, 1.0]},
-    }
-    bathy_json = tmp_path / "bathy.json"
-    bathy_json.write_text(
-        json.dumps(bathy_payload, indent=2), encoding="utf-8"
+    bathy_curve_obj = curveToJsonObj(
+        AccumulationCurve(
+            "Bathymetry",
+            np.array([0.0, 10.0]),
+            np.array([0.0, 1.0]),
+        ),
+        y_axis_name="ReductionCoeff",
+        x_axis_name_default="Bathymetry",
+    )
+    curve_path = tmp_path / "bathy_curve.json"
+    curve_path.write_text(
+        json.dumps(bathy_curve_obj, indent=2), encoding="utf-8"
     )
 
-    energy_csv = tmp_path / "Energy.csv"
-    energy_csv.write_text("0,0\n1,1\n", encoding="utf-8")
-
-    model_payload: dict[str, Any] = {
+    payload: dict[str, Any] = {
         "format": "pyWellSFM.AccumulationModelData",
         "version": "1.0",
         "accumulationModel": {
             "name": "Env",
-            "modelType": "EnvironmentOptimum",
-            "elements": [
-                {
-                    "name": "sand",
+            "elements": {
+                "sand": {
                     "accumulationRate": 10.0,
-                    "accumulationCurves": ["bathy.json", "Energy.csv"],
+                    "model": {
+                        "modelType": "EnvironmentOptimum",
+                        "accumulationCurves": [
+                            {"url": "bathy_curve.json"},
+                        ],
+                    },
                 }
-            ],
+            },
         },
     }
 
-    json_path = _write_json(tmp_path, model_payload, "env_external.json")
-    model = cast(
-        AccumulationModelEnvironmentOptimum,
-        loadAccumulationModel(json_path),
-    )
+    json_path = _write_json(tmp_path, payload, "env_url.json")
+    model = cast(AccumulationModel, loadAccumulationModel(json_path))
 
-    assert "Bathymetry" in model.prodCurves
-    assert "Energy" in model.prodCurves
+    sand_model = model.getElementModel("sand")
+    assert isinstance(sand_model, AccumulationModelElementEnvironmentOptimum)
+    assert "Bathymetry" in sand_model.accumulationCurves
+    assert sand_model.getElementAccumulationAt(
+        {"Bathymetry": 5.0}
+    ) == pytest.approx(10.0 * 0.5)
 
 
 def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
@@ -837,17 +821,42 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
     Expected outputs:
     - Loading the exported JSON yields same element rates and curve tabulation.
     """
-    model = AccumulationModelEnvironmentOptimum("Env")
-    model.addElement(Element("sand", 10.0))
-    model.addElement(Element("shale", 2.5))
-
-    model.addAccumulationCurve(
-        AccumulationCurve(
-            "Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0])
-        )
-    )
-    model.addAccumulationCurve(
-        AccumulationCurve("Energy", np.array([0.0, 1.0]), np.array([0.0, 1.0]))
+    model = AccumulationModel(
+        "Env",
+        {
+            "sand": AccumulationModelElementEnvironmentOptimum(
+                "sand",
+                10.0,
+                accumulationCurves={
+                    "Bathymetry": AccumulationCurve(
+                        "Bathymetry",
+                        np.array([0.0, 10.0]),
+                        np.array([0.0, 1.0]),
+                    ),
+                    "Energy": AccumulationCurve(
+                        "Energy",
+                        np.array([0.0, 1.0]),
+                        np.array([0.0, 1.0]),
+                    ),
+                },
+            ),
+            "shale": AccumulationModelElementEnvironmentOptimum(
+                "shale",
+                2.5,
+                accumulationCurves={
+                    "Bathymetry": AccumulationCurve(
+                        "Bathymetry",
+                        np.array([0.0, 10.0]),
+                        np.array([0.0, 1.0]),
+                    ),
+                    "Energy": AccumulationCurve(
+                        "Energy",
+                        np.array([0.0, 1.0]),
+                        np.array([0.0, 1.0]),
+                    ),
+                },
+            ),
+        },
     )
 
     out_json = tmp_path / "env_inline_out.json"
@@ -856,145 +865,33 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
     )
 
     reloaded = cast(
-        AccumulationModelEnvironmentOptimum,
+        AccumulationModel,
         loadAccumulationModel(str(out_json)),
     )
     assert _envopt_signature(reloaded) == _envopt_signature(model)
 
 
-def test_saveAccumulationModelEnvironmentOptimumToJson_external_json_roundTrip(
+def test_saveAccumulationModelEnvironmentOptimumToJson_external_raises(
     tmp_path: Path,
 ) -> None:
-    """Test exporting an EnvironmentOptimum model with external JSON curves.
-
-    Objective:
-    - Verify
-      `saveAccumulationModelEnvironmentOptimumToJson(curves_mode='external',
-      curves_format='json')` produces multiple files (model + curve files) that
-      load back to an equivalent model.
-
-    Input data:
-    - An EnvironmentOptimum model with 1 element and 2 curves.
-
-    Expected outputs:
-    - The curve files exist on disk.
-    - Loading the exported model JSON yields the same element/curve signature.
-    """
-    model = AccumulationModelEnvironmentOptimum("Env")
-    model.addElement(Element("sand", 10.0))
-    model.addAccumulationCurve(
-        AccumulationCurve(
-            "Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0])
-        )
-    )
-    model.addAccumulationCurve(
-        AccumulationCurve("Energy", np.array([0.0, 1.0]), np.array([0.0, 1.0]))
-    )
-
-    curves_dir = tmp_path / "curves"
-    out_json = tmp_path / "env_external_out.json"
-    saveAccumulationModelEnvironmentOptimumToJson(
-        model,
-        str(out_json),
-        curves_mode="external",
-        curves_dir=str(curves_dir),
-        curves_format="json",
-    )
-
-    assert (curves_dir / "Bathymetry.json").exists()
-    assert (curves_dir / "Energy.json").exists()
-
-    reloaded = cast(
-        AccumulationModelEnvironmentOptimum,
-        loadAccumulationModel(str(out_json)),
-    )
-    assert _envopt_signature(reloaded) == _envopt_signature(model)
-
-
-def test_saveAccumulationModelEnvironmentOptimumToJson_external_csv_round_trip(
-    tmp_path: Path,
-) -> None:
-    """Test exporting an EnvironmentOptimum model with external CSV curves.
-
-    Objective:
-    - Verify
-      `saveAccumulationModelEnvironmentOptimumToJson(curves_mode='external',
-      curves_format='csv')` produces multiple files (model + curve CSV files)
-      that load back to an equivalent model.
-
-    Input data:
-    - An EnvironmentOptimum model with 1 element and 2 curves.
-
-    Expected outputs:
-    - The curve CSV files exist on disk.
-    - Loading the exported model JSON yields the same element/curve signature.
-    """
-    model = AccumulationModelEnvironmentOptimum("Env")
-    model.addElement(Element("sand", 10.0))
-    model.addAccumulationCurve(
-        AccumulationCurve(
-            "Bathymetry", np.array([0.0, 10.0]), np.array([0.0, 1.0])
-        )
-    )
-    model.addAccumulationCurve(
-        AccumulationCurve("Energy", np.array([0.0, 1.0]), np.array([0.0, 1.0]))
-    )
-
-    curves_dir = tmp_path / "curves"
-    out_json = tmp_path / "env_external_out.json"
-    saveAccumulationModelEnvironmentOptimumToJson(
-        model,
-        str(out_json),
-        curves_mode="external",
-        curves_dir=str(curves_dir),
-        curves_format="csv",
-    )
-
-    assert (curves_dir / "Bathymetry.csv").exists()
-    assert (curves_dir / "Energy.csv").exists()
-
-    reloaded = cast(
-        AccumulationModelEnvironmentOptimum,
-        loadAccumulationModel(str(out_json)),
-    )
-    assert _envopt_signature(reloaded) == _envopt_signature(model)
-
-
-def test_loadAccumulationModel_missing_curve_file_raises(
-    tmp_path: Path,
-) -> None:
-    """Test JSON loader errors when a referenced curve file is missing.
-
-    Objective:
-    - Ensure `loadAccumulationModel` fails fast when a
-      referenced curve file does not exist.
-
-    Input data:
-    - A model JSON referencing a non-existent curve file "Missing.json".
-
-    Expected outputs:
-    - `FileNotFoundError` is raised.
-    """
-    payload: dict[str, Any] = {
-        "format": "pyWellSFM.AccumulationModelData",
-        "version": "1.0",
-        "accumulationModel": {
-            "name": "Env",
-            "modelType": "EnvironmentOptimum",
-            "elements": [
-                {
-                    "name": "sand",
-                    "accumulationRate": 10.0,
-                    "accumulationCurves": ["Missing.json"],
-                }
-            ],
+    """External curve mode is not supported by the current schema."""
+    model = AccumulationModel(
+        "Env",
+        {
+            "sand": AccumulationModelElementEnvironmentOptimum(
+                "sand",
+                10.0,
+                accumulationCurves={"Bathymetry": bathy_curve},
+            )
         },
-    }
-
-    model_json = _write_json(tmp_path, payload, "env_missing_curve.json")
-
-    with pytest.raises(FileNotFoundError):
-        loadAccumulationModel(model_json)
+    )
+    out_json = tmp_path / "env_external_out.json"
+    with pytest.raises(ValueError):
+        saveAccumulationModelEnvironmentOptimumToJson(
+            model,
+            str(out_json),
+            curves_mode="external",
+        )
 
 
 if __name__ == "__main__":

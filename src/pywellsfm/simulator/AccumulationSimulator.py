@@ -5,7 +5,7 @@ from typing import Self
 
 import numpy as np
 
-from pywellsfm.model.AccumulationModel import AccumulationModelBase
+from pywellsfm.model.AccumulationModel import AccumulationModel
 
 
 class AccumulationSimulator:
@@ -13,14 +13,14 @@ class AccumulationSimulator:
         self: Self,
     ) -> None:
         """Simulate accumulation in wells based on an accumulation model."""
-        self.accumulationModel: AccumulationModelBase | None = None
+        self.accumulationModel: AccumulationModel | None = None
 
     def setAccumulationModel(
-        self: Self, accumulationModel: AccumulationModelBase
+        self: Self, accumulationModel: AccumulationModel
     ) -> None:
         """Set the accumulation model used by the simulator.
 
-        :param AccumulationModelBase accumulationModel: accumulation model
+        :param AccumulationModel accumulationModel: accumulation model
             to set.
         """
         self.accumulationModel = accumulationModel
@@ -46,16 +46,16 @@ class AccumulationSimulator:
             raise ValueError("Accumulation model is not set in the simulator.")
 
         accumulationRates: dict[str, float] = {}
-        for element in self.accumulationModel.elements:
+        for elementName in self.accumulationModel.elements:
             try:
-                accumulationRates[element.name] = (
+                accumulationRates[elementName] = (
                     self.accumulationModel.getElementAccumulationAt(
-                        element, environmentConditions
+                        elementName, environmentConditions
                     )
                 )
             except ValueError:
                 # Handle models that require env conditions
-                accumulationRates[element.name] = np.nan
+                accumulationRates[elementName] = np.nan
 
         return accumulationRates
 

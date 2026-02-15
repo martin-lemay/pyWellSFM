@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/AccumulationModelSchema.json",
     "title": "Input Accumulation Model Data",
-    "description": "Defines the input data to create an accumulation model.",
+    "description": "Defines the input data to create an accumulation model.\n\nThis schema matches the AccumulationModel class in src/pywellsfm/model/AccumulationModel.py:\n- accumulationModel.name: model name\n- accumulationModel.elements: dictionary mapping element name -> element accumulation model\n\nEach element accumulation model is either:\n- AccumulationModelElementGaussian\n- AccumulationModelElementEnvironmentOptimum",
     "type": "object",
     "properties": {
         "format": {
@@ -19,133 +19,103 @@
             "properties": {
                 "name": {
                     "description": "Name of the accumulation model.",
-                    "type": "string"
-                },
-                "modelType": {
-                    "description": "Type of accumulation model.",
                     "type": "string",
-                    "enum": [
-                        "Gaussian",
-                        "EnvironmentOptimum"
-                    ]
+                    "minLength": 1
                 },
                 "elements": {
-                    "description": "Elements part of the accumulation model.",
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "description": "Parameters defining the accumulation model for the element.",
-                        "oneOf": [
-                            {
-                                "$ref": "#/$defs/ElementGaussianParameters"
-                            },
-                            {
-                                "$ref": "#/$defs/ElementEnvironmentOptimumParameters"
-                            }
-                        ]
+                    "description": "Mapping from element name to its accumulation model.",
+                    "type": "object",
+                    "minProperties": 1,
+                    "propertyNames": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "additionalProperties": {
+                        "$ref": "#/$defs/ElementAccumulationModel"
                     }
                 }
             },
-            "required": [
-                "name",
-                "modelType",
-                "elements"
-            ],
+            "required": ["name", "elements"],
             "additionalProperties": false
         }
     },
-    "required": [
-        "format",
-        "version",
-        "accumulationModel"
-    ],
+    "required": ["format", "version", "accumulationModel"],
     "additionalProperties": false,
     "$defs": {
-        "Element": {
+        "ElementAccumulationModel": {
+            "description": "Element accumulation model (AccumulationModelElementBase).",
             "type": "object",
             "properties": {
-                "name": {
-                    "description": "Name of the element.",
-                    "type": "string"
-                },
                 "accumulationRate": {
-                    "description": "Accumulation rate of the element.",
+                    "description": "Reference accumulation rate of the element (m/My).",
                     "type": "number"
+                },
+                "model": {
+                    "description": "Element accumulation model definition. The model type is defined by the 'modelType' property.",
+                    "type": "object",
+                    "oneOf": [
+                        { "$ref": "#/$defs/ElementGaussianModel" },
+                        { "$ref": "#/$defs/ElementEnvironmentOptimumModel" }
+                    ]
                 }
             },
-            "required": [
-                "name",
-                "accumulationRate"
-            ],
+            "required": ["accumulationRate", "model"],
             "additionalProperties": false
         },
-        "AccumulationModelType": {
-            "type": "string",
-            "enum": [
-                "Gaussian",
-                "EnvironmentOptimum"
-            ]
-        },
-        "ElementGaussianParameters": {
+        "ElementGaussianModel": {
+            "description": "Gaussian element accumulation model (AccumulationModelElementGaussian).",
             "type": "object",
             "properties": {
-                "name": {
-                    "description": "Name of the element.",
-                    "type": "string"
-                },
-                "accumulationRate": {
-                    "description": "Mean accumulation rate of the element.",
-                    "type": "number"
+                "modelType": {
+                    "description": "Discriminator for the element model type.",
+                    "const": "Gaussian"
                 },
                 "stddevFactor": {
-                    "description": "Standard deviation factor of the Gaussian distribution.",
+                    "description": "Standard deviation factor (stddev = stddevFactor * accumulationRate).",
                     "type": "number"
                 }
             },
-            "required": [
-                "name",
-                "accumulationRate",
-                "stddevFactor"
-            ],
+            "required": ["modelType", "stddevFactor"],
             "additionalProperties": false
         },
-        "ElementEnvironmentOptimumParameters": {
+        "ElementEnvironmentOptimumModel": {
+            "description": "Environment optimum element accumulation model (AccumulationModelElementEnvironmentOptimum).",
             "type": "object",
             "properties": {
-                "name": {
-                    "description": "Name of the element.",
-                    "type": "string"
-                },
-                "accumulationRate": {
-                    "description": "Optimal accumulation rate of the element.",
-                    "type": "number"
+                "modelType": {
+                    "description": "Discriminator for the element model type.",
+                    "const": "EnvironmentOptimum"
                 },
                 "accumulationCurves": {
-                    "description": "List of accumulation curves defining the environment optimum model for the element.",
+                    "description": "List of accumulation reduction curves (AccumulationCurve). The environmental factor name is taken from each curve's xAxisName.",
                     "type": "array",
                     "minItems": 1,
                     "items": {
-                        "description": "Either an inline TabulatedFunction object, or a path/URI to a JSON or csv file containing a TabulatedFunction object.",
                         "oneOf": [
                             {
-                                "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/TabulatedFunctionSchema.json"
+                                "description": "inline defintion of accumulation curve.",
+                                "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json"
                             },
                             {
-                                "type": "string",
-                                "minLength": 1,
-                                "format": "uri-reference",
-                                "pattern": ".*\\.(json|csv)$",
-                                "description": "Path/URI to a .json or .csv file defining the tabulated function."
+                                "type": "object",
+                                "description": "Path to a curve.",
+                                "properties": {
+                                    "url": {
+                                        "type": "string",
+                                        "description": "Relative or absolute path to the curve file."
+                                    }
+                                },
+                                "required": [
+                                    "url"
+                                ],
+                                "additionalProperties": false
                             }
-                        ]
+                        ],
+                        "description": "Accumulation reduction curve for an environmental factor."
                     }
                 }
             },
-            "required": [
-                "name",
-                "accumulationRate",
-                "accumulationCurves"
-            ],
+            "required": ["modelType", "accumulationCurves"],
             "additionalProperties": false
         }
     }

@@ -8,13 +8,14 @@ should prefer importing from `pywellsfm.model` instead of submodules.
 
 from .AccommodationSpaceWellCalculator import AccommodationSpaceWellCalculator
 from .AccumulationModel import (
-    AccumulationModelBase,
-    AccumulationModelEnvironmentOptimum,
-    AccumulationModelGaussian,
+    AccumulationModel,
+    AccumulationModelElementEnvironmentOptimum,
+    AccumulationModelElementGaussian,
 )
 from .Curve import AccumulationCurve, Curve, UncertaintyCurve
 from .DepthAgeModel import DepthAgeModel
 from .Element import Element
+from .enums import SubsidenceType
 from .Facies import (
     EnvironmentalFacies,
     Facies,
@@ -32,9 +33,9 @@ from .Well import Well
 __all__ = [
     "AccommodationSpaceWellCalculator",
     "AccumulationCurve",
-    "AccumulationModelBase",
-    "AccumulationModelEnvironmentOptimum",
-    "AccumulationModelGaussian",
+    "AccumulationModel",
+    "AccumulationModelElementEnvironmentOptimum",
+    "AccumulationModelElementGaussian",
     "Curve",
     "DepthAgeModel",
     "Element",
@@ -48,6 +49,7 @@ __all__ = [
     "PetrophysicalFacies",
     "RealizationData",
     "Scenario",
+    "SubsidenceType",
     "SedimentaryFacies",
     "UncertaintyCurve",
     "Well",

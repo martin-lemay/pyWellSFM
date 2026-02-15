@@ -35,33 +35,54 @@
                 }
             ]
         },
+        "initialBathymetry": { 
+            "type": "number",
+            "description": "Initial bathymetry at the well location (in meters)."
+        },
         "subsidenceCurve": {
-            "oneOf": [
-                {
-                    "description": "Inline curve definition.",
-                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json"
+            "type": "object",
+            "description": "Subsidence curve.",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": ["cumulative", "rate"],
+                    "description": "Type of subsidence values: Either 'cumulative' or 'rate'."
                 },
-                {
-                    "type": "object",
-                    "description": "Path to a curve.",
-                    "properties": {
-                        "url": {
-                            "type": "string",
-                            "description": "Relative or absolute path to the curve file."
+                "curve": {
+                    "oneOf": [
+                        {
+                            "description": "Inline curve definition.",
+                            "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json"
+                        },
+                        {
+                            "type": "object",
+                            "description": "Path to a curve.",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Relative or absolute path to the curve file."
+                                }
+                            },
+                            "required": [
+                                "url"
+                            ],
+                            "additionalProperties": false
                         }
-                    },
-                    "required": [
-                        "url"
-                    ],
-                    "additionalProperties": false
+                    ]
                 }
-            ]
+            },
+            "required": [
+                "type",
+                "curve"
+            ],
+            "additionalProperties": false
         }
     },
     "required": [
         "format",
         "version",
-        "well"
+        "well",
+        "initialBathymetry"
     ],
     "additionalProperties": false
 }

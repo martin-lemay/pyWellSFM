@@ -7,68 +7,34 @@
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
         "name": "Scenario1",
-        "faciesModel": {
-            "format": "pyWellSFM.FaciesModelData",
-            "version": "1.0",
-            "faciesModel": [
-                {
-                    "name": "CarbonateShallow",
-                    "criteriaType": "environmental",
-                    "criteria": [
-                        {
-                        "name": "Bathymetry",
-                        "minRange": 0.0,
-                        "maxRange": 10.0
-                        }
-                    ]
-                },
-                {
-                    "name": "CarbonateIntermediate",
-                    "criteriaType": "environmental",
-                    "criteria": [
-                        {
-                        "name": "Bathymetry",
-                        "minRange": 10.0,
-                        "maxRange": 50.0
-                        }
-                    ]
-                },
-                {
-                    "name": "CarbonateDeep",
-                    "criteriaType": "environmental",
-                    "criteria": [
-                        {
-                        "name": "Bathymetry",
-                        "minRange": 50.0,
-                        "maxRange": 10000.0
-                        }
-                    ]
-                }
-            ]
-        },
         "accumulationModel": {
             "format": "pyWellSFM.AccumulationModelData",
             "version": "1.0",
             "accumulationModel": {
                 "name": "AM1",
-                "modelType": "Gaussian",
-                "elements": [
-                    {
-                        "name": "CarbonateShallow",
+                "elements": {
+                    "CarbonateShallow": {
                         "accumulationRate": 1.0,
-                        "stddevFactor": 0.4
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.4
+                        }
                     },
-                    {
-                        "name": "CarbonateIntermediate",
+                    "CarbonateIntermediate": {
                         "accumulationRate": 0.5,
-                        "stddevFactor": 0.2
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.2
+                        }
                     },
-                    {
-                        "name": "CarbonateDeep",
+                    "CarbonateDeep": {
                         "accumulationRate": 0.1,
-                        "stddevFactor": 0.05
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.05
+                        }
                     }
-                ]
+                }
             }
         },
         "eustaticCurve": {
@@ -129,19 +95,23 @@
                     ]
                 }
             },
+            "initialBathymetry": 15.0,
             "subsidenceCurve": {
-                "format": "pyWellSFM.CurveData",
-                "version": "1.0",
+                "type": "cumulative",
                 "curve": {
-                    "xAxisName": "Age",
-                    "yAxisName": "Subsidence",
-                    "interpolationMethod": "linear",
-                    "data": [
-                        {"x": 0.0, "y": 25.0},
-                        {"x": 10.0, "y": 25.0},
-                        {"x": 20.0, "y": 15.0},
-                        {"x": 30.0, "y": 10.0}
-                    ]
+                    "format": "pyWellSFM.CurveData",
+                    "version": "1.0",
+                    "curve": {
+                        "xAxisName": "Age",
+                        "yAxisName": "Subsidence",
+                        "interpolationMethod": "linear",
+                        "data": [
+                            {"x": 0.0, "y": 25.0},
+                            {"x": 10.0, "y": 25.0},
+                            {"x": 20.0, "y": 15.0},
+                            {"x": 30.0, "y": 10.0}
+                        ]
+                    }
                 }
             }
         },
@@ -198,19 +168,23 @@
                     ]
                 }
             },
+            "initialBathymetry": 20.0,
             "subsidenceCurve": {
-                "format": "pyWellSFM.CurveData",
-                "version": "1.0",
+                "type": "cumulative",
                 "curve": {
-                    "xAxisName": "Age",
-                    "yAxisName": "Subsidence",
-                    "interpolationMethod": "linear",
-                    "data": [
-                        {"x": 0.0, "y": 20.0},
-                        {"x": 10.0, "y": 20.0},
-                        {"x": 20.0, "y": 15.0},
-                        {"x": 30.0, "y": 5.0}
-                    ]
+                    "format": "pyWellSFM.CurveData",
+                    "version": "1.0",
+                    "curve": {
+                        "xAxisName": "Age",
+                        "yAxisName": "Subsidence",
+                        "interpolationMethod": "linear",
+                        "data": [
+                            {"x": 0.0, "y": 20.0},
+                            {"x": 10.0, "y": 20.0},
+                            {"x": 20.0, "y": 15.0},
+                            {"x": 30.0, "y": 5.0}
+                        ]
+                    }
                 }
             }
         }

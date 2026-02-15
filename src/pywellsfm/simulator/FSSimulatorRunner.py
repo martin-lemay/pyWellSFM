@@ -151,8 +151,8 @@ class FSSimulatorRunner:
         # Initial bathymetry = -topographyStart (since topography=-bathymetry)
         self.initial_bathymetries = np.array(
             [
-                fsSimulator.getInitialBathymetry()
-                for fsSimulator in self.fsSimulators
+                realizationData.initialBathymetry
+                for realizationData in self.realizationDataList
             ],
             dtype=np.float64,
         )
@@ -222,6 +222,8 @@ class FSSimulatorRunner:
 
         # Set initial time
         self.times.append(start)
+        sea_level_t = 0.0
+        subs_t = np.zeros(self.n_real, dtype=np.float64)
 
         t = start
         for _ in range(self.max_steps):
@@ -229,26 +231,11 @@ class FSSimulatorRunner:
                 break
 
             print(f"Running time step at age {t:.4f} over {stop:.4f} Myr...")
-            # Compute current state across all realizations
-            sea_level_t: float = self.seaLevelSimulator.getSeaLevelAt(t)
-            subs_t = np.array(
-                [
-                    fsSimulator.getSubsidenceAtAge(t)
-                    for fsSimulator in self.fsSimulators
-                ],
-                dtype=np.float64,
-            )
-            # positive subsidence means sinking
-            basement_t = (-self.initial_bathymetries) - subs_t
-            acco_t = subs_t + sea_level_t
 
             # Build state for environment function
+            # may add energy, temperature, or other conditions in the future
             state: dict[str, Any] = {
                 "time": float(t),
-                "sea_level": float(sea_level_t),
-                "subsidence": subs_t,
-                "basement": basement_t,
-                "accommodation": acco_t,
                 "bathymetry": bathy_t,
             }
 
@@ -257,7 +244,7 @@ class FSSimulatorRunner:
             env_list = self._as_env_per_realization(env_raw, self.n_real)
 
             # Compute deposition rates for each realization
-            rates = np.array(
+            accumulationRates = np.array(
                 [
                     self.fsSimulators[i].getTotalAccumulationRate(env_list[i])
                     for i in range(self.n_real)
@@ -267,23 +254,28 @@ class FSSimulatorRunner:
 
             # Choose adaptive time step
             remaining = t - stop
-            dt = self._adaptTimeStep(t, rates, remaining)
 
-            # Compute state at t2 = t + dt
+            dt = self._adaptTimeStep(t, accumulationRates, remaining=remaining)
+
             t2 = t - dt
-            sea_level_t2 = self.seaLevelSimulator.getSeaLevelAt(t2)
-            subs_t2 = np.array(
-                [
-                    fsSimulator.getSubsidenceAtAge(t2)
-                    for fsSimulator in self.fsSimulators
-                ],
-                dtype=np.float64,
-            )
+            # Get sea level variation between t1 and t2
+            delta_sea_level_t = self._getDeltaSeaLevel(t, t2)
+            sea_level_t += delta_sea_level_t
+
+            # Get subsidence variation between t1 and t2 for all realizations
+            delta_subs_t = self._getDeltaSubsidence(t, t2)
+            subs_t += delta_subs_t
+
+            # positive subsidence means sinking
+            basement_t = (-self.initial_bathymetries) - subs_t
+            acco_t = subs_t + sea_level_t
 
             # Compute thickness and bathymetry change
-            thickness_step = self._getAccumulatedThickness(rates, dt)
+            thickness_step = self._getAccumulatedThickness(
+                accumulationRates, dt
+            )
             delta_bathy = self._getBathymetryVariation(
-                sea_level_t2, subs_t2, sea_level_t, subs_t, thickness_step
+                delta_sea_level_t, delta_subs_t, thickness_step
             )
             delta_bathy_array: npt.NDArray[np.float64]
             if isinstance(delta_bathy, np.ndarray):
@@ -305,10 +297,10 @@ class FSSimulatorRunner:
             self.sea_levels.append(
                 np.full((self.n_real,), sea_level_t, dtype=np.float64)
             )
-            self.subsidences.append(subs_t)
+            self.subsidences.append(subs_t.copy())
             self.basements.append(basement_t)
             self.accommodations.append(acco_t)
-            self.depo_rate_totals.append(rates)
+            self.depo_rate_totals.append(accumulationRates)
             self.dts.append(dt)
 
             # Update bathymetry for next step
@@ -331,7 +323,7 @@ class FSSimulatorRunner:
         """Choose an adaptive time step based on bathymetry change constraint.
 
         Max time step duration is limited by the maximum accumulated thickness
-        allowed.
+        and bathymetry change allowed.
 
         :param float t: current time.
         :param npt.NDArray[np.float64] rates: deposition rates for each
@@ -366,6 +358,40 @@ class FSSimulatorRunner:
         dt = float(max(self.dt_min, min(dt * self.safety, dt_hi)))
         return dt
 
+    def _getDeltaSeaLevel(self: Self, t1: float, t2: float) -> float:
+        """Get the change in sea level between t1 and t2.
+
+        :param float t1: start time.
+        :param float t2: end time.
+        :return float: change in sea level (sea level at t2 - sea level at t1).
+        """
+        sea_level_t1 = self.seaLevelSimulator.getSeaLevelAt(t1)
+        sea_level_t2 = self.seaLevelSimulator.getSeaLevelAt(t2)
+        return sea_level_t2 - sea_level_t1
+
+    def _getDeltaSubsidence(
+        self: Self, t1: float, t2: float
+    ) -> npt.NDArray[np.float64]:
+        """Get the change in subsidence between t1 and t2 for all realizations.
+
+        :param float t1: start time.
+        :param float t2: end time.
+        :return npt.NDArray[np.float64]: change in subsidence (subsidence at
+            t2 - subsidence at t1) for all realizations.
+        """
+        delta_subs = np.zeros((self.n_real,), dtype=np.float64)
+        for i, fsSimulator in enumerate(self.fsSimulators):
+            subs_t1 = fsSimulator.getSubsidenceAtAge(t1)
+            subsType = fsSimulator.getSubsidenceType()
+            if subsType == "cumulative":
+                subs_t2 = fsSimulator.getSubsidenceAtAge(t2)
+                delta_subs[i] = subs_t2 - subs_t1
+            elif subsType == "rate":
+                delta_subs[i] = subs_t1 * (t2 - t1)
+            else:
+                raise ValueError(f"Unknown subsidence type: {subsType}")
+        return delta_subs
+
     def _computeMaxBathymetryChange(
         self: Self, t1: float, rates: npt.NDArray[np.float64], dt: float
     ) -> float:
@@ -378,33 +404,19 @@ class FSSimulatorRunner:
         """
         t2 = float(t1 + dt)
 
-        # Get sea level at t1 and t2
-        sea_level_t1 = self.seaLevelSimulator.getSeaLevelAt(t1)
-        sea_level_t2 = self.seaLevelSimulator.getSeaLevelAt(t2)
+        # Get sea level variation between t1 and t2 (same for all realizations)
+        delta_sea_level = self._getDeltaSeaLevel(t1, t2)
 
-        # Get subsidence at t1 and t2 for all realizations
-        subsidence_t1 = np.array(
-            [
-                fsSimulator.getSubsidenceAtAge(t1)
-                for fsSimulator in self.fsSimulators
-            ],
-            dtype=np.float64,
-        )
-        subsidence_t2 = np.array(
-            [
-                fsSimulator.getSubsidenceAtAge(t2)
-                for fsSimulator in self.fsSimulators
-            ],
-            dtype=np.float64,
-        )
+        # Get subsidence variation between t1 and t2 for all realizations
+        delta_subsidences = self._getDeltaSubsidence(t1, t2)
+
+        # Compute accumulated thickness between t1 and t2 for all realizations
+        thicknesses_step = self._getAccumulatedThickness(rates, dt)
 
         # Compute bathymetry change
-        thicknesses_step = self._getAccumulatedThickness(rates, dt)
         d_bathy = self._getBathymetryVariation(
-            sea_level_t2,
-            subsidence_t2,
-            sea_level_t1,
-            subsidence_t1,
+            delta_sea_level,
+            delta_subsidences,
             thicknesses_step,
         )
 
@@ -555,23 +567,18 @@ class FSSimulatorRunner:
 
     @staticmethod
     def _getBathymetryVariation(
-        seaLevel_t2: float,
-        subs_t2: npt.NDArray[np.float64],
-        seaLevel_t: float,
-        subs_t: npt.NDArray[np.float64],
+        delta_seaLevel: float,
+        delta_subs: npt.NDArray[np.float64],
         thickness_step: npt.NDArray[np.float64],
     ) -> float | npt.NDArray[np.float64]:
         """Compute bathymetry variation over a time step.
 
-        :param float seaLevel_t2: sea level at time t2.
-        :param npt.NDArray[np.float64] subs_t2: subsidence of each realization
-            at time t2.
-        :param float seaLevel_t: sea level at time t1.
-        :param npt.NDArray[np.float64] subs_t: subsidence of each realization
-            at time t1.
+        :param float delta_seaLevel: change in sea level over the time step.
+        :param npt.NDArray[np.float64] delta_subs: change in subsidence of each
+            realization over the time step.
         :param npt.NDArray[np.float64] thickness_step: deposited thickness of
             each realization over the time step.
         :return float | npt.NDArray[np.float64]: bathymetry variation over the
             time step.
         """
-        return (seaLevel_t2 - seaLevel_t) + (subs_t2 - subs_t) - thickness_step
+        return delta_seaLevel + delta_subs - thickness_step

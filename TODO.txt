@@ -1,10 +1,11 @@
 Short-term:
 
+- adapt time step calculation to match input marker ages
 - add unit tests for simulators
-- use subsidence rate curve instead of subsidence (in meters)
 - create simulated well from output xarray
 - create output plots (acco/accumulation/topo... vs time) (from well in time or from xarray?)
-- Wells: allowing to convert Depth to Age from DepthAgeModel composed of markers linking depth with age. In between markers, assume a function (default is linear)
+- Wells: allowing to convert Depth to Age from DepthAgeModel composed of markers
+  linking depth with age. In between markers, assume a function (default is linear)
 - create missing unit tests for save methods
 - create export methods to save data objects (simulation, realization, scenario, etc.)
 

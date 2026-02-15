@@ -27,7 +27,7 @@ from pywellsfm.io.simulation_io import (  # noqa: E402
     saveSimulationData,
 )
 from pywellsfm.model.AccumulationModel import (
-    AccumulationModelGaussian,  # noqa: E402
+    AccumulationModel,  # noqa: E402
 )
 from pywellsfm.model.SimulationParameters import SimulationData  # noqa: E402
 
@@ -51,17 +51,21 @@ def test_loadRealizationData_from_json(tmp_path: Path) -> None:
                 "depth": 100.0,
             },
         },
+        "initialBathymetry": 15.0,
         "subsidenceCurve": {
-            "format": "pyWellSFM.CurveData",
-            "version": "1.0",
+            "type": "cumulative",
             "curve": {
-                "xAxisName": "Age",
-                "yAxisName": "Subsidence",
-                "interpolationMethod": "linear",
-                "data": [
-                    {"x": 0.0, "y": 0.0},
-                    {"x": 10.0, "y": 100.0},
-                ],
+                "format": "pyWellSFM.CurveData",
+                "version": "1.0",
+                "curve": {
+                    "xAxisName": "Age",
+                    "yAxisName": "Subsidence",
+                    "interpolationMethod": "linear",
+                    "data": [
+                        {"x": 0.0, "y": 0.0},
+                        {"x": 10.0, "y": 100.0},
+                    ],
+                },
             },
         },
     }
@@ -75,7 +79,7 @@ def test_loadRealizationData_from_json(tmp_path: Path) -> None:
         rd.well.wellHeadCoords, np.asarray([1.0, 2.0, 3.0], dtype=float)
     )
     assert rd.well.depth == 100.0
-
+    assert rd.initialBathymetry == 15.0
     assert rd.subsidenceCurve is not None
     assert rd.subsidenceCurve._xAxisName == "Age"
     assert rd.subsidenceCurve._yAxisName == "Subsidence"
@@ -92,8 +96,12 @@ def test_loadRealizationData_from_json_reference(tmp_path: Path) -> None:
         "well": {
             "url": f"{dataDir}/well.json",
         },
+        "initialBathymetry": 15.0,
         "subsidenceCurve": {
-            "url": f"{dataDir}/subsidence_curve.csv",
+            "type": "cumulative",
+            "curve": {
+                "url": f"{dataDir}/subsidence_curve.csv",
+            },
         },
     }
 
@@ -128,6 +136,7 @@ def test_loadRealizationData_from_json_reference(tmp_path: Path) -> None:
     assert rd.subsidenceCurve.getValueAt(0.0) == 50.0
     assert rd.subsidenceCurve.getValueAt(20.0) == 50.0
     assert rd.subsidenceCurve.getValueAt(60.0) == -30.0
+    assert rd.initialBathymetry == 15.0
 
 
 def test_loadScenario_from_json_minimal(tmp_path: Path) -> None:
@@ -138,35 +147,21 @@ def test_loadScenario_from_json_minimal(tmp_path: Path) -> None:
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
         "name": "MyScenario",
-        "faciesModel": {
-            "format": "pyWellSFM.FaciesModelData",
-            "version": "1.0",
-            "faciesModel": [
-                {
-                    "name": "F1",
-                    "criteria": [
-                        {
-                            "name": "WaterDepth",
-                            "minRange": 0.0,
-                            "maxRange": 10.0,
-                        }
-                    ],
-                }
-            ],
-        },
         "accumulationModel": {
             "format": "pyWellSFM.AccumulationModelData",
             "version": "1.0",
             "accumulationModel": {
                 "name": "AM1",
                 "modelType": "Gaussian",
-                "elements": [
-                    {
-                        "name": "Carbonate",
+                "elements": {
+                    "Carbonate": {
                         "accumulationRate": 100.0,
-                        "stddevFactor": 0.2,
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.2,
+                        },
                     }
-                ],
+                },
             },
         },
     }
@@ -177,10 +172,9 @@ def test_loadScenario_from_json_minimal(tmp_path: Path) -> None:
 
     assert scenario.name == "MyScenario"
     assert scenario.eustaticCurve is None
-    assert len(scenario.faciesModel.faciesSet) == 1
     assert scenario.accumulationModel.name == "AM1"
-    assert isinstance(scenario.accumulationModel, AccumulationModelGaussian)
-    assert scenario.accumulationModel.getElement("Carbonate") is not None
+    assert isinstance(scenario.accumulationModel, AccumulationModel)
+    assert scenario.accumulationModel.getElementModel("Carbonate") is not None
 
 
 def test_loadScenario_from_json_with_eustatic_curve(tmp_path: Path) -> None:
@@ -191,31 +185,20 @@ def test_loadScenario_from_json_with_eustatic_curve(tmp_path: Path) -> None:
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
         "name": "ScenarioWithCurve",
-        "faciesModel": {
-            "format": "pyWellSFM.FaciesModelData",
-            "version": "1.0",
-            "faciesModel": [
-                {
-                    "name": "F1",
-                    "criteria": [
-                        {"name": "Bathymetry", "minRange": 10, "maxRange": 20}
-                    ],
-                }
-            ],
-        },
         "accumulationModel": {
             "format": "pyWellSFM.AccumulationModelData",
             "version": "1.0",
             "accumulationModel": {
                 "name": "AM1",
-                "modelType": "Gaussian",
-                "elements": [
-                    {
-                        "name": "Shale",
+                "elements": {
+                    "Shale": {
                         "accumulationRate": 10.0,
-                        "stddevFactor": 0.1,
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.1,
+                        },
                     }
-                ],
+                },
             },
         },
         "eustaticCurve": {
@@ -243,17 +226,9 @@ def test_loadScenario_from_json_with_eustatic_curve(tmp_path: Path) -> None:
     assert scenario.eustaticCurve._yAxisName == "Eustatism"
     assert scenario.eustaticCurve.getValueAt(0.0) == 0.0
     assert scenario.eustaticCurve.getValueAt(1.0) == 5.0
-    assert len(scenario.faciesModel.faciesSet) == 1
-    assert scenario.faciesModel.getFaciesByName("F1") is not None
-    assert scenario.faciesModel.getCriteriaRangeForFacies(
-        "F1", "Bathymetry"
-    ) == (
-        10.0,
-        20.0,
-    )
     assert scenario.accumulationModel.name == "AM1"
-    assert isinstance(scenario.accumulationModel, AccumulationModelGaussian)
-    assert scenario.accumulationModel.getElement("Shale") is not None
+    assert isinstance(scenario.accumulationModel, AccumulationModel)
+    assert scenario.accumulationModel.getElementModel("Shale") is not None
 
 
 def test_loadScenario_from_json_with_references(tmp_path: Path) -> None:
@@ -280,13 +255,15 @@ def test_loadScenario_from_json_with_references(tmp_path: Path) -> None:
         "accumulationModel": {
             "name": "AM_REF",
             "modelType": "Gaussian",
-            "elements": [
-                {
-                    "name": "Carbonate",
+            "elements": {
+                "Carbonate": {
                     "accumulationRate": 100.0,
-                    "stddevFactor": 0.2,
+                    "model": {
+                        "modelType": "Gaussian",
+                        "stddevFactor": 0.2,
+                    },
                 }
-            ],
+            },
         },
     }
     acc_path.write_text(json.dumps(acc_payload), encoding="utf-8")
@@ -295,7 +272,6 @@ def test_loadScenario_from_json_with_references(tmp_path: Path) -> None:
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
         "name": "ScenarioRef",
-        "faciesModel": {"url": "facies_model.json"},
         "accumulationModel": {"url": "accumulation_model.json"},
         "eustaticCurve": {"url": "eustatic_curve.csv"},
     }
@@ -304,9 +280,8 @@ def test_loadScenario_from_json_with_references(tmp_path: Path) -> None:
     scenario = loadScenario(str(scenario_path))
 
     assert scenario.name == "ScenarioRef"
-    assert scenario.faciesModel.getFaciesByName("Sand") is not None
     assert scenario.accumulationModel.name == "AM_REF"
-    assert scenario.accumulationModel.getElement("Carbonate") is not None
+    assert scenario.accumulationModel.getElementModel("Carbonate") is not None
     assert scenario.eustaticCurve is not None
 
 
@@ -317,30 +292,25 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
     simulation_path = tmp_path / "simulation.json"
 
     # Scenario uses inline internals here; we're validating SimulationData.
-    facies_model_path = (
-        Path(__file__).resolve().parent / "data" / "facies_model.json"
-    )
-    facies_model_obj = json.loads(
-        facies_model_path.read_text(encoding="utf-8")
-    )
     scenario_payload = {
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
         "name": "Scenario1",
-        "faciesModel": facies_model_obj,
         "accumulationModel": {
             "format": "pyWellSFM.AccumulationModelData",
             "version": "1.0",
             "accumulationModel": {
                 "name": "AM1",
                 "modelType": "Gaussian",
-                "elements": [
-                    {
-                        "name": "Carbonate",
+                "elements": {
+                    "Carbonate": {
                         "accumulationRate": 100.0,
-                        "stddevFactor": 0.2,
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.2,
+                        },
                     }
-                ],
+                },
             },
         },
     }
@@ -352,7 +322,11 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
         "format": "pyWellSFM.RealizationData",
         "version": "1.0",
         "well": {"url": f"{dataDir}/well.json"},
-        "subsidenceCurve": {"url": f"{dataDir}/subsidence_curve.csv"},
+        "initialBathymetry": 15.0,
+        "subsidenceCurve": {
+            "type": "cumulative",
+            "curve": {"url": f"{dataDir}/subsidence_curve.csv"},
+        },
     }
     realization_path.write_text(
         json.dumps(realization_payload), encoding="utf-8"
@@ -375,14 +349,12 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
     assert len(simulationData.realizationDataList) == 1
     assert simulationData.scenario.name == "Scenario1"
     assert (
-        simulationData.scenario.faciesModel.getFaciesByName("Sand") is not None
-    )
-    assert (
-        simulationData.scenario.accumulationModel.getElement("Carbonate")
+        simulationData.scenario.accumulationModel.getElementModel("Carbonate")
         is not None
     )
     assert simulationData.realizationDataList[0].well.name == "Well-B"
     assert simulationData.realizationDataList[0].subsidenceCurve is not None
+    assert simulationData.realizationDataList[0].initialBathymetry == 15.0
 
 
 def test_loadSimulationData_from_json_two_realizations() -> None:
@@ -390,15 +362,13 @@ def test_loadSimulationData_from_json_two_realizations() -> None:
     simulation_path = dataDir + "/simulation.json"
     simulationData: FSSimulatorRunnerData = loadSimulationData(simulation_path)
 
-    assert len(simulationData.realizationDataList) == 2
+    assert len(simulationData.realizationDataList) == 2, (
+        "Expected 2 realizations in the loaded SimulationData"
+    )
     # check scenario data
     assert simulationData.scenario.name == "Scenario1"
     assert (
-        simulationData.scenario.faciesModel.getFaciesByName("CarbonateShallow")
-        is not None
-    )
-    assert (
-        simulationData.scenario.accumulationModel.getElement(
+        simulationData.scenario.accumulationModel.getElementModel(
             "CarbonateShallow"
         )
         is not None
@@ -452,35 +422,21 @@ def test_loadSimulationData_rejects_missing_realizations(
             "format": "pyWellSFM.ScenarioData",
             "version": "1.0",
             "name": "Scenario1",
-            "faciesModel": {
-                "format": "pyWellSFM.FaciesModelData",
-                "version": "1.0",
-                "faciesModel": [
-                    {
-                        "name": "F1",
-                        "criteria": [
-                            {
-                                "name": "WaterDepth",
-                                "minRange": 0.0,
-                                "maxRange": 10.0,
-                            }
-                        ],
-                    }
-                ],
-            },
             "accumulationModel": {
                 "format": "pyWellSFM.AccumulationModelData",
                 "version": "1.0",
                 "accumulationModel": {
                     "name": "AM1",
                     "modelType": "Gaussian",
-                    "elements": [
-                        {
-                            "name": "Carbonate",
+                    "elements": {
+                        "Carbonate": {
                             "accumulationRate": 100.0,
-                            "stddevFactor": 0.2,
+                            "model": {
+                                "modelType": "Gaussian",
+                                "stddevFactor": 0.2,
+                            },
                         }
-                    ],
+                    },
                 },
             },
         },
@@ -504,35 +460,21 @@ def test_loadSimulationData_rejects_empty_realizations(tmp_path: Path) -> None:
             "format": "pyWellSFM.ScenarioData",
             "version": "1.0",
             "name": "Scenario1",
-            "faciesModel": {
-                "format": "pyWellSFM.FaciesModelData",
-                "version": "1.0",
-                "faciesModel": [
-                    {
-                        "name": "F1",
-                        "criteria": [
-                            {
-                                "name": "WaterDepth",
-                                "minRange": 0.0,
-                                "maxRange": 10.0,
-                            }
-                        ],
-                    }
-                ],
-            },
             "accumulationModel": {
                 "format": "pyWellSFM.AccumulationModelData",
                 "version": "1.0",
                 "accumulationModel": {
                     "name": "AM1",
                     "modelType": "Gaussian",
-                    "elements": [
-                        {
-                            "name": "Carbonate",
+                    "elements": {
+                        "Carbonate": {
                             "accumulationRate": 100.0,
-                            "stddevFactor": 0.2,
+                            "model": {
+                                "modelType": "Gaussian",
+                                "stddevFactor": 0.2,
+                            },
                         }
-                    ],
+                    },
                 },
             },
         },
@@ -561,35 +503,21 @@ def test_loadSimulationData_rejects_scenario_with_extra_keys(
             "format": "pyWellSFM.ScenarioData",
             "version": "1.0",
             "name": "Scenario1",
-            "faciesModel": {
-                "format": "pyWellSFM.FaciesModelData",
-                "version": "1.0",
-                "faciesModel": [
-                    {
-                        "name": "F1",
-                        "criteria": [
-                            {
-                                "name": "WaterDepth",
-                                "minRange": 0.0,
-                                "maxRange": 10.0,
-                            }
-                        ],
-                    }
-                ],
-            },
             "accumulationModel": {
                 "format": "pyWellSFM.AccumulationModelData",
                 "version": "1.0",
                 "accumulationModel": {
                     "name": "AM1",
                     "modelType": "Gaussian",
-                    "elements": [
-                        {
-                            "name": "Carbonate",
+                    "elements": {
+                        "Carbonate": {
                             "accumulationRate": 100.0,
-                            "stddevFactor": 0.2,
+                            "model": {
+                                "modelType": "Gaussian",
+                                "stddevFactor": 0.2,
+                            },
                         }
-                    ],
+                    },
                 },
             },
             "unexpected": 123,
@@ -606,16 +534,19 @@ def test_loadSimulationData_rejects_scenario_with_extra_keys(
                     },
                 },
                 "subsidenceCurve": {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
+                    "type": "cumulative",
                     "curve": {
-                        "xAxisName": "Age",
-                        "yAxisName": "Subsidence",
-                        "interpolationMethod": "linear",
-                        "data": [
-                            {"x": 0.0, "y": 0.0},
-                            {"x": 10.0, "y": 100.0},
-                        ],
+                        "format": "pyWellSFM.CurveData",
+                        "version": "1.0",
+                        "curve": {
+                            "xAxisName": "Age",
+                            "yAxisName": "Subsidence",
+                            "interpolationMethod": "linear",
+                            "data": [
+                                {"x": 0.0, "y": 0.0},
+                                {"x": 10.0, "y": 100.0},
+                            ],
+                        },
                     },
                 },
             }
@@ -642,35 +573,21 @@ def test_loadSimulationData_rejects_non_object_realization_item(
             "format": "pyWellSFM.ScenarioData",
             "version": "1.0",
             "name": "Scenario1",
-            "faciesModel": {
-                "format": "pyWellSFM.FaciesModelData",
-                "version": "1.0",
-                "faciesModel": [
-                    {
-                        "name": "F1",
-                        "criteria": [
-                            {
-                                "name": "WaterDepth",
-                                "minRange": 0.0,
-                                "maxRange": 10.0,
-                            }
-                        ],
-                    }
-                ],
-            },
             "accumulationModel": {
                 "format": "pyWellSFM.AccumulationModelData",
                 "version": "1.0",
                 "accumulationModel": {
                     "name": "AM1",
                     "modelType": "Gaussian",
-                    "elements": [
-                        {
-                            "name": "Carbonate",
+                    "elements": {
+                        "Carbonate": {
                             "accumulationRate": 100.0,
-                            "stddevFactor": 0.2,
+                            "model": {
+                                "modelType": "Gaussian",
+                                "stddevFactor": 0.2,
+                            },
                         }
-                    ],
+                    },
                 },
             },
         },
@@ -689,32 +606,25 @@ def test_exportScenario_writes_inline_objects(tmp_path: Path) -> None:
     """Exports Scenario with inline objects."""
     scenario_path = tmp_path / "scenario_in.json"
     scenario_out = tmp_path / "scenario_out.json"
-
-    facies_model_path = (
-        Path(__file__).resolve().parent / "data" / "facies_model.json"
-    )
-    facies_model_obj = json.loads(
-        facies_model_path.read_text(encoding="utf-8")
-    )
-
     payload = {
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
         "name": "ScenarioExport",
-        "faciesModel": facies_model_obj,
         "accumulationModel": {
             "format": "pyWellSFM.AccumulationModelData",
             "version": "1.0",
             "accumulationModel": {
                 "name": "AM1",
                 "modelType": "Gaussian",
-                "elements": [
-                    {
-                        "name": "Carbonate",
+                "elements": {
+                    "Carbonate": {
                         "accumulationRate": 100.0,
-                        "stddevFactor": 0.2,
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.2,
+                        },
                     }
-                ],
+                },
             },
         },
         "eustaticCurve": {
@@ -734,10 +644,6 @@ def test_exportScenario_writes_inline_objects(tmp_path: Path) -> None:
     saveScenario(scenario, str(scenario_out))
 
     out_obj = json.loads(scenario_out.read_text(encoding="utf-8"))
-    assert isinstance(out_obj.get("faciesModel"), dict)
-    assert "url" not in out_obj["faciesModel"]
-    assert out_obj["faciesModel"].get("format") == "pyWellSFM.FaciesModelData"
-
     assert isinstance(out_obj.get("accumulationModel"), dict)
     assert "url" not in out_obj["accumulationModel"]
     assert (
@@ -764,7 +670,11 @@ def test_exportRealizationData_writes_inline_objects(tmp_path: Path) -> None:
         "format": "pyWellSFM.RealizationData",
         "version": "1.0",
         "well": {"url": f"{dataDir}/well.json"},
-        "subsidenceCurve": {"url": f"{dataDir}/subsidence_curve.csv"},
+        "initialBathymetry": 15.0,
+        "subsidenceCurve": {
+            "type": "cumulative",
+            "curve": {"url": f"{dataDir}/subsidence_curve.csv"},
+        },
     }
     realization_path.write_text(json.dumps(payload), encoding="utf-8")
 
@@ -775,9 +685,15 @@ def test_exportRealizationData_writes_inline_objects(tmp_path: Path) -> None:
     assert isinstance(out_obj.get("well"), dict)
     assert "url" not in out_obj["well"]
     assert out_obj["well"].get("format") == "pyWellSFM.WellData"
+    assert isinstance(out_obj.get("initialBathymetry"), (int, float))
     assert isinstance(out_obj.get("subsidenceCurve"), dict)
-    assert "url" not in out_obj["subsidenceCurve"]
-    assert out_obj["subsidenceCurve"].get("format") == "pyWellSFM.CurveData"
+    assert "type" in out_obj["subsidenceCurve"]
+    assert out_obj["subsidenceCurve"].get("type") == "cumulative"
+
+    curve_out = out_obj["subsidenceCurve"].get("curve", None)
+    assert isinstance(curve_out, dict)
+    assert "url" not in curve_out
+    assert curve_out.get("format") == "pyWellSFM.CurveData"
 
     rd2 = loadRealizationData(str(realization_out))
     assert rd2.well.name == rd.well.name
@@ -790,6 +706,8 @@ def test_exportRealizationData_writes_inline_objects(tmp_path: Path) -> None:
     assert len(rd2.well.getMarkers()) == len(rd.well.getMarkers())
     assert rd2.subsidenceCurve is not None
     assert np.isclose(rd2.subsidenceCurve.getValueAt(0.0), 50.0)
+    assert isinstance(rd2.initialBathymetry, (int, float))
+    assert np.isclose(rd2.initialBathymetry, 15.0)
 
 
 def test_exportSimulationData_writes_inline_objects_and_roundtrips(
@@ -799,31 +717,25 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
     scenario_path = tmp_path / "scenario.json"
     simulation_out = tmp_path / "simulation_out.json"
 
-    facies_model_path = (
-        Path(__file__).resolve().parent / "data" / "facies_model.json"
-    )
-    facies_model_obj = json.loads(
-        facies_model_path.read_text(encoding="utf-8")
-    )
-
     scenario_payload = {
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
         "name": "ScenarioForSimulation",
-        "faciesModel": facies_model_obj,
         "accumulationModel": {
             "format": "pyWellSFM.AccumulationModelData",
             "version": "1.0",
             "accumulationModel": {
                 "name": "AM1",
                 "modelType": "Gaussian",
-                "elements": [
-                    {
-                        "name": "Carbonate",
+                "elements": {
+                    "Carbonate": {
                         "accumulationRate": 100.0,
-                        "stddevFactor": 0.2,
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.2,
+                        },
                     }
-                ],
+                },
             },
         },
     }
@@ -847,17 +759,21 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
                         "depth": 100.0,
                     },
                 },
+                "initialBathymetry": 15.0,
                 "subsidenceCurve": {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
+                    "type": "cumulative",
                     "curve": {
-                        "xAxisName": "Age",
-                        "yAxisName": "Subsidence",
-                        "interpolationMethod": "linear",
-                        "data": [
-                            {"x": 0.0, "y": 0.0},
-                            {"x": 10.0, "y": 100.0},
-                        ],
+                        "format": "pyWellSFM.CurveData",
+                        "version": "1.0",
+                        "curve": {
+                            "xAxisName": "Age",
+                            "yAxisName": "Subsidence",
+                            "interpolationMethod": "linear",
+                            "data": [
+                                {"x": 0.0, "y": 0.0},
+                                {"x": 10.0, "y": 100.0},
+                            ],
+                        },
                     },
                 },
             }
@@ -878,14 +794,21 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
                         "depth": 200.0,
                     },
                 },
+                "initialBathymetry": 20.0,
                 "subsidenceCurve": {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
+                    "type": "cumulative",
                     "curve": {
-                        "xAxisName": "Age",
-                        "yAxisName": "Subsidence",
-                        "interpolationMethod": "linear",
-                        "data": [{"x": 0.0, "y": 0.0}, {"x": 10.0, "y": 50.0}],
+                        "format": "pyWellSFM.CurveData",
+                        "version": "1.0",
+                        "curve": {
+                            "xAxisName": "Age",
+                            "yAxisName": "Subsidence",
+                            "interpolationMethod": "linear",
+                            "data": [
+                                {"x": 0.0, "y": 0.0},
+                                {"x": 10.0, "y": 50.0},
+                            ],
+                        },
                     },
                 },
             }
@@ -914,4 +837,6 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
     assert len(simulationData.realizationDataList) == 2
     assert simulationData.scenario.name == "ScenarioForSimulation"
     assert simulationData.realizationDataList[0].well.name == "Well1"
+    assert simulationData.realizationDataList[0].initialBathymetry == 15.0
     assert simulationData.realizationDataList[1].well.name == "Well2"
+    assert simulationData.realizationDataList[1].initialBathymetry == 20.0

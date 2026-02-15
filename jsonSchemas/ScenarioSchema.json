@@ -17,28 +17,6 @@
             "description": "Name of the scenario.",
             "type": "string"
         },
-        "faciesModel": {
-            "oneOf": [
-                {
-                    "description": "Inline facies model definition.",
-                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FaciesModel.json"
-                },
-                {
-                    "type": "object",
-                    "description": "Path to facies model JSON file.",
-                    "properties": {
-                        "url": {
-                            "type": "string",
-                            "description": "Relative or absolute path to the facies model JSON file."
-                        }
-                    },
-                    "required": [
-                        "url"
-                    ],
-                    "additionalProperties": false
-                }
-            ]
-        },
         "accumulationModel": {
             "oneOf": [
                 {
@@ -88,7 +66,6 @@
         "format",
         "version",
         "name",
-        "faciesModel",
         "accumulationModel"
     ],
     "additionalProperties": false

@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
 
-from typing import Optional, Self, cast
+from typing import Optional, Self
 
 import numpy as np
-from striplog import Interval, Striplog
 
+from pywellsfm.model.enums import SubsidenceType
 from pywellsfm.model.SimulationParameters import RealizationData, Scenario
 from pywellsfm.model.Well import Well
 from pywellsfm.simulator.AccommodationSimulator import AccommodationSimulator
@@ -23,7 +23,7 @@ class FSSimulator:
         The FS simulator parameters include a scenario and realization data:
 
           - A scenario defines global parameters for the simulation shared by
-            multiple realizations, including eustatic curve, facies model,
+            multiple realizations, including eustatic curve and the
             accumulation model.
           - A realization corresponds to a well location with its specific
             conditions such as the well log and the subsidence curve.
@@ -63,9 +63,10 @@ class FSSimulator:
         self.accommodationSimulator.setSubsidenceCurve(
             self.realizationData.subsidenceCurve
         )
-        # set initial bathymetry from facies at well
-        initialBathy = self.getInitialBathymetry()
-        self.accommodationSimulator.setInitialBathymetry(initialBathy)
+        # set initial bathymetry
+        self.accommodationSimulator.setInitialBathymetry(
+            self.realizationData.initialBathymetry
+        )
 
         if self.scenario.eustaticCurve is not None:
             # set the eustatic curve if defined, otherwise uses a flat curve
@@ -74,6 +75,13 @@ class FSSimulator:
                 self.scenario.eustaticCurve
             )
         self.accommodationSimulator.prepare()
+
+    def getSubsidenceType(self: Self) -> SubsidenceType:
+        """Get the subsidence type used by the simulator.
+
+        :return SubsidenceType: subsidence type used by the simulator.
+        """
+        return self.realizationData.subsidenceType
 
     def getSubsidenceAtAge(self: Self, age: float) -> float:
         """Get the subsidence at a given age for the current realization.
@@ -146,52 +154,3 @@ class FSSimulator:
             if marker.age < ageMin:
                 ageMin = marker.age
         return ageMin
-
-    def getInitialBathymetry(self: Self) -> float:
-        """Get the initial bathymetry.
-
-        Take the middle value of the range as initial bathymetry get from
-        facies log.
-
-        :return float: initial bathymetry value.
-        """
-        bathyRange: tuple[float, float] = self._getInitialBathymetryRange()
-        return 0.5 * (bathyRange[0] + bathyRange[1])
-
-    # Helper functions
-    def _getInitialBathymetryRange(self: Self) -> tuple[float, float]:
-        """Get the initial bathymetry range.
-
-        The bathymetry is retreive from the facies log at and facies
-        conditions.
-
-        :return tuple[float, float]: min and max initial bathymetry values.
-        """
-        well = self.realizationData.well
-        faciesLogNames: set[str] = well.getDiscreteLogNames()
-        if len(faciesLogNames) == 0:
-            raise ValueError(
-                f"No discrete log found in well '{well.name}' "
-                "to get initial bathymetry."
-            )
-        faciesLog: Striplog = cast(
-            Striplog, well.getDepthLog(faciesLogNames.pop())
-        )
-        if faciesLog is None:
-            raise ValueError(
-                f"Facies log not found in well '{well.name}' to "
-                "get initial bathymetry."
-            )
-
-        interval: Interval = cast(Interval, faciesLog[-1])
-        faciesName: str = interval.primary["lithology"]  # type: ignore
-        bathyRange: Optional[tuple[float, float]] = (
-            self.scenario.faciesModel.getCriteriaRangeForFacies(
-                faciesName, "Bathymetry"
-            )
-        )
-        if bathyRange is None:
-            raise ValueError(
-                f"Bathymetry condition not found for facies {faciesName}."
-            )
-        return bathyRange

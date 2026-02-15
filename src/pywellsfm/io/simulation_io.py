@@ -25,14 +25,10 @@ from pywellsfm.io.curve_io import (
     loadSubsidenceCurve,
     loadSubsidenceCurveFromJsonObj,
 )
-from pywellsfm.io.facies_model_io import (
-    faciesModelToJsonObj,
-    loadFaciesModel,
-    loadFaciesModelFromJsonObj,
-)
 from pywellsfm.io.json_schema_validation import expect_format_version
 from pywellsfm.io.well_io import loadWell, loadWellFromJsonObj, wellToJsonObj
 from pywellsfm.model import Curve
+from pywellsfm.model.enums import SubsidenceType
 from pywellsfm.model.SimulationParameters import (
     RealizationData,
     Scenario,
@@ -76,7 +72,13 @@ def _loadRealizationDataFromJsonObj(
 
     reject_extra_keys(
         obj=obj,
-        allowed_keys={"format", "version", "well", "subsidenceCurve"},
+        allowed_keys={
+            "format",
+            "version",
+            "well",
+            "subsidenceCurve",
+            "initialBathymetry",
+        },
         ctx="RealizationData",
     )
 
@@ -103,8 +105,15 @@ def _loadRealizationDataFromJsonObj(
         load_file=_load_well_file,
     )
 
+    # --- Initial bathymetry ---
+    initial_bathymetry_obj: Any = obj.get("initialBathymetry")
+    if not isinstance(initial_bathymetry_obj, (int, float)):
+        raise ValueError("RealizationData.initialBathymetry must be a number.")
+    initial_bathymetry = float(initial_bathymetry_obj)
+
     # --- Subsidence curve (optional) ---
     subsidence_curve: Curve | None
+    subs_type: SubsidenceType = SubsidenceType.CUMULATIVE
     subs_curve_obj: Any = obj.get("subsidenceCurve")
     if subs_curve_obj is None:
         subsidence_curve = None
@@ -122,15 +131,33 @@ def _loadRealizationDataFromJsonObj(
                     "supported curve file (.json or .csv)."
                 ) from exc
 
+        curve_obj = subs_curve_obj.get("curve", None)
+        subs_type = subs_curve_obj.get("type", None)
+        if curve_obj is None or subs_type is None:
+            raise ValueError(
+                "RealizationData.subsidenceCurve must contain 'curve' and "
+                "'type' properties."
+            )
+        if subs_type not in {"cumulative", "rate"}:
+            raise ValueError(
+                "RealizationData.subsidenceCurve.type must be either "
+                "'cumulative' or 'rate'."
+            )
+        print(curve_obj)
         subsidence_curve = load_inline_or_url(
-            subs_curve_obj,
+            curve_obj,
             base_dir=base_dir,
             ctx="RealizationData.subsidenceCurve",
             load_inline=_load_inline_subs_curve,
             load_file=_load_subs_curve_file,
         )
 
-    return RealizationData(well=well, subsidenceCurve=subsidence_curve)
+    return RealizationData(
+        well=well,
+        initialBathymetry=initial_bathymetry,
+        subsidenceCurve=subsidence_curve,
+        subsidenceType=SubsidenceType(subs_type),
+    )
 
 
 def exportRealizationDataToJsonObj(
@@ -149,12 +176,15 @@ def exportRealizationDataToJsonObj(
         "format": "pyWellSFM.RealizationData",
         "version": "1.0",
         "well": wellToJsonObj(realizationData.well),
+        "initialBathymetry": realizationData.initialBathymetry,
     }
 
     if realizationData.subsidenceCurve is not None:
-        payload["subsidenceCurve"] = curveToJsonObj(
-            realizationData.subsidenceCurve
-        )
+        subs_payload: dict[str, Any] = {
+            "type": realizationData.subsidenceType.value,
+            "curve": curveToJsonObj(realizationData.subsidenceCurve),
+        }
+        payload["subsidenceCurve"] = subs_payload
     else:
         payload["subsidenceCurve"] = None
     return payload
@@ -225,7 +255,6 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
             "format",
             "version",
             "name",
-            "faciesModel",
             "accumulationModel",
             "eustaticCurve",
         },
@@ -236,31 +265,13 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
     if not isinstance(name, str) or name.strip() == "":
         raise ValueError("Scenario.name must be a non-empty string.")
 
-    # --- Facies model ---
-    facies_model_obj: Any = obj.get("faciesModel")
-
-    def _load_facies_file(path: Path) -> Any:  # noqa: ANN401
-        try:
-            return loadFaciesModel(str(path))
-        except (ValueError, FileNotFoundError, OSError) as exc:
-            raise ValueError(
-                "Scenario.faciesModel.url must point to a supported facies "
-                "model file (.json)."
-            ) from exc
-
-    facies_model = load_inline_or_url(
-        facies_model_obj,
-        base_dir=base_dir,
-        ctx="Scenario.faciesModel",
-        load_inline=loadFaciesModelFromJsonObj,
-        load_file=_load_facies_file,
-    )
-
     # --- Accumulation model ---
     accumulation_model_obj: Any = obj.get("accumulationModel")
 
     def _load_inline_am(am_json: dict[str, Any]) -> Any:  # noqa: ANN401
-        return loadAccumulationModelFromJsonObj(am_json, base_dir=base_dir)
+        return loadAccumulationModelFromJsonObj(
+            am_json, base_dir=str(base_dir)
+        )
 
     def _load_am_file(path: Path) -> Any:  # noqa: ANN401
         try:
@@ -310,7 +321,6 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
         name=name,
         accumulationModel=accumulation_model,
         eustaticCurve=eustatic_curve,
-        faciesModel=facies_model,
     )
 
 
@@ -331,7 +341,6 @@ def exportScenarioToJsonObj(scenario: Scenario) -> dict[str, Any]:
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
         "name": scenario.name,
-        "faciesModel": faciesModelToJsonObj(scenario.faciesModel),
         "accumulationModel": accumulationModelToJsonObj(
             scenario.accumulationModel
         ),

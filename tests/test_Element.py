@@ -19,20 +19,16 @@ from pywellsfm.model import Element
 
 # Parameterize the tests with element names and production max values
 @pytest.mark.parametrize(
-    "element_name, accumulation_rate",
-    [("Sand", 10), ("Shale", 30), ("Carbonate", 50)],
+    "element_name",
+    ["Sand", "Shale", "Carbonate"],
 )
-def test_element_initialization(
-    element_name: str, accumulation_rate: float
-) -> None:
+def test_element_initialization(element_name: str) -> None:
     """Test of element initialization.
 
     :param str element_name: element name
-    :param float accumulation_rate: accumulation rate
     """
-    element = Element(element_name, accumulation_rate)
+    element = Element(element_name)
     assert element.name == element_name
-    assert element.accumulationRate == accumulation_rate
 
 
 @pytest.mark.parametrize("element_name", ["Sand", "Shale", "Carbonate"])
@@ -41,7 +37,7 @@ def test_element_repr1(element_name: str) -> None:
 
     :param str element_name: element name
     """
-    element = Element(element_name, 10.0)
+    element = Element(element_name)
     assert repr(element) == f"{element_name}"
 
 
@@ -51,11 +47,9 @@ def test_element_hash(element_name: str) -> None:
 
     :param str element_name: element name
     """
-    element1 = Element(element_name, 10.0)
-    element2 = Element(
-        element_name, 5.0
-    )  # Same name, different accumulationRate
-    element3 = Element("Clay", 10.0)  # Different name
+    element1 = Element(element_name)
+    element2 = Element(element_name)  # Same name, different accumulationRate
+    element3 = Element("Clay")  # Different name
 
     assert hash(element1) == hash(element2)  # Same name, same hash
     assert hash(element1) != hash(element3)  # Different name, different hash
@@ -67,9 +61,9 @@ def test_element_equality(element_name: str) -> None:
 
     :param str element_name: element name
     """
-    element1 = Element(element_name, 10.0)
-    element2 = Element(element_name, 5.0)  # Same name
-    element3 = Element("Clay", 10.0)  # Different name
+    element1 = Element(element_name)
+    element2 = Element(element_name)  # Same name
+    element3 = Element("Clay")  # Different name
 
     assert element1 == element2  # Same name
     assert element1 != element3  # Different name
@@ -77,10 +71,10 @@ def test_element_equality(element_name: str) -> None:
 
 def test_set_Element() -> None:
     """Test usage of Element in a set."""
-    element1 = Element("Sand", 10.0)
-    element2 = Element("Shale", 30.0)
-    element3 = Element("Carbonate", 50.0)
-    element4 = Element("Sand", 50.0)
+    element1 = Element("Sand")
+    element2 = Element("Shale")
+    element3 = Element("Carbonate")
+    element4 = Element("Sand")
 
     elementSet = {element1, element2, element3}
     assert len(elementSet) == 3, "The length of the set of elements is wrong."

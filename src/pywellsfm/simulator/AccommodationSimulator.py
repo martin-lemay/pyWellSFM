@@ -6,7 +6,7 @@ from typing import Self
 
 import numpy as np
 
-from pywellsfm.model.Curve import Curve
+from pywellsfm.model import Curve, SubsidenceType
 
 
 @dataclass(frozen=True)
@@ -15,12 +15,12 @@ class AccommodationStorage:
 
     Elevation datum is given by sea level at the start of the simulation.
 
-    :param float topography: topography value
+    :param float basement: basement elevation value
     :param float seaLevel: sea level value
     :param float accommodation: accommodation value
     """
 
-    topography: float
+    basement: float
     seaLevel: float
     accommodation: float
 
@@ -32,18 +32,27 @@ class AccommodationSimulator:
         The simulator uses the eustatism at the start of the simulation as the
         datum. All elevations are computed relatively to this datum.
 
+        .. WARNING::
+
+            Subsidence curve can be the cumulative subsidence or the
+            subsidence rate.
+
         At the start of the simulation, we have:
+
           - initial sea level elevation is 0
-          - initial topography is -initial bathymetry
+          - initial topography (basement) is -initial bathymetry
           - initial accommodation is initial bathymetry
 
         At a given time t, we have:
+
           - sea level(t) = eustatism(t) - eustatism(0)
-          - topography(t) = initial topography + subsidence(t)
+          - basement(t) = initial topography - subsidence(t)
           - accommodation(t) = sea level + subsidence(t)
         """
-        #: subsidence curve used by the simulator
+        #: subsidence curve (cumulative or rate) used by the simulator
         self.subsidenceCurve: Curve | None = None
+        #: subsidence type (cumulative or rate) used by the simulator
+        self.subsidenceType: SubsidenceType = SubsidenceType.CUMULATIVE
         #: eustatic curve used by the simulator
         self.eustaticCurve: Curve | None = None
         #: Eustatism at the start of the simulation
@@ -111,6 +120,13 @@ class AccommodationSimulator:
             raise ValueError("Subsidence curve is not set.")
         return self.subsidenceCurve(age)
 
+    def getSubsidenceType(self: Self) -> SubsidenceType:
+        """Get the subsidence type used by the simulator.
+
+        :return SubsidenceType: subsidence type used by the simulator.
+        """
+        return self.subsidenceType
+
     def getSeaLevelAt(self: Self, age: float) -> float:
         """Get the sea level value at a given age.
 
@@ -130,7 +146,7 @@ class AccommodationSimulator:
         if self.subsidenceCurve is None:
             raise ValueError("Subsidence curve is not set.")
         subsidence = self.subsidenceCurve(age)
-        return self.topographyStart + subsidence
+        return self.topographyStart - subsidence
 
     def getAccommodationAt(self: Self, age: float) -> float:
         """Get the cumulative accommodation at a given age from the start.
