@@ -26,7 +26,7 @@ from .Facies import (
     PetrophysicalFacies,
     SedimentaryFacies,
 )
-from .Marker import Marker
+from .Marker import Marker, StratigraphicSurfaceType
 from .SimulationParameters import RealizationData, Scenario
 from .Well import Well
 
@@ -49,6 +49,7 @@ __all__ = [
     "PetrophysicalFacies",
     "RealizationData",
     "Scenario",
+    "StratigraphicSurfaceType",
     "SubsidenceType",
     "SedimentaryFacies",
     "UncertaintyCurve",

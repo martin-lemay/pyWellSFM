@@ -184,8 +184,8 @@ def test_environmentOptimum_addAccumulationCurve_getAccumulationCurve() -> (
     element_model.addAccumulationCurve(bathy_curve)
     element_model.addAccumulationCurve(energy_curve)
 
-    assert "Bathymetry" in element_model.accumulationCurves
-    assert "Energy" in element_model.accumulationCurves
+    assert "bathymetry" in element_model.accumulationCurves
+    assert "energy" in element_model.accumulationCurves
     assert element_model.getAccumulationCurve("Bathymetry") is bathy_curve
     assert element_model.getAccumulationCurve("Energy") is energy_curve
 
@@ -740,12 +740,12 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_inline_curves(
     assert model.name == "Env"
     sand_model = model.getElementModel("sand")
     assert isinstance(sand_model, AccumulationModelElementEnvironmentOptimum)
-    assert "Bathymetry" in sand_model.accumulationCurves
-    assert "Energy" in sand_model.accumulationCurves
+    assert "bathymetry" in sand_model.accumulationCurves
+    assert "energy" in sand_model.accumulationCurves
 
     # Linear curve between 0 and 10 -> at 5 = 0.5
     assert sand_model.getElementAccumulationAt(
-        {"Bathymetry": 5.0}
+        {"bathymetry": 5.0}
     ) == pytest.approx(10.0 * 0.5)
 
 
@@ -763,12 +763,12 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_url_curves(
     """
     bathy_curve_obj = curveToJsonObj(
         AccumulationCurve(
-            "Bathymetry",
+            "bathymetry",
             np.array([0.0, 10.0]),
             np.array([0.0, 1.0]),
         ),
         y_axis_name="ReductionCoeff",
-        x_axis_name_default="Bathymetry",
+        x_axis_name_default="bathymetry",
     )
     curve_path = tmp_path / "bathy_curve.json"
     curve_path.write_text(
@@ -799,9 +799,9 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_url_curves(
 
     sand_model = model.getElementModel("sand")
     assert isinstance(sand_model, AccumulationModelElementEnvironmentOptimum)
-    assert "Bathymetry" in sand_model.accumulationCurves
+    assert "bathymetry" in sand_model.accumulationCurves
     assert sand_model.getElementAccumulationAt(
-        {"Bathymetry": 5.0}
+        {"bathymetry": 5.0}
     ) == pytest.approx(10.0 * 0.5)
 
 

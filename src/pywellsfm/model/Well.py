@@ -34,8 +34,11 @@ class Well:
         self.depth: float = depth
         #: well path containing x,y,z coordinates of the path. By default,
         #: vertical well from well head
-        self._wellPath: npt.NDArray[np.float64] = np.array(
-            wellHeadCoords - np.array((0.0, 0.0, depth))
+        self._wellPath: npt.NDArray[np.float64] = np.stack(
+            (
+                wellHeadCoords,
+                np.array(wellHeadCoords - np.array((0.0, 0.0, depth))),
+            )
         )
         #: well markers defining remarkable horizons
         self._markers: set[Marker] = set()
@@ -52,7 +55,7 @@ class Well:
     ) -> "Well":
         """Make a shallow copy of the well.
 
-        Usefull to create a simulated version of the well.
+        Useful to create a simulated version of the well.
 
         :param str newName: new name of the well.
         :param bool copyMarkers: if True, copy markers by reference.

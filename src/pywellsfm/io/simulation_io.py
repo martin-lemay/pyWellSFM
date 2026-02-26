@@ -34,7 +34,7 @@ from pywellsfm.model.SimulationParameters import (
     Scenario,
     SimulationData,
 )
-from pywellsfm.simulator.FSSimulatorRunner import FSSimulatorRunnerData
+from pywellsfm.simulator.FSSimulator import FSSimulatorData
 
 
 def loadRealizationData(filepath: str) -> RealizationData:
@@ -378,7 +378,7 @@ def exportSimulationDataToJsonObj(
 ) -> dict[str, Any]:
     """Export SimulationData object to json object.
 
-    json format conforms to json/SimulationDataSchema.json.
+    json format conforms to json/FSSimulationDataSchema.json.
 
     :param SimulationData simulationData: SimulationData object
     :param str name: name of the simulation data
@@ -429,13 +429,13 @@ def saveSimulationData(
     )
 
 
-def loadSimulationData(filepath: str) -> FSSimulatorRunnerData:
+def loadSimulationData(filepath: str) -> FSSimulatorData:
     """Load scenario from json file.
 
     json file schema is defined by jsonSchemas/ScenarioSchema.json
 
     :param str filepath: path to scenario json file
-    :return FSSimulatorRunnerData: data object containing scenario and
+    :return FSSimulatorData: data object containing scenario and
         realizations data for running
     """
     path = Path(filepath)
@@ -509,4 +509,4 @@ def loadSimulationData(filepath: str) -> FSSimulatorRunnerData:
                 load_file=_load_realization_file,
             )
         )
-    return FSSimulatorRunnerData(scenario, realizations_data)
+    return FSSimulatorData(scenario, realizations_data)

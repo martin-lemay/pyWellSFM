@@ -12,7 +12,7 @@ import pytest
 from striplog import Striplog
 
 from pywellsfm.model.Curve import Curve
-from pywellsfm.simulator.FSSimulatorRunner import FSSimulatorRunnerData
+from pywellsfm.simulator.FSSimulator import FSSimulatorData
 
 m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
@@ -343,9 +343,7 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
         json.dumps(simulation_payload), encoding="utf-8"
     )
 
-    simulationData: FSSimulatorRunnerData = loadSimulationData(
-        str(simulation_path)
-    )
+    simulationData: FSSimulatorData = loadSimulationData(str(simulation_path))
     assert len(simulationData.realizationDataList) == 1
     assert simulationData.scenario.name == "Scenario1"
     assert (
@@ -360,7 +358,7 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
 def test_loadSimulationData_from_json_two_realizations() -> None:
     """Loads SimulationData and returns one FSSimulator per realization."""
     simulation_path = dataDir + "/simulation.json"
-    simulationData: FSSimulatorRunnerData = loadSimulationData(simulation_path)
+    simulationData: FSSimulatorData = loadSimulationData(simulation_path)
 
     assert len(simulationData.realizationDataList) == 2, (
         "Expected 2 realizations in the loaded SimulationData"
@@ -831,9 +829,7 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
         isinstance(r, dict) and "url" not in r for r in out_obj["realizations"]
     )
 
-    simulationData: FSSimulatorRunnerData = loadSimulationData(
-        str(simulation_out)
-    )
+    simulationData: FSSimulatorData = loadSimulationData(str(simulation_out))
     assert len(simulationData.realizationDataList) == 2
     assert simulationData.scenario.name == "ScenarioForSimulation"
     assert simulationData.realizationDataList[0].well.name == "Well1"

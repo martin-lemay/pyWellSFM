@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/SimulationDataSchema.json",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FSSimulationDataSchema.json",
     "title": "Input Simulation Data",
     "description": "Defines the input data to create FSM simulations.",
     "type": "object",

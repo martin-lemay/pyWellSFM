@@ -30,7 +30,7 @@ Minimal example (data loading and simulation run):
 from pywellsfm.io import loadSimulation
 from pywellsfm import (
     FSSimulator,
-    FSSimulatorRunner,
+    Realization,
     RealizationData,
     Scenario,
 )
@@ -72,7 +72,7 @@ Supported input formats:
   - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/ScenarioSchema.json
 
 - Simulation data (use `loadSimulationData()`):
-  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/SimulationDataSchema.json
+  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FSSimulationDataSchema.json
 
 Tip: example files are available in `tests/data/` and test files.
 

@@ -105,9 +105,11 @@ class AccumulationModelElementEnvironmentOptimum(AccumulationModelElementBase):
             accumulation reduction curves
         """
         super().__init__(elementName, accumulationRate)
-        self.accumulationCurves: dict[str, AccumulationCurve] = (
+        self.accumulationCurves: dict[str, AccumulationCurve] = {}
+        for curve in (
             accumulationCurves if accumulationCurves is not None else {}
-        )
+        ).values():
+            self.addAccumulationCurve(curve)
 
     def addAccumulationCurve(self: Self, curve: AccumulationCurve) -> None:
         """Add a reduction coefficient curve that modulate the accumulation.
@@ -117,15 +119,15 @@ class AccumulationModelElementEnvironmentOptimum(AccumulationModelElementBase):
 
         :param AccumulationCurve curve: reduction coefficient curve
         """
-        self.accumulationCurves[curve._xAxisName] = curve
+        self.accumulationCurves[curve._xAxisName.lower()] = curve
 
     def removeAccumulationCurve(self: Self, curveName: str) -> None:
         """Remove an accumulation curve from the model.
 
         :param str curveName: name of the accumulation curve to remove
         """
-        if curveName in self.accumulationCurves:
-            self.accumulationCurves.pop(curveName)
+        if curveName.lower() in self.accumulationCurves:
+            self.accumulationCurves.pop(curveName.lower())
 
     def getAccumulationCurve(
         self: Self, curveName: str
@@ -135,7 +137,7 @@ class AccumulationModelElementEnvironmentOptimum(AccumulationModelElementBase):
         :param str curveName: name of the accumulation curve
         :return AccumulationCurve | None: reduction coefficient curve
         """
-        return self.accumulationCurves.get(curveName, None)
+        return self.accumulationCurves.get(curveName.lower(), None)
 
     def getElementAccumulationAt(
         self: Self,

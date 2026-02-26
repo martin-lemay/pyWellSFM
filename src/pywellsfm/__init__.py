@@ -21,11 +21,12 @@ from .model import (
     RealizationData,
     Scenario,
     SedimentaryFacies,
+    StratigraphicSurfaceType,
     SubsidenceType,
     UncertaintyCurve,
     Well,
 )
-from .simulator import FSSimulatorRunner, FSSimulatorRunnerData
+from .simulator import FSSimulator, FSSimulatorData, Realization
 
 __version__ = "0.0.1"
 __all__ = [
@@ -43,13 +44,15 @@ __all__ = [
     "FaciesCriteriaCollection",
     "FaciesCriteriaType",
     "FaciesModel",
-    "FSSimulatorRunner",
-    "FSSimulatorRunnerData",
+    "FSSimulator",
+    "FSSimulatorData",
     "Marker",
     "PetrophysicalFacies",
+    "Realization",
     "RealizationData",
     "Scenario",
     "SedimentaryFacies",
+    "StratigraphicSurfaceType",
     "SubsidenceType",
     "UncertaintyCurve",
     "Well",
