@@ -11,14 +11,20 @@ from .AccommodationSimulator import (
     AccommodationStorage,
 )
 from .AccumulationSimulator import AccumulationSimulator
-from .FSSimulator import FSSimulator, FSSimulatorData
+from .DepositionalEnvironmentSimulator import (
+    DepositionalEnvironmentSimulator,
+    DESimulatorParameters,
+)
+from .FSSimulator import FSSimulator, FSSimulatorParameters
 from .Realization import Realization
 
 __all__ = [
     "AccommodationSimulator",
     "AccommodationStorage",
     "AccumulationSimulator",
+    "DepositionalEnvironmentSimulator",
+    "DESimulatorParameters",
     "Realization",
     "FSSimulator",
-    "FSSimulatorData",
+    "FSSimulatorParameters",
 ]

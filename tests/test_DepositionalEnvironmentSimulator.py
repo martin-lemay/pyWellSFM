@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
@@ -17,11 +18,22 @@ from typing import Self
 import numpy as np
 import pytest
 
+from pywellsfm.io.depositional_environment_simulation_io import (
+    depositionalEnvironmentSimulationToJsonObj,
+    loadDepositionalEnvironmentSimulation,
+    loadDepositionalEnvironmentSimulationFromJsonObj,
+    saveDepositionalEnvironmentSimulation,
+)
+from pywellsfm.model.DepositionalEnvironment import (
+    CarbonateProtectedRampDepositionalEnvironmentModel,
+    DepositionalEnvironment,
+    DepositionalEnvironmentModel,
+)
 from pywellsfm.simulator.DepositionalEnvironmentSimulator import (
     DepositionalEnvironmentSimulator,
-    DepositionalEnvironmentSimulatorParameters,
-    EnvironmentDefinition,
+    DESimulatorParameters,
 )
+from pywellsfm.utils import IntervalDistanceMethod
 
 # ======================================================================
 # Fixtures
@@ -29,91 +41,49 @@ from pywellsfm.simulator.DepositionalEnvironmentSimulator import (
 
 
 @pytest.fixture()
-def simple_envs() -> list[EnvironmentDefinition]:
+def simple_envs() -> DepositionalEnvironmentModel:
     """Three non-overlapping environments for basic tests."""
-    return [
-        EnvironmentDefinition("shallow", 0.0, 10.0),
-        EnvironmentDefinition("mid", 10.0, 50.0),
-        EnvironmentDefinition("deep", 50.0, 200.0),
+    envs = [
+        DepositionalEnvironment("shallow", bathymetry_range=(0.0, 10.0)),
+        DepositionalEnvironment("mid", bathymetry_range=(10.0, 50.0)),
+        DepositionalEnvironment("deep", bathymetry_range=(50.0, 200.0)),
     ]
+    return DepositionalEnvironmentModel("simple3", envs)
 
 
 @pytest.fixture()
-def simple_envs2() -> list[EnvironmentDefinition]:
+def simple_envs2() -> DepositionalEnvironmentModel:
     """Five non-overlapping environments for more detailed tests."""
-    return [
-        EnvironmentDefinition("shallow1", 0.0, 5.0),
-        EnvironmentDefinition("shallow2", 5.0, 10.0),
-        EnvironmentDefinition("mid", 10.0, 50.0),
-        EnvironmentDefinition("deep1", 50.0, 200.0),
-        EnvironmentDefinition("deep2", 200.0, 1000.0),
+    envs = [
+        DepositionalEnvironment("shallow1", bathymetry_range=(0.0, 5.0)),
+        DepositionalEnvironment("shallow2", bathymetry_range=(5.0, 10.0)),
+        DepositionalEnvironment("mid", bathymetry_range=(10.0, 50.0)),
+        DepositionalEnvironment("deep1", bathymetry_range=(50.0, 200.0)),
+        DepositionalEnvironment("deep2", bathymetry_range=(200.0, 1000.0)),
     ]
+    return DepositionalEnvironmentModel("simple5", envs)
 
 
 @pytest.fixture()
 def simple_sim(
-    simple_envs: list[EnvironmentDefinition],
+    simple_envs: DepositionalEnvironmentModel,
 ) -> DepositionalEnvironmentSimulator:
     """Simulator with default parameters and simple environments."""
     return DepositionalEnvironmentSimulator(simple_envs)
 
 
 @pytest.fixture()
-def carbonate_envs() -> list[EnvironmentDefinition]:
+def carbonate_envs() -> DepositionalEnvironmentModel:
     """Carbonate-platform environments from :meth:`from_breakpoints`."""
-    return DepositionalEnvironmentSimulator.from_breakpoints(
+    model = CarbonateProtectedRampDepositionalEnvironmentModel(
+        tidal_range=2.0,
         lagoon_max_bathymetry=5.0,
-        fairweather_wave_breaking_bathymetry=2.0,
         fairweather_wave_base_bathymetry=20.0,
         storm_wave_base_bathymetry=50.0,
         shelf_break_bathymetry=200.0,
-        basin_max_bathymetry=1000.0,
+        slope_toe_max_bathymetry=1000.0,
     )
-
-
-# ======================================================================
-# EnvironmentDefinition validation
-# ======================================================================
-
-
-class TestEnvironmentDefinition:
-    def test_valid(self: Self) -> None:
-        """Test valid environment creation."""
-        env = EnvironmentDefinition("a", 0.0, 10.0, weight=2.0)
-        assert env.name == "a"
-        assert env.bathymetry_min == 0.0
-        assert env.bathymetry_max == 10.0
-        assert env.weight == 2.0
-
-    def test_mid(self: Self) -> None:
-        """Test computation of bathymetry midpoint."""
-        env = EnvironmentDefinition("a", 0.0, 10.0)
-        assert env.bathymetry_mid == 5.0
-
-    def test_range_width(self: Self) -> None:
-        """Test computation of bathymetry range width."""
-        env = EnvironmentDefinition("a", 5.0, 20.0)
-        assert env.bathymetry_range_width == 15.0
-
-    def test_invalid_range(self: Self) -> None:
-        """Test invalid decreasing range raises an error."""
-        with pytest.raises(ValueError, match="bathymetry_min"):
-            EnvironmentDefinition("bad", 10.0, 5.0)
-
-    def test_equal_range(self: Self) -> None:
-        """Test equal min and max range raises an error."""
-        with pytest.raises(ValueError, match="bathymetry_min"):
-            EnvironmentDefinition("bad", 5.0, 5.0)
-
-    def test_zero_weight(self: Self) -> None:
-        """Test zero environment weight raises an error."""
-        with pytest.raises(ValueError, match="weight"):
-            EnvironmentDefinition("bad", 0.0, 10.0, weight=0.0)
-
-    def test_negative_weight(self: Self) -> None:
-        """Test negative environment weight raises an error."""
-        with pytest.raises(ValueError, match="weight"):
-            EnvironmentDefinition("bad", 0.0, 10.0, weight=-1.0)
+    return model
 
 
 # ======================================================================
@@ -122,46 +92,15 @@ class TestEnvironmentDefinition:
 
 
 class TestConstructor:
-    def test_empty_environments(self: Self) -> None:
-        """Test constructor rejects empty environment lists."""
-        with pytest.raises(ValueError, match="At least one"):
-            DepositionalEnvironmentSimulator([])
-
-    def test_duplicate_names(self: Self) -> None:
-        """Test constructor rejects duplicate environment names."""
-        envs = [
-            EnvironmentDefinition("a", 0.0, 10.0),
-            EnvironmentDefinition("a", 10.0, 20.0),
-        ]
-        with pytest.raises(ValueError, match="unique"):
-            DepositionalEnvironmentSimulator(envs)
-
-    def test_default_params(
-        self: Self, simple_sim: DepositionalEnvironmentSimulator
-    ) -> None:
-        """Test simulator default parameter values.
-
-        Args:
-            simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
-
-        Returns:
-            None: This test does not return a value.
-        """
-        assert simple_sim.params.bathymetry_sigma == 5.0
-        assert simple_sim.params.transition_sigma == 5.0
-        assert simple_sim.params.trend_sigma == 2.0
-        assert simple_sim.params.trend_window == 5
-        assert simple_sim.params.transition_mode == "adjacency"
-
     def test_invalid_trend_sigma(self: Self) -> None:
         """Test invalid trend sigma raises an error."""
         with pytest.raises(ValueError, match="trend_sigma"):
-            DepositionalEnvironmentSimulatorParameters(trend_sigma=0.0)
+            DESimulatorParameters(trend_sigma=0.0)
 
     def test_invalid_trend_window(self: Self) -> None:
         """Test invalid trend window raises an error."""
         with pytest.raises(ValueError, match="trend_window"):
-            DepositionalEnvironmentSimulatorParameters(trend_window=1)
+            DESimulatorParameters(trend_window=1)
 
     def test_environment_names(
         self: Self, simple_sim: DepositionalEnvironmentSimulator
@@ -183,48 +122,6 @@ class TestConstructor:
         """
         envs = simple_sim.environments
         assert envs is not simple_sim.environments  # returns a copy
-
-
-# ======================================================================
-# from_breakpoints
-# ======================================================================
-
-
-class TestFromBreakpoints:
-    def test_default_breakpoints(
-        self: Self, carbonate_envs: list[EnvironmentDefinition]
-    ) -> None:
-        """Test default breakpoint preset content.
-
-        Args:
-            carbonate_envs (list[EnvironmentDefinition]): Preset fixture.
-        """
-        names = [e.name for e in carbonate_envs]
-        assert "shore" in names
-        assert "lagoon" in names
-        assert "reef_crest" in names
-        assert "basin" in names
-        assert len(carbonate_envs) == 8
-
-    def test_all_ranges_valid(
-        self: Self, carbonate_envs: list[EnvironmentDefinition]
-    ) -> None:
-        """Test all preset ranges are strictly increasing.
-
-        Args:
-            carbonate_envs (list[EnvironmentDefinition]): Preset fixture.
-        """
-        for env in carbonate_envs:
-            assert env.bathymetry_min < env.bathymetry_max
-
-    def test_custom_breakpoints(self: Self) -> None:
-        """Test custom breakpoints override default values."""
-        envs = DepositionalEnvironmentSimulator.from_breakpoints(
-            lagoon_max_bathymetry=10.0,
-            storm_wave_base_bathymetry=30.0,
-        )
-        lagoon = next(e for e in envs if e.name == "lagoon")
-        assert lagoon.bathymetry_max == 10.0
 
 
 # ======================================================================
@@ -260,10 +157,13 @@ class TestPrior:
     def test_non_uniform_weights(self: Self) -> None:
         """Test non-uniform weights produce weighted prior."""
         envs = [
-            EnvironmentDefinition("a", 0.0, 10.0, weight=3.0),
-            EnvironmentDefinition("b", 10.0, 50.0, weight=1.0),
+            DepositionalEnvironment("a", bathymetry_range=(0.0, 10.0)),
+            DepositionalEnvironment("b", bathymetry_range=(10.0, 50.0)),
         ]
-        sim = DepositionalEnvironmentSimulator(envs)
+        weights = {"a": 3.0, "b": 1.0}
+        sim = DepositionalEnvironmentSimulator(
+            DepositionalEnvironmentModel("ab", envs), weights=weights
+        )
         prior = sim.compute_prior()
         assert math.isclose(prior["a"], 0.75)
         assert math.isclose(prior["b"], 0.25)
@@ -303,22 +203,22 @@ class TestBathymetryLikelihood:
     def test_value_inside_environment(self: Self) -> None:
         """Test that nearest environment has higher likelihood."""
         envs = [
-            EnvironmentDefinition("A", 0.0, 10.0),
-            EnvironmentDefinition("B", 100.0, 200.0),
+            DepositionalEnvironment("A", bathymetry_range=(0.0, 10.0)),
+            DepositionalEnvironment("B", bathymetry_range=(100.0, 200.0)),
         ]
-        sim = DepositionalEnvironmentSimulator(envs)
+        sim = DepositionalEnvironmentSimulator(
+            DepositionalEnvironmentModel("AB", envs)
+        )
         # Value 5 is close to A [0,10], far from B [100,200]
         lik = sim.compute_bathymetry_likelihood(bathymetry_value=5.0)
         assert lik["A"] > lik["B"]
 
     def test_value_matching_env_range(self: Self) -> None:
         """Test expected likelihood for a known endpoint distance."""
-        envs = [EnvironmentDefinition("X", 0.5, 10.0)]
+        envs = [DepositionalEnvironment("X", bathymetry_range=(0.5, 10.0))]
         sim = DepositionalEnvironmentSimulator(
-            envs,
-            params=DepositionalEnvironmentSimulatorParameters(
-                bathymetry_sigma=100.0
-            ),
+            DepositionalEnvironmentModel("X", envs),
+            params=DESimulatorParameters(bathymetry_sigma=100.0),
         )
         lik = sim.compute_bathymetry_likelihood(bathymetry_value=0.0)
         # delta = 1.5 (1 + gap of 0.5), so likelihood = exp(-0.5 * (1.5/100)^2)
@@ -328,14 +228,12 @@ class TestBathymetryLikelihood:
     def test_range_constraint(self: Self) -> None:
         """Test range-based bathymetry likelihood computation."""
         envs = [
-            EnvironmentDefinition("A", 0.0, 10.0),
-            EnvironmentDefinition("B", 0.0, 100.0),
+            DepositionalEnvironment("A", bathymetry_range=(0.0, 10.0)),
+            DepositionalEnvironment("B", bathymetry_range=(0.0, 100.0)),
         ]
         sim = DepositionalEnvironmentSimulator(
-            envs,
-            params=DepositionalEnvironmentSimulatorParameters(
-                bathymetry_sigma=50.0
-            ),
+            DepositionalEnvironmentModel("AB", envs),
+            params=DESimulatorParameters(bathymetry_sigma=50.0),
         )
         lik = sim.compute_bathymetry_likelihood(bathymetry_range=(0.0, 10.0))
         # A: delta=0, B: delta=|0-0|+|10-100|=90
@@ -374,18 +272,16 @@ class TestTransitionLikelihood:
             assert v == 1.0
 
     def test_mode_none(
-        self: Self, simple_envs: list[EnvironmentDefinition]
+        self: Self, simple_envs: DepositionalEnvironmentModel
     ) -> None:
         """Test transition mode `none` disables transition weighting.
 
         Args:
-            simple_envs (list[EnvironmentDefinition]): Environments fixture.
+            simple_envs (DepositionalEnvironmentModel): Environments fixture.
         """
         sim = DepositionalEnvironmentSimulator(
             simple_envs,
-            params=DepositionalEnvironmentSimulatorParameters(
-                transition_mode="none"
-            ),
+            params=DESimulatorParameters(transition_mode="none"),
         )
         lik = sim.compute_transition_likelihood("shallow")
         for v in lik.values():
@@ -479,71 +375,75 @@ class TestDistalityTrendLikelihood:
             simple_sim.compute_distality_trend_likelihood(["mid", "unknown"])
 
     def test_positive_trend_favours_more_distal(
-        self: Self, simple_envs2: list[EnvironmentDefinition]
+        self: Self, simple_envs2: DepositionalEnvironmentModel
     ) -> None:
         """Test positive trend favors more distal environments.
 
         Args:
-            simple_envs2 (list[EnvironmentDefinition]): Environments fixture.
+            simple_envs2 (DepositionalEnvironmentModel): Environments fixture.
         """
         sim = DepositionalEnvironmentSimulator(
             simple_envs2,
-            params=DepositionalEnvironmentSimulatorParameters(
+            params=DESimulatorParameters(
                 transition_mode="none",
                 trend_sigma=0.2,
                 trend_window=5,
             ),
         )
+        sim.prepare()
         lik = sim.compute_distality_trend_likelihood(
             ["shallow1", "shallow2", "mid"]
         )
         assert lik["shallow1"] < lik["deep2"] < lik["deep1"]
 
     def test_negative_trend_favours_more_proximal(
-        self: Self, simple_envs2: list[EnvironmentDefinition]
+        self: Self, simple_envs2: DepositionalEnvironmentModel
     ) -> None:
         """Test negative trend favors more proximal environments.
 
         Args:
-            simple_envs2 (list[EnvironmentDefinition]): Environments fixture.
+            simple_envs2 (DepositionalEnvironmentModel): Environments fixture.
         """
         sim = DepositionalEnvironmentSimulator(
             simple_envs2,
-            params=DepositionalEnvironmentSimulatorParameters(
+            params=DESimulatorParameters(
                 transition_mode="none",
                 trend_sigma=0.2,
                 trend_window=2,
             ),
         )
+        sim.prepare()
         lik = sim.compute_distality_trend_likelihood(
             (["deep2", "deep1", "mid"])
         )
         assert lik["shallow2"] > lik["shallow1"] > lik["deep2"]
 
     def test_custom_distality_mapping(
-        self: Self, simple_envs2: list[EnvironmentDefinition]
+        self: Self, simple_envs2: DepositionalEnvironmentModel
     ) -> None:
         """Test custom distality mapping affects trend likelihood.
 
         Args:
-            simple_envs2 (list[EnvironmentDefinition]): Environments fixture.
+            simple_envs2 (DepositionalEnvironmentModel): Environments fixture.
         """
-        custom_distality = {
-            "shallow1": 4.0,
-            "shallow2": 3.0,
-            "mid": 2.0,
-            "deep1": 1.0,
-            "deep2": 0.0,
-        }
+        envs_copy = [
+            DepositionalEnvironment(e.name, e.bathymetry_range)
+            for e in simple_envs2.environments
+        ]
+        envs_copy[0].distality = 4.0
+        envs_copy[1].distality = 3.0
+        envs_copy[2].distality = 2.0
+        envs_copy[3].distality = 1.0
+        envs_copy[4].distality = 0.0
         sim = DepositionalEnvironmentSimulator(
-            environments=simple_envs2,
-            distality_by_environment=custom_distality,
-            params=DepositionalEnvironmentSimulatorParameters(
+            DepositionalEnvironmentModel("simple5_copy", envs_copy),
+            params=DESimulatorParameters(
                 transition_mode="none",
                 trend_sigma=0.2,
                 trend_window=2,
             ),
         )
+        sim.prepare()
         lik = sim.compute_distality_trend_likelihood(
             ["shallow1", "shallow2", "mid"]
         )
@@ -565,6 +465,7 @@ class TestPosterior:
         Args:
             simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
         """
+        simple_sim.prepare()
         post = simple_sim.compute_posterior(bathymetry_value=5.0)
         assert math.isclose(sum(post.values()), 1.0)
 
@@ -576,6 +477,7 @@ class TestPosterior:
         Args:
             simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
         """
+        simple_sim.prepare()
         prior = simple_sim.compute_prior()
         post = simple_sim.compute_posterior()
         for name in simple_sim.environment_names:
@@ -589,6 +491,7 @@ class TestPosterior:
         Args:
             simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
         """
+        simple_sim.prepare()
         post = simple_sim.compute_posterior(bathymetry_value=5.0)
         # shallow [0,10] should dominate for bathy=5
         assert post["shallow"] > post["deep"]
@@ -596,17 +499,18 @@ class TestPosterior:
     def test_combined_constraints(self: Self) -> None:
         """Test bathymetry and transition jointly affect posterior."""
         envs = [
-            EnvironmentDefinition("A", 0.0, 10.0),
-            EnvironmentDefinition("B", 10.0, 30.0),
-            EnvironmentDefinition("C", 30.0, 100.0),
+            DepositionalEnvironment("A", bathymetry_range=(0.0, 10.0)),
+            DepositionalEnvironment("B", bathymetry_range=(10.0, 30.0)),
+            DepositionalEnvironment("C", bathymetry_range=(30.0, 100.0)),
         ]
         sim = DepositionalEnvironmentSimulator(
-            envs,
-            params=DepositionalEnvironmentSimulatorParameters(
+            DepositionalEnvironmentModel("ABC", envs),
+            params=DESimulatorParameters(
                 bathymetry_sigma=15.0,
                 transition_sigma=15.0,
             ),
         )
+        sim.prepare()
         post = sim.compute_posterior(
             bathymetry_value=15.0, previous_environments=["A"]
         )
@@ -617,38 +521,40 @@ class TestPosterior:
     def test_fallback_returns_valid_posterior(self: Self) -> None:
         """Test underflow fallback still returns a normalized posterior."""
         envs = [
-            EnvironmentDefinition("A", 0.0, 1.0),
-            EnvironmentDefinition("B", 1000.0, 2000.0),
+            DepositionalEnvironment("A", bathymetry_range=(0.0, 1.0)),
+            DepositionalEnvironment("B", bathymetry_range=(1000.0, 2000.0)),
         ]
         # Very tight sigma → posteriors may underflow
         sim = DepositionalEnvironmentSimulator(
-            envs,
-            params=DepositionalEnvironmentSimulatorParameters(
+            DepositionalEnvironmentModel("AB", envs),
+            params=DESimulatorParameters(
                 bathymetry_sigma=0.001,
                 transition_sigma=0.001,
             ),
         )
+        sim.prepare()
         post = sim.compute_posterior(
             bathymetry_value=500.0, previous_environments=["A"]
         )
         assert math.isclose(sum(post.values()), 1.0)
 
     def test_trend_influences_posterior(
-        self: Self, simple_envs2: list[EnvironmentDefinition]
+        self: Self, simple_envs2: DepositionalEnvironmentModel
     ) -> None:
         """Test trend likelihood influences posterior ranking.
 
         Args:
-            simple_envs2 (list[EnvironmentDefinition]): Environments fixture.
+            simple_envs2 (DepositionalEnvironmentModel): Environments fixture.
         """
         sim = DepositionalEnvironmentSimulator(
             simple_envs2,
-            params=DepositionalEnvironmentSimulatorParameters(
+            params=DESimulatorParameters(
                 transition_mode="none",
                 trend_sigma=0.5,
                 trend_window=5,
             ),
         )
+        sim.prepare()
         post = sim.compute_posterior(
             previous_environments=["shallow1", "shallow2", "mid"],
         )
@@ -669,6 +575,7 @@ class TestPrepare:
         Args:
             simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
         """
+        simple_sim.prepare()
         prior_before = simple_sim.compute_prior()
         trans_before = simple_sim.compute_transition_likelihood("mid")
         post_before = simple_sim.compute_posterior(
@@ -677,7 +584,6 @@ class TestPrepare:
         )
 
         simple_sim.prepare()
-
         prior_after = simple_sim.compute_prior()
         trans_after = simple_sim.compute_transition_likelihood("mid")
         post_after = simple_sim.compute_posterior(
@@ -718,6 +624,7 @@ class TestSampling:
         Args:
             simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
         """
+        simple_sim.prepare()
         post = simple_sim.compute_posterior(bathymetry_value=5.0)
         result1 = simple_sim.sample_environment(post, seed=42)
         result2 = simple_sim.sample_environment(post, seed=42)
@@ -731,6 +638,7 @@ class TestSampling:
         Args:
             simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
         """
+        simple_sim.prepare()
         post = simple_sim.compute_posterior(bathymetry_value=5.0)
         result = simple_sim.sample_environment(post, seed=0)
         assert result in simple_sim.environment_names
@@ -745,6 +653,7 @@ class TestSampling:
         """
         post = simple_sim.compute_posterior(bathymetry_value=5.0)
         rng = np.random.default_rng(123)
+        simple_sim.prepare()
         result = simple_sim.sample_environment(post, rng=rng)
         assert result in simple_sim.environment_names
 
@@ -758,17 +667,21 @@ class TestSampling:
         """
         zero_post = dict.fromkeys(simple_sim.environment_names, 0.0)
         with pytest.raises(ValueError, match="zero"):
+            simple_sim.prepare()
             simple_sim.sample_environment(zero_post, seed=0)
 
     def test_degenerate_posterior(self: Self) -> None:
         """Test deterministic outcome for degenerate posterior."""
         envs = [
-            EnvironmentDefinition("only", 0.0, 10.0),
-            EnvironmentDefinition("other", 10.0, 20.0),
+            DepositionalEnvironment("only", bathymetry_range=(0.0, 10.0)),
+            DepositionalEnvironment("other", bathymetry_range=(10.0, 20.0)),
         ]
-        sim = DepositionalEnvironmentSimulator(envs)
+        sim = DepositionalEnvironmentSimulator(
+            DepositionalEnvironmentModel("AB", envs)
+        )
         post = {"only": 1.0, "other": 0.0}
         for seed in range(10):
+            sim.prepare()
             assert sim.sample_environment(post, seed=seed) == "only"
 
 
@@ -786,6 +699,7 @@ class TestRun:
         Args:
             simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
         """
+        simple_sim.prepare()
         posterior, result = simple_sim.run(
             bathymetry_value=5.0,
             previous_environments=["shallow"],
@@ -802,7 +716,7 @@ class TestRun:
 
         for name in simple_sim.environment_names:
             assert math.isclose(posterior[name], manual_posterior[name])
-        assert result == manual_result
+        assert result.name == manual_result
 
     def test_run_is_deterministic_with_seed(
         self: Self, simple_sim: DepositionalEnvironmentSimulator
@@ -812,32 +726,119 @@ class TestRun:
         Args:
             simple_sim (DepositionalEnvironmentSimulator): Simulator fixture.
         """
+        simple_sim.prepare()
         _, result1 = simple_sim.run(bathymetry_value=5.0, seed=42)
         _, result2 = simple_sim.run(bathymetry_value=5.0, seed=42)
         assert result1 == result2
 
     def test_run_with_previous_environments(
-        self: Self, simple_envs2: list[EnvironmentDefinition]
+        self: Self, simple_envs2: DepositionalEnvironmentModel
     ) -> None:
         """Test helper `run` with previous environments history.
 
         Args:
-            simple_envs2 (list[EnvironmentDefinition]): Environments fixture.
+            simple_envs2 (DepositionalEnvironmentModel): Environments fixture.
         """
         sim = DepositionalEnvironmentSimulator(
             simple_envs2,
-            params=DepositionalEnvironmentSimulatorParameters(
+            params=DESimulatorParameters(
                 transition_mode="none",
                 trend_sigma=0.2,
                 trend_window=2,
             ),
         )
+        sim.prepare()
         posterior, result = sim.run(
             previous_environments=["shallow1", "shallow2", "mid"],
             seed=123,
         )
         assert math.isclose(sum(posterior.values()), 1.0)
-        assert result in sim.environment_names
+        assert result.name in sim.environment_names
+
+
+# ======================================================================
+# I/O
+# ======================================================================
+
+
+class TestSimulationIO:
+    def test_json_obj_roundtrip(
+        self: Self, simple_envs: DepositionalEnvironmentModel
+    ) -> None:
+        """Test export/load round-trip from in-memory JSON object."""
+        sim = DepositionalEnvironmentSimulator(
+            simple_envs,
+            weights={"shallow": 3.0, "mid": 2.0, "deep": 1.0},
+            params=DESimulatorParameters(
+                bathymetry_sigma=7.0,
+                transition_sigma=9.0,
+                trend_sigma=0.5,
+                trend_window=4,
+                transition_mode="adjacency",
+                interval_distance_method=IntervalDistanceMethod.CENTER,
+            ),
+        )
+
+        payload = depositionalEnvironmentSimulationToJsonObj(sim)
+        loaded = loadDepositionalEnvironmentSimulationFromJsonObj(payload)
+
+        assert loaded.environment_names == sim.environment_names
+        assert loaded.params.bathymetry_sigma == 7.0
+        assert loaded.params.transition_sigma == 9.0
+        assert loaded.params.trend_sigma == 0.5
+        assert loaded.params.trend_window == 4
+        assert loaded.params.transition_mode == "adjacency"
+        assert (
+            loaded.params.interval_distance_method
+            == IntervalDistanceMethod.CENTER
+        )
+        prior = loaded.compute_prior()
+        assert math.isclose(prior["shallow"], 3.0 / 6.0)
+        assert math.isclose(prior["mid"], 2.0 / 6.0)
+        assert math.isclose(prior["deep"], 1.0 / 6.0)
+
+    def test_save_and_load_file(
+        self: Self,
+        tmp_path: Path,
+        simple_envs: DepositionalEnvironmentModel,
+    ) -> None:
+        """Test save/load functions with a JSON file path."""
+        sim = DepositionalEnvironmentSimulator(simple_envs)
+        sim.prepare()
+        out_path = Path(tmp_path) / "de_simulation.json"
+
+        saveDepositionalEnvironmentSimulation(sim, str(out_path))
+        loaded = loadDepositionalEnvironmentSimulation(str(out_path))
+
+        assert loaded.environment_names == sim.environment_names
+        assert loaded.params == sim.params
+
+    def test_missing_weights_key_raises(
+        self: Self, simple_envs: DepositionalEnvironmentModel
+    ) -> None:
+        """Test load raises when weights are missing env names."""
+        sim = DepositionalEnvironmentSimulator(simple_envs)
+        payload = depositionalEnvironmentSimulationToJsonObj(sim)
+        payload["weights"] = {"shallow": 1.0, "mid": 1.0}
+
+        with pytest.raises(ValueError, match="missing keys"):
+            loadDepositionalEnvironmentSimulationFromJsonObj(payload)
+
+    def test_unknown_weights_key_raises(
+        self: Self, simple_envs: DepositionalEnvironmentModel
+    ) -> None:
+        """Test load raises when weights contain unknown env names."""
+        sim = DepositionalEnvironmentSimulator(simple_envs)
+        payload = depositionalEnvironmentSimulationToJsonObj(sim)
+        payload["weights"] = {
+            "shallow": 1.0,
+            "mid": 1.0,
+            "deep": 1.0,
+            "unknown": 1.0,
+        }
+
+        with pytest.raises(ValueError, match="unknown environments"):
+            loadDepositionalEnvironmentSimulationFromJsonObj(payload)
 
 
 # ======================================================================
@@ -847,17 +848,17 @@ class TestRun:
 
 class TestCarbonatePlatformIntegration:
     def test_full_workflow(
-        self: Self, carbonate_envs: list[EnvironmentDefinition]
+        self: Self, carbonate_envs: DepositionalEnvironmentModel
     ) -> None:
         """Test full carbonate workflow from posterior to sampling.
 
         Args:
-            carbonate_envs (list[EnvironmentDefinition]): Preset fixture.
+            carbonate_envs (DepositionalEnvironmentModel): Preset fixture.
         """
         sim = DepositionalEnvironmentSimulator(carbonate_envs)
 
         post = sim.compute_posterior(
-            bathymetry_value=3.0, previous_environments=["reef_crest"]
+            bathymetry_value=3.0, previous_environments=["ReefCrest"]
         )
         assert math.isclose(sum(post.values()), 1.0)
 
@@ -865,102 +866,111 @@ class TestCarbonatePlatformIntegration:
         assert result in sim.environment_names
 
     def test_deep_bathymetry_favours_deep_envs(
-        self: Self, carbonate_envs: list[EnvironmentDefinition]
+        self: Self, carbonate_envs: DepositionalEnvironmentModel
     ) -> None:
         """Test deep bathymetry favors deep carbonate environments.
 
         Args:
-            carbonate_envs (list[EnvironmentDefinition]): Preset fixture.
+            carbonate_envs (DepositionalEnvironmentModel): Preset fixture.
         """
         sim = DepositionalEnvironmentSimulator(
             carbonate_envs,
-            params=DepositionalEnvironmentSimulatorParameters(
+            params=DESimulatorParameters(
                 bathymetry_sigma=50.0,
             ),
         )
         post = sim.compute_posterior(bathymetry_value=400.0)
-        # basin [200, 1000] should dominate
+        # Basin [200, 1000] should dominate
         shallow_total = sum(
-            post[n] for n in ["shore", "lagoon", "back_reef", "reef_crest"]
+            post[n]
+            for n in ["Sabkha", "Shore", "Lagoon", "BackReef", "ReefCrest"]
         )
-        assert post["basin"] > shallow_total
+        assert sum((post["ShelfSlope"], post["Basin"])) > shallow_total
 
     def test_run_with_carbonate_platform(
-        self: Self, carbonate_envs: list[EnvironmentDefinition]
+        self: Self, carbonate_envs: DepositionalEnvironmentModel
     ) -> None:
         """Test helper `run` with carbonate preset environments.
 
         Args:
-            carbonate_envs (list[EnvironmentDefinition]): Preset fixture.
+            carbonate_envs (DepositionalEnvironmentModel): Preset fixture.
         """
         sim = DepositionalEnvironmentSimulator(carbonate_envs)
         posterior, result = sim.run(
             bathymetry_value=3.0,
-            previous_environments=["reef_crest"],
+            previous_environments=["ReefCrest"],
             seed=42,
         )
         assert math.isclose(sum(posterior.values()), 1.0)
-        assert result in sim.environment_names
+        assert result.name in sim.environment_names
 
     def test_main_env_in_carbonate_platform(
-        self: Self, carbonate_envs: list[EnvironmentDefinition]
+        self: Self, carbonate_envs: DepositionalEnvironmentModel
     ) -> None:
         """Test dominant sampled environments for carbonate scenario.
 
         Args:
-            carbonate_envs (list[EnvironmentDefinition]): Preset fixture.
+            carbonate_envs (DepositionalEnvironmentModel): Preset fixture.
         """
         sim = DepositionalEnvironmentSimulator(carbonate_envs)
         results_all = []
         for i in range(100):
             posterior, result = sim.run(
                 bathymetry_value=10.0,
-                previous_environments=["reef_crest"],
+                previous_environments=["ReefCrest"],
                 seed=i,
             )
-            results_all.append(result)
+            results_all.append(result.name)
         counts = np.unique_counts(results_all)
 
         order = np.argsort(counts.counts)[::-1]
         sorted_values = counts.values[order]
+        print(sorted_values)
         assert sorted_values.tolist() == [
-            "fore_reef",
-            "back_reef",
-            "lagoon",
-            "reef_crest",
-            "shore",
+            "ForeReef",
+            "Buildup",
+            "Lagoon",
+            "BackReef",
+            "ReefCrest",
+            "Shore",
+            "OuterRamp",
+            "Sabkha",
         ]
 
     def test_trend_in_carbonate_platform(
-        self: Self, carbonate_envs: list[EnvironmentDefinition]
+        self: Self, carbonate_envs: DepositionalEnvironmentModel
     ) -> None:
         """Test trend-influenced sampled environments in carbonate case.
 
         Args:
-            carbonate_envs (list[EnvironmentDefinition]): Preset fixture.
+            carbonate_envs (DepositionalEnvironmentModel): Preset fixture.
         """
         sim = DepositionalEnvironmentSimulator(carbonate_envs)
         results_all = []
         for i in range(100):
-            posterior, result = sim.run(
-                bathymetry_value=10.0,
+            sim.prepare()
+            _, result = sim.run(
+                bathymetry_value=3.0,
                 previous_environments=[
-                    "basin",
-                    "outer_platform",
-                    "fore_reef",
-                    "reef_crest",
+                    "ShelfSlope",
+                    "OuterRamp",
+                    "ForeReef",
+                    "ReefCrest",
                 ],
                 seed=i,
             )
-            results_all.append(result)
+            results_all.append(result.name)
         counts = np.unique_counts(results_all)
 
         order = np.argsort(counts.counts)[::-1]
         sorted_values = counts.values[order]
+        print(sorted_values)
         assert sorted_values.tolist() == [
-            "back_reef",
-            "fore_reef",
-            "lagoon",
-            "reef_crest",
-            "shore",
+            "ReefCrest",
+            "BackReef",
+            "Buildup",
+            "ForeReef",
+            "Lagoon",
+            "Shore",
+            "Sabkha",
         ]

@@ -6,6 +6,10 @@ from typing import Optional
 
 from .AccumulationModel import AccumulationModel
 from .Curve import Curve
+from .DepositionalEnvironment import (
+    DepositionalEnvironment,
+    DepositionalEnvironmentModel,
+)
 from .enums import SubsidenceType
 from .Facies import FaciesModel
 from .Well import Well
@@ -33,6 +37,8 @@ class Scenario:
     accumulationModel: AccumulationModel
     #: eustatic curve used in the scenario
     eustaticCurve: Optional[Curve]
+    #: depositional environment model used in the scenario
+    depositionalEnvironmentModel: Optional[DepositionalEnvironmentModel] = None
     #: facies model used in the scenario
     faciesModel: Optional[FaciesModel] = None
 
@@ -50,9 +56,4 @@ class RealizationData:
     initialBathymetry: float
     subsidenceCurve: Optional[Curve]
     subsidenceType: SubsidenceType
-
-
-@dataclass(frozen=True)
-class SimulationData:
-    scenario: Scenario
-    realizationsData: list[RealizationData]
+    initialEnvironment: Optional[DepositionalEnvironment] = None

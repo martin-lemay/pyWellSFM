@@ -1,6 +1,7 @@
 Short-term:
 
-- add depositional environment simulator in SFSimulator
+- fix problem of none environment in the middle of the simu
+- add environment dependent weights to favor some likelihood (ex: buildup favor transition with itself)
 - adapt time step calculation to match input marker ages
 - add unit tests for simulators
 - create simulated well from output xarray
@@ -17,3 +18,4 @@ Long-term:
 - implement multi-real framework from parameter ranges
 - implement parameter optimisation
 - add (de-)compaction law to restore wells at deposition thicknesses
+- create dedicated python package for accommodation calculation

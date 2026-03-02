@@ -12,24 +12,23 @@ import pytest
 from striplog import Striplog
 
 from pywellsfm.model.Curve import Curve
-from pywellsfm.simulator.FSSimulator import FSSimulatorData
+from pywellsfm.simulator.FSSimulator import FSSimulator
 
 m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
 
-from pywellsfm.io.simulation_io import (  # noqa: E402
+from pywellsfm.io.fssimulation_io import (  # noqa: E402
+    loadFSSimulation,
     loadRealizationData,
     loadScenario,
-    loadSimulationData,
+    saveFSSimulation,
     saveRealizationData,
     saveScenario,
-    saveSimulationData,
 )
 from pywellsfm.model.AccumulationModel import (
     AccumulationModel,  # noqa: E402
 )
-from pywellsfm.model.SimulationParameters import SimulationData  # noqa: E402
 
 fileDir = os.path.dirname(os.path.abspath(__file__))
 dataDir = os.path.join(fileDir, "data")
@@ -285,13 +284,13 @@ def test_loadScenario_from_json_with_references(tmp_path: Path) -> None:
     assert scenario.eustaticCurve is not None
 
 
-def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
-    """SimulationData where scenario and realizations are URL references."""
+def test_loadFSSimulation_from_json_with_references(tmp_path: Path) -> None:
+    """FSSimulation data where scenario and realizations are URL references."""
     scenario_path = tmp_path / "scenario.json"
     realization_path = tmp_path / "realization.json"
     simulation_path = tmp_path / "simulation.json"
 
-    # Scenario uses inline internals here; we're validating SimulationData.
+    # Scenario uses inline internals here; we're validating FSSimulation.
     scenario_payload = {
         "format": "pyWellSFM.ScenarioData",
         "version": "1.0",
@@ -333,7 +332,7 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
     )
 
     simulation_payload = {
-        "format": "pyWellSFM.SimulationData",
+        "format": "pyWellSFM.FSSimulationData",
         "version": "1.0",
         "name": "MySimulation",
         "scenario": {"url": "scenario.json"},
@@ -343,48 +342,161 @@ def test_loadSimulationData_from_json_with_references(tmp_path: Path) -> None:
         json.dumps(simulation_payload), encoding="utf-8"
     )
 
-    simulationData: FSSimulatorData = loadSimulationData(str(simulation_path))
-    assert len(simulationData.realizationDataList) == 1
-    assert simulationData.scenario.name == "Scenario1"
+    FSSimulationData: FSSimulator = loadFSSimulation(str(simulation_path))
+    assert len(FSSimulationData.realizationDataList) == 1
+    assert FSSimulationData.scenario.name == "Scenario1"
     assert (
-        simulationData.scenario.accumulationModel.getElementModel("Carbonate")
+        FSSimulationData.scenario.accumulationModel.getElementModel(
+            "Carbonate"
+        )
         is not None
     )
-    assert simulationData.realizationDataList[0].well.name == "Well-B"
-    assert simulationData.realizationDataList[0].subsidenceCurve is not None
-    assert simulationData.realizationDataList[0].initialBathymetry == 15.0
+    assert FSSimulationData.realizationDataList[0].well.name == "Well-B"
+    assert FSSimulationData.realizationDataList[0].subsidenceCurve is not None
+    assert FSSimulationData.realizationDataList[0].initialBathymetry == 15.0
+
+
+def test_loadFSSimulation_from_json_with_desimulator(tmp_path: Path) -> None:
+    """FSSimulation data with Depositional Environment Simulator."""
+    scenario_path = tmp_path / "scenario.json"
+    realization_path = tmp_path / "realization.json"
+    fssimulation_path = tmp_path / "fssimulation.json"
+
+    # Scenario uses inline internals here; we're validating FSSimulation.
+    scenario_payload = {
+        "format": "pyWellSFM.ScenarioData",
+        "version": "1.0",
+        "name": "Scenario1",
+        "accumulationModel": {
+            "format": "pyWellSFM.AccumulationModelData",
+            "version": "1.0",
+            "accumulationModel": {
+                "name": "AM1",
+                "modelType": "Gaussian",
+                "elements": {
+                    "Carbonate": {
+                        "accumulationRate": 100.0,
+                        "model": {
+                            "modelType": "Gaussian",
+                            "stddevFactor": 0.2,
+                        },
+                    }
+                },
+            },
+        },
+        "depositionalEnvironmentModel": {
+            "format": "pyWellSFM.DepositionalEnvironmentModelSchema",
+            "version": "1.0",
+            "name": "simple3",
+            "environments": [
+                {"name": "shallow", "bathymetry_range": [0.0, 10.0]},
+                {"name": "mid", "bathymetry_range": [10.0, 50.0]},
+                {"name": "deep", "bathymetry_range": [50.0, 200.0]},
+            ],
+        },
+    }
+    scenario_path.write_text(json.dumps(scenario_payload), encoding="utf-8")
+
+    # Realization references repo data
+    # (absolute path is OK; we keep it relative)
+    realization_payload = {
+        "format": "pyWellSFM.RealizationData",
+        "version": "1.0",
+        "well": {"url": f"{dataDir}/well.json"},
+        "initialBathymetry": 15.0,
+        "subsidenceCurve": {
+            "type": "cumulative",
+            "curve": {"url": f"{dataDir}/subsidence_curve.csv"},
+        },
+    }
+    realization_path.write_text(
+        json.dumps(realization_payload), encoding="utf-8"
+    )
+
+    # fs simulator
+    simulation_payload = {
+        "format": "pyWellSFM.FSSimulationData",
+        "version": "1.0",
+        "name": "MySimulation",
+        "scenario": {"url": "scenario.json"},
+        "realizations": [{"url": "realization.json"}],
+        "use_depositional_environment_simulator": True,
+        "deSimulator_weights": {"shallow": 3.0, "mid": 2.0, "deep": 1.0},
+        "deSimulator_params": {
+            "bathymetry_sigma": 7.0,
+            "transition_sigma": 9.0,
+            "trend_sigma": 0.5,
+            "trend_window": 4,
+            "transition_mode": "adjacency",
+            "interval_distance_method": "center",
+        },
+    }
+    fssimulation_path.write_text(
+        json.dumps(simulation_payload), encoding="utf-8"
+    )
+
+    FSSimulationData: FSSimulator = loadFSSimulation(str(fssimulation_path))
+    assert len(FSSimulationData.realizationDataList) == 1
+    assert FSSimulationData.scenario.name == "Scenario1"
+    assert (
+        FSSimulationData.scenario.accumulationModel.getElementModel(
+            "Carbonate"
+        )
+        is not None
+    )
+    assert FSSimulationData.realizationDataList[0].well.name == "Well-B"
+    assert FSSimulationData.realizationDataList[0].subsidenceCurve is not None
+    assert FSSimulationData.realizationDataList[0].initialBathymetry == 15.0
+    assert FSSimulationData.use_deSimulator
+    assert FSSimulationData.deSimulator_weights == {
+        "shallow": 3.0,
+        "mid": 2.0,
+        "deep": 1.0,
+    }
+    deModel = FSSimulationData.scenario.depositionalEnvironmentModel
+    assert deModel is not None
+    assert deModel.name == "simple3"
+    assert [env.name for env in deModel.environments] == [
+        "shallow",
+        "mid",
+        "deep",
+    ]
 
 
 def test_loadSimulationData_from_json_two_realizations() -> None:
-    """Loads SimulationData and returns one FSSimulator per realization."""
+    """Loads FSSimulationData and returns one FSSimulator per realization."""
     simulation_path = dataDir + "/simulation.json"
-    simulationData: FSSimulatorData = loadSimulationData(simulation_path)
+    FSSimulationData: FSSimulator = loadFSSimulation(simulation_path)
 
-    assert len(simulationData.realizationDataList) == 2, (
-        "Expected 2 realizations in the loaded SimulationData"
+    assert len(FSSimulationData.realizationDataList) == 2, (
+        "Expected 2 realizations in the loaded FSSimulationData"
     )
     # check scenario data
-    assert simulationData.scenario.name == "Scenario1"
+    assert FSSimulationData.scenario.name == "Scenario1"
     assert (
-        simulationData.scenario.accumulationModel.getElementModel(
+        FSSimulationData.scenario.accumulationModel.getElementModel(
             "CarbonateShallow"
         )
         is not None
     )
 
     # realization 1
-    assert simulationData.realizationDataList[0].well.name == "Well1"
-    assert simulationData.realizationDataList[0].subsidenceCurve is not None
+    assert FSSimulationData.realizationDataList[0].well.name == "Well1"
+    assert FSSimulationData.realizationDataList[0].subsidenceCurve is not None
     assert np.isclose(
-        simulationData.realizationDataList[0].subsidenceCurve.getValueAt(10.0),
+        FSSimulationData.realizationDataList[0].subsidenceCurve.getValueAt(
+            10.0
+        ),
         25.0,
     )
 
     # realization 2
-    assert simulationData.realizationDataList[1].well.name == "Well2"
-    assert simulationData.realizationDataList[1].subsidenceCurve is not None
+    assert FSSimulationData.realizationDataList[1].well.name == "Well2"
+    assert FSSimulationData.realizationDataList[1].subsidenceCurve is not None
     assert np.isclose(
-        simulationData.realizationDataList[1].subsidenceCurve.getValueAt(10.0),
+        FSSimulationData.realizationDataList[1].subsidenceCurve.getValueAt(
+            10.0
+        ),
         20.0,
     )
 
@@ -392,10 +504,10 @@ def test_loadSimulationData_from_json_two_realizations() -> None:
 def test_loadSimulationData_rejects_wrong_format_version(
     tmp_path: Path,
 ) -> None:
-    """Fails fast when the top-level SimulationData format/version is wrong."""
+    """Fails fast when the FSSimulationData format/version is wrong."""
     simulation_path = tmp_path / "simulation_bad_format.json"
     payload = {
-        "format": "pyWellSFM.SimulationData",
+        "format": "pyWellSFM.FSSimulationData",
         "version": "9.9",
         "name": "MySimulation",
         "scenario": {},
@@ -404,16 +516,16 @@ def test_loadSimulationData_rejects_wrong_format_version(
     simulation_path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match=r"format|version"):
-        loadSimulationData(str(simulation_path))
+        loadFSSimulation(str(simulation_path))
 
 
 def test_loadSimulationData_rejects_missing_realizations(
     tmp_path: Path,
 ) -> None:
-    """Rejects SimulationData when 'realizations' is missing or not a list."""
+    """Rejects FSSimulationData when 'realizations' is missing or not list."""
     simulation_path = tmp_path / "simulation_missing_realizations.json"
     payload = {
-        "format": "pyWellSFM.SimulationData",
+        "format": "pyWellSFM.FSSimulationData",
         "version": "1.0",
         "name": "MySimulation",
         "scenario": {
@@ -444,14 +556,14 @@ def test_loadSimulationData_rejects_missing_realizations(
     with pytest.raises(
         ValueError, match=r"Simulation\.realizations must be a list"
     ):
-        loadSimulationData(str(simulation_path))
+        loadFSSimulation(str(simulation_path))
 
 
 def test_loadSimulationData_rejects_empty_realizations(tmp_path: Path) -> None:
-    """Rejects SimulationData when 'realizations' is an empty list."""
+    """Rejects FSSimulationData when 'realizations' is an empty list."""
     simulation_path = tmp_path / "simulation_empty_realizations.json"
     payload = {
-        "format": "pyWellSFM.SimulationData",
+        "format": "pyWellSFM.FSSimulationData",
         "version": "1.0",
         "name": "MySimulation",
         "scenario": {
@@ -484,7 +596,7 @@ def test_loadSimulationData_rejects_empty_realizations(tmp_path: Path) -> None:
         ValueError,
         match=r"Simulation\.realizations must contain at least one item",
     ):
-        loadSimulationData(str(simulation_path))
+        loadFSSimulation(str(simulation_path))
 
 
 def test_loadSimulationData_rejects_scenario_with_extra_keys(
@@ -494,7 +606,7 @@ def test_loadSimulationData_rejects_scenario_with_extra_keys(
     simulation_path = tmp_path / "simulation_bad_scenario.json"
 
     payload = {
-        "format": "pyWellSFM.SimulationData",
+        "format": "pyWellSFM.FSSimulationData",
         "version": "1.0",
         "name": "MySimulation",
         "scenario": {
@@ -555,16 +667,16 @@ def test_loadSimulationData_rejects_scenario_with_extra_keys(
     with pytest.raises(
         ValueError, match=r"Scenario contains unsupported properties"
     ):
-        loadSimulationData(str(simulation_path))
+        loadFSSimulation(str(simulation_path))
 
 
-def test_loadSimulationData_rejects_non_object_realization_item(
+def test_loadFSSimulation_rejects_non_object_realization_item(
     tmp_path: Path,
 ) -> None:
     """Each item of 'realizations' must be a JSON object."""
     simulation_path = tmp_path / "simulation_bad_realization_item.json"
     payload = {
-        "format": "pyWellSFM.SimulationData",
+        "format": "pyWellSFM.FSSimulationData",
         "version": "1.0",
         "name": "MySimulation",
         "scenario": {
@@ -597,7 +709,7 @@ def test_loadSimulationData_rejects_non_object_realization_item(
         ValueError,
         match=r"Simulation\.realizations\[0\] must be an object",
     ):
-        loadSimulationData(str(simulation_path))
+        loadFSSimulation(str(simulation_path))
 
 
 def test_exportScenario_writes_inline_objects(tmp_path: Path) -> None:
@@ -711,7 +823,7 @@ def test_exportRealizationData_writes_inline_objects(tmp_path: Path) -> None:
 def test_exportSimulationData_writes_inline_objects_and_roundtrips(
     tmp_path: Path,
 ) -> None:
-    """Exports SimulationData with inline scenario and realizations."""
+    """Exports FSSimulationData with inline scenario and realizations."""
     scenario_path = tmp_path / "scenario.json"
     simulation_out = tmp_path / "simulation_out.json"
 
@@ -817,8 +929,8 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
     rd1 = loadRealizationData(str(r1_path))
     rd2 = loadRealizationData(str(r2_path))
 
-    sim = SimulationData(scenario=scenario, realizationsData=[rd1, rd2])
-    saveSimulationData(sim, str(simulation_out), name="MySimulation")
+    sim = FSSimulator(scenario=scenario, realizationDataList=[rd1, rd2])
+    saveFSSimulation(sim, str(simulation_out), name="MySimulation")
 
     out_obj = json.loads(simulation_out.read_text(encoding="utf-8"))
     assert isinstance(out_obj.get("scenario"), dict)
@@ -829,10 +941,10 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
         isinstance(r, dict) and "url" not in r for r in out_obj["realizations"]
     )
 
-    simulationData: FSSimulatorData = loadSimulationData(str(simulation_out))
-    assert len(simulationData.realizationDataList) == 2
-    assert simulationData.scenario.name == "ScenarioForSimulation"
-    assert simulationData.realizationDataList[0].well.name == "Well1"
-    assert simulationData.realizationDataList[0].initialBathymetry == 15.0
-    assert simulationData.realizationDataList[1].well.name == "Well2"
-    assert simulationData.realizationDataList[1].initialBathymetry == 20.0
+    FSSimulationData: FSSimulator = loadFSSimulation(str(simulation_out))
+    assert len(FSSimulationData.realizationDataList) == 2
+    assert FSSimulationData.scenario.name == "ScenarioForSimulation"
+    assert FSSimulationData.realizationDataList[0].well.name == "Well1"
+    assert FSSimulationData.realizationDataList[0].initialBathymetry == 15.0
+    assert FSSimulationData.realizationDataList[1].well.name == "Well2"
+    assert FSSimulationData.realizationDataList[1].initialBathymetry == 20.0

@@ -1,0 +1,101 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DepositionalEnvironmentModelSchema.json",
+    "title": "Depositional Environment model Schema",
+    "description": "Defines the input data for a depositional environment model.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.DepositionalEnvironmentModelSchema"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "name": {
+            "description": "Name of the depositional environment model.",
+            "type": "string"
+        },
+        "environments" : {
+            "description": "Defines the parameters for the depositional environment model.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "$ref": "#/$defs/DepositionalEnvironment"
+            }
+        }
+    },
+    "required": ["format", "version", "name", "environments"],
+    "additionalProperties": false,
+    "$defs": {
+        "PropertyRange": {
+            "description": "Numeric min/max range stored as [min, max].",
+            "type": "array",
+            "prefixItems": [
+                { "type": "number" },
+                { "type": "number" }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+        },
+        "DepositionalEnvironment": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of the depositional environment.",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Description of the depositional environment.",
+                    "type": "string"
+                },
+                "bathymetry_range": {
+                    "description": "Range of bathymetry for the depositional environment (in meters), stored as [min, max].",
+                    "$ref": "#/$defs/PropertyRange"
+                },
+                "distality": {
+                    "description": "Distality of the depositional environment (between 0 and 1, where 0 is proximal and 1 is distal).",
+                    "type": "number"
+                },
+                "other_property_ranges": {
+                    "description": "Ranges for additional properties (e.g., energy, temperature), keyed by property name.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/PropertyRange"
+                    }
+                },
+                "property_curves": {
+                    "description": "Curves for additional properties (e.g., energy, temperature), keyed by property name.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "oneOf": [
+                            {
+                                "description": "inline defintion of accumulation curve.",
+                                "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json"
+                            },
+                            {
+                                "type": "object",
+                                "description": "Path to a curve.",
+                                "properties": {
+                                    "url": {
+                                        "type": "string",
+                                        "description": "Relative or absolute path to the curve file."
+                                    }
+                                },
+                                "required": [
+                                    "url"
+                                ],
+                                "additionalProperties": false
+                            }
+                        ]
+                    }
+                }
+            },
+            "required": ["name", "bathymetry_range"],
+            "additionalProperties": false
+        }
+    }
+}

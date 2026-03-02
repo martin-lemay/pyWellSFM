@@ -7,8 +7,6 @@ This module contains serialization/deserialization helpers for:
 
 - Gaussian accumulation models
 - Environment optimum accumulation models
-
-These functions were originally implemented in `pywellsfm.io.ioHelpers`.
 """
 
 from __future__ import annotations

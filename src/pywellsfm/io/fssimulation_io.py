@@ -25,16 +25,32 @@ from pywellsfm.io.curve_io import (
     loadSubsidenceCurve,
     loadSubsidenceCurveFromJsonObj,
 )
+from pywellsfm.io.depositional_environment_model_io import (
+    depositionalEnvironmentModelToJsonObj,
+    loadDepositionalEnvironmentModel,
+    loadDepositionalEnvironmentModelFromJsonObj,
+)
+from pywellsfm.io.depositional_environment_simulation_io import (
+    loadSimulatorParametersFromJsonObj,
+    loadSimulatorWeights,
+    simulatorParametersToJsonObj,
+)
 from pywellsfm.io.json_schema_validation import expect_format_version
 from pywellsfm.io.well_io import loadWell, loadWellFromJsonObj, wellToJsonObj
 from pywellsfm.model import Curve
+from pywellsfm.model.DepositionalEnvironment import (
+    DepositionalEnvironmentModel,
+)
 from pywellsfm.model.enums import SubsidenceType
-from pywellsfm.model.SimulationParameters import (
+from pywellsfm.model.Facies import FaciesModel
+from pywellsfm.model.FSSimulationParameters import (
     RealizationData,
     Scenario,
-    SimulationData,
 )
-from pywellsfm.simulator.FSSimulator import FSSimulatorData
+from pywellsfm.simulator.DepositionalEnvironmentSimulator import (
+    DESimulatorParameters,
+)
+from pywellsfm.simulator.FSSimulator import FSSimulator, FSSimulatorParameters
 
 
 def loadRealizationData(filepath: str) -> RealizationData:
@@ -256,6 +272,8 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
             "version",
             "name",
             "accumulationModel",
+            "depositionalEnvironmentModel",
+            "faciesModel",
             "eustaticCurve",
         },
         ctx="Scenario",
@@ -290,6 +308,46 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
         load_file=_load_am_file,
     )
 
+    # --- Depositional Environment Model (optional) ---
+    depositional_environment_model: DepositionalEnvironmentModel | None
+    deModel_obj = obj.get("depositionalEnvironmentModel")
+    if deModel_obj is None:
+        depositional_environment_model = None
+    else:
+        if not isinstance(deModel_obj, dict):
+            raise ValueError(
+                "Scenario.depositionalEnvironmentModel must be " + "an object."
+            )
+
+        # url or inline definition
+        def _load_inline_deModel(
+            deModel_json: dict[str, Any],
+        ) -> DepositionalEnvironmentModel:
+            return loadDepositionalEnvironmentModelFromJsonObj(
+                deModel_json, base_dir=str(base_dir)
+            )
+
+        def _load_deModel_file(path: Path) -> DepositionalEnvironmentModel:
+            try:
+                return loadDepositionalEnvironmentModel(str(path))
+            except (ValueError, FileNotFoundError, OSError) as exc:
+                raise ValueError(
+                    "Scenario.depositionalEnvironmentModel.url must point "
+                    + "to a supported depositional environment model file "
+                    + "(.json or .csv)."
+                ) from exc
+
+        depositional_environment_model = load_inline_or_url(
+            deModel_obj,
+            base_dir=base_dir,
+            ctx="Scenario.depositionalEnvironmentModel",
+            load_inline=_load_inline_deModel,
+            load_file=_load_deModel_file,
+        )
+
+    # --- Facies model (optional) ---
+    facies_model: FaciesModel | None = None
+
     # --- Eustatic curve (optional) ---
     eustatic_curve: Curve | None
     eustatic_curve_obj: Any = obj.get("eustaticCurve")
@@ -321,6 +379,8 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
         name=name,
         accumulationModel=accumulation_model,
         eustaticCurve=eustatic_curve,
+        depositionalEnvironmentModel=depositional_environment_model,
+        faciesModel=facies_model,
     )
 
 
@@ -345,6 +405,22 @@ def exportScenarioToJsonObj(scenario: Scenario) -> dict[str, Any]:
             scenario.accumulationModel
         ),
     }
+    # depositional environment model
+    if scenario.depositionalEnvironmentModel is not None:
+        payload["depositionalEnvironmentModel"] = (
+            depositionalEnvironmentModelToJsonObj(
+                scenario.depositionalEnvironmentModel
+            )
+        )
+    else:
+        payload["depositionalEnvironmentModel"] = None
+    # facies model
+    if scenario.faciesModel is not None:
+        pass
+        # payload["faciesModel"] = faciesModelToJsonObj(scenario.faciesModel)
+    else:
+        payload["faciesModel"] = None
+    # eustatic curve
     if scenario.eustaticCurve is not None:
         payload["eustaticCurve"] = curveToJsonObj(scenario.eustaticCurve)
     else:
@@ -372,15 +448,15 @@ def saveScenario(scenario: Scenario, filepath: str) -> None:
 
 
 def exportSimulationDataToJsonObj(
-    simulationData: SimulationData,
+    fsSimulator: FSSimulator,
     *,
     name: str,
 ) -> dict[str, Any]:
-    """Export SimulationData object to json object.
+    """Export FSSimulator object to json object.
 
     json format conforms to json/FSSimulationDataSchema.json.
 
-    :param SimulationData simulationData: SimulationData object
+    :param FSSimulationData FSSimulationData: FSSimulationData object
     :param str name: name of the simulation data
     :raises ValueError: if name is not a non-empty string
     :raises ValueError: if realizationsData is not a non-empty list
@@ -390,46 +466,63 @@ def exportSimulationDataToJsonObj(
     if not isinstance(name, str) or name.strip() == "":
         raise ValueError("Simulation.name must be a non-empty string.")
     if (
-        not isinstance(simulationData.realizationsData, list)
-        or len(simulationData.realizationsData) < 1
+        not isinstance(fsSimulator.realizationDataList, list)
+        or len(fsSimulator.realizationDataList) < 1
     ):
         raise ValueError(
             "Simulation.realizations must contain at least one item."
         )
 
     payload: dict[str, Any] = {
-        "format": "pyWellSFM.SimulationData",
+        "format": "pyWellSFM.FSSimulationData",
         "version": "1.0",
         "name": str(name),
-        "scenario": exportScenarioToJsonObj(simulationData.scenario),
+        "scenario": exportScenarioToJsonObj(fsSimulator.scenario),
         "realizations": [
             exportRealizationDataToJsonObj(r)
-            for r in simulationData.realizationsData
+            for r in fsSimulator.realizationDataList
         ],
+        "params": {
+            "max_bathymetry_change_per_step": (
+                fsSimulator.params.max_bathymetry_change_per_step
+            ),
+            "dt_min": fsSimulator.params.dt_min,
+            "dt_max": fsSimulator.params.dt_max,
+            "safety": fsSimulator.params.safety,
+            "max_steps": fsSimulator.params.max_steps,
+        },
     }
+    if fsSimulator.use_deSimulator:
+        payload["use_depositional_environment_simulator"] = True
+        if fsSimulator.deSimulator_weights is not None:
+            payload["deSimulator_weights"] = fsSimulator.deSimulator_weights
+        if fsSimulator.deSimulator_params is not None:
+            payload["deSimulator_params"] = simulatorParametersToJsonObj(
+                fsSimulator.deSimulator_params
+            )
     return payload
 
 
-def saveSimulationData(
-    simulationData: SimulationData,
+def saveFSSimulation(
+    fsSimulator: FSSimulator,
     filepath: str,
     *,
     name: str,
 ) -> None:
-    """Save SimulationData object to json file."""
+    """Save FSSimulator object to json file."""
     path = Path(filepath)
     if path.suffix.lower() != ".json":
         raise ValueError(
-            "SimulationData output file must have a .json extension."
+            "FSSimulator output file must have a .json extension."
         )
-    out = exportSimulationDataToJsonObj(simulationData, name=name)
+    out = exportSimulationDataToJsonObj(fsSimulator, name=name)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
 
-def loadSimulationData(filepath: str) -> FSSimulatorData:
+def loadFSSimulation(filepath: str) -> FSSimulator:
     """Load scenario from json file.
 
     json file schema is defined by jsonSchemas/ScenarioSchema.json
@@ -443,15 +536,25 @@ def loadSimulationData(filepath: str) -> FSSimulatorData:
 
     expect_format_version(
         data,
-        expected_format="pyWellSFM.SimulationData",
+        expected_format="pyWellSFM.FSSimulationData",
         expected_version="1.0",
         kind="scenario",
     )
 
     reject_extra_keys(
         obj=data,
-        allowed_keys={"format", "version", "name", "scenario", "realizations"},
-        ctx="SimulationData",
+        allowed_keys={
+            "format",
+            "version",
+            "name",
+            "scenario",
+            "realizations",
+            "use_depositional_environment_simulator",
+            "deSimulator_weights",
+            "deSimulator_params",
+            "params",
+        },
+        ctx="FSSimulationData",
     )
 
     base_dir = path.resolve().parent
@@ -509,4 +612,71 @@ def loadSimulationData(filepath: str) -> FSSimulatorData:
                 load_file=_load_realization_file,
             )
         )
-    return FSSimulatorData(scenario, realizations_data)
+
+    # --- Depostional Environment Simulator ---
+    use_deSimulator = data.get("use_depositional_environment_simulator", False)
+    if not isinstance(use_deSimulator, bool):
+        raise ValueError(
+            "Simulation.use_depositional_environment_simulator "
+            + "must be a boolean."
+        )
+
+    deSimulator_weights: dict[str, float] | None = None
+    deSimulator_params: DESimulatorParameters | None = None
+    if use_deSimulator:
+        # get weights
+        desimulatorWeights_obj = data.get("deSimulator_weights", None)
+        if desimulatorWeights_obj is not None:
+            if not isinstance(desimulatorWeights_obj, dict):
+                raise ValueError(
+                    "Simulation.deSimulator_weights must be an "
+                    + "object if provided."
+                )
+            deSimulator_weights = loadSimulatorWeights(desimulatorWeights_obj)
+        # get parameters
+        desimulatorParams_obj = data.get("deSimulator_params", None)
+        if desimulatorParams_obj is not None:
+            if not isinstance(desimulatorParams_obj, dict):
+                raise ValueError(
+                    "Simulation.deSimulator_params must be an "
+                    + "object if provided."
+                )
+            deSimulator_params = loadSimulatorParametersFromJsonObj(
+                desimulatorParams_obj
+            )
+
+    # --- Simulation Parameters ---
+    params_obs = data.get("params", None)
+    defaultSimulationParams = FSSimulatorParameters()
+    simulationParams: FSSimulatorParameters
+    if params_obs is None:
+        simulationParams = defaultSimulationParams
+    else:
+        if not isinstance(params_obs, dict):
+            raise ValueError("Simulation.params must be a dictionary.")
+        max_bathymetry_change = params_obs.get(
+            "max_bathymetry_change_per_step",
+            defaultSimulationParams.max_bathymetry_change_per_step,
+        )
+        dt_min = params_obs.get("dt_min", defaultSimulationParams.dt_min)
+        dt_max = params_obs.get("dt_max", defaultSimulationParams.dt_max)
+        safety = params_obs.get("safety", defaultSimulationParams.safety)
+        max_steps = params_obs.get(
+            "max_steps", defaultSimulationParams.max_steps
+        )
+        simulationParams = FSSimulatorParameters(
+            max_bathymetry_change_per_step=max_bathymetry_change,
+            dt_min=dt_min,
+            dt_max=dt_max,
+            safety=safety,
+            max_steps=max_steps,
+        )
+
+    return FSSimulator(
+        scenario,
+        realizations_data,
+        use_depositional_environment_simulator=use_deSimulator,
+        deSimulator_weights=deSimulator_weights,
+        deSimulator_params=deSimulator_params,
+        fsSimulator_params=simulationParams,
+    )

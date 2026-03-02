@@ -9,6 +9,10 @@ from typing import Literal, Self
 
 import numpy as np
 
+from pywellsfm.model import (
+    DepositionalEnvironment,
+    DepositionalEnvironmentModel,
+)
 from pywellsfm.utils import (
     IntervalDistanceMethod,
     center_distance,
@@ -59,6 +63,7 @@ within the range of the selected zone.
 A forward constrained simulation computes the probabilities by assuming
 a progressive transition from one zone to another one. So at a given point,
 probabilities are computed according to:
+
 - the selected environment at the previous step. The probability to be in given
   environment increases if this environment is the same or adjacent to the
   previous one.
@@ -111,49 +116,7 @@ order).
 
 
 @dataclass(frozen=True)
-class EnvironmentDefinition:
-    """Definition of a single depositional environment.
-
-    :param str name: unique label for the environment.
-    :param float bathymetry_min: minimum bathymetry in metres (positive
-        downward).  Must be strictly less than *bathymetry_max*.
-    :param float bathymetry_max: maximum bathymetry in metres (positive
-        downward).
-    :param float weight: prior weight (must be > 0, default 1.0).
-    """
-
-    name: str
-    bathymetry_min: float
-    bathymetry_max: float
-    weight: float = 1.0
-
-    def __post_init__(self: Self) -> None:
-        """Validate environment definition constraints."""
-        if self.bathymetry_min >= self.bathymetry_max:
-            raise ValueError(
-                f"bathymetry_min ({self.bathymetry_min}) must be strictly "
-                f"less than bathymetry_max ({self.bathymetry_max}) for "
-                f"environment '{self.name}'."
-            )
-        if self.weight <= 0:
-            raise ValueError(
-                f"weight must be > 0, got {self.weight} for environment "
-                f"'{self.name}'."
-            )
-
-    @property
-    def bathymetry_mid(self: Self) -> float:
-        """Mid-point of the bathymetry range."""
-        return (self.bathymetry_min + self.bathymetry_max) / 2.0
-
-    @property
-    def bathymetry_range_width(self: Self) -> float:
-        """Width of the bathymetry range."""
-        return self.bathymetry_max - self.bathymetry_min
-
-
-@dataclass(frozen=True)
-class DepositionalEnvironmentSimulatorParameters:
+class DESimulatorParameters:
     """Configuration parameters for :class:`DepositionalEnvironmentSimulator`.
 
     :param float bathymetry_sigma: standard-deviation (metres) for the
@@ -214,16 +177,14 @@ class DepositionalEnvironmentSimulator:
        **posterior**.
     5. **Samples** one environment from the posterior.
 
-    :param list[EnvironmentDefinition] environments: non-empty list of
+    :param list[DepositionalEnvironment] environments: non-empty list of
         environment definitions with unique names. Consider ordering
-        environments from proximal to distal if *distality_by_environment* is
-        not provided.
-    :param dict[str, float] | None distality_by_environment: optional explicit
-        mapping from environment name to distality (e.g., distance to shoreline
-         or index such as 0 for shore, 1 for lagoon, etc.).
-         If ``None``, distality is inferred from the ordering of
-        environments.
-    :param DepositionalEnvironmentSimulatorParameters | None params:
+        environments from proximal to distal if
+        *DepositionalEnvironment.distality* is not provided.
+    :param dict[str, float] | None weights: optional explicit
+        mapping from environment name to weights.
+        If ``None``, weights are equal to 1.0 for all environments.
+    :param DESimulatorParameters | None params:
         simulator tuning knobs; when ``None`` the defaults are used.
 
     :raises ValueError: if *environments* is empty or contains
@@ -232,35 +193,40 @@ class DepositionalEnvironmentSimulator:
 
     def __init__(
         self: Self,
-        environments: list[EnvironmentDefinition],
-        distality_by_environment: dict[str, float] | None = None,
-        params: DepositionalEnvironmentSimulatorParameters | None = None,
+        depositionalEnvironmentModel: DepositionalEnvironmentModel,
+        weights: dict[str, float] | None = None,
+        params: DESimulatorParameters | None = None,
     ) -> None:
         """Initialise the simulator with environments and parameters."""
-        if not environments:
-            raise ValueError("At least one environment must be provided.")
+        if not depositionalEnvironmentModel:
+            raise ValueError(
+                "A depositional environment model must " + " be provided."
+            )
+        #: depositional environment model with environment definitions
+        self.depositionalEnvironmentModel = depositionalEnvironmentModel
 
-        #: environment names
-        self._names: list[str] = [e.name for e in environments]
+        #: list of environment names. The order is important for
+        # distality trend likelihoods if no distality was defined.
+        self._names = [
+            e.name for e in depositionalEnvironmentModel.environments
+        ]
         #: mapping from environment name to definition
-        self._environments: dict[str, EnvironmentDefinition] = {
-            e.name: e for e in environments
+        self._environments: dict[str, DepositionalEnvironment] = {
+            e.name: e for e in depositionalEnvironmentModel.environments
         }
-        #: mapping from environment name to distality
-        #: (the higher, the more distal)
-        self._distality_by_environment: dict[str, float] = {}
-        if distality_by_environment is not None:
-            self._distality_by_environment = dict(distality_by_environment)
+        self._weights: dict[str, float] = {}
+        if weights is not None:
+            self._weights = dict(weights)
         else:
-            # use ordering in the environment list as distality
-            self._distality_by_environment = {
-                e.name: i for i, e in enumerate(environments)
-            }
+            # use equal weights if none provided
+            self._weights = dict.fromkeys(self._names, 1.0)
+
+        # populated by prepare()
+        #: mapping of environment name to distality value.
+        self._distality_by_environment: dict[str, float] = {}
 
         #: simulator parameters
-        self._params: DepositionalEnvironmentSimulatorParameters = (
-            params or DepositionalEnvironmentSimulatorParameters()
-        )
+        self._params: DESimulatorParameters = params or DESimulatorParameters()
 
         # cached prior probabilities and likelihoods for efficiency;
         # populated by prepare()
@@ -271,105 +237,13 @@ class DepositionalEnvironmentSimulator:
         # threshold for considering a distality trend as significant
         self._trend_threshold: float = 0.01
 
-        self.__post_init__()
-
-    def __post_init__(self: Self) -> None:
-        """Check for input parameters coherency."""
-        # TODO: check all environments have distinct names, and if a distality
-        # list is set, that it is defined for all environments.
-        if len(self._names) != len(set(self._names)):
-            raise ValueError(
-                "Environment names must be unique. "
-                f"Got duplicates in: {self._names}"
-            )
-        if set(self._names) != set(self._environments.keys()):
-            raise ValueError(
-                "Inconsistent environment names between list and dict. "
-                f"List: {self._names}, "
-                + f"dict keys: {list(self._environments.keys())}"
-            )
-
-        if self._distality_by_environment is not None:
-            unknown_envs = set(
-                self._distality_by_environment.keys()
-            ).difference(self._names)
-            if unknown_envs:
-                raise ValueError(
-                    "Unknown environment names in distality_by_environment: "
-                    f"{sorted(unknown_envs)}. "
-                    + f"Known environments: {self._names}"
-                )
-
-    # ------------------------------------------------------------------
-    # Factory helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def from_breakpoints(
-        *,
-        lagoon_max_bathymetry: float = 15.0,
-        fairweather_wave_breaking_bathymetry: float = 5.0,
-        fairweather_wave_base_bathymetry: float = 20.0,
-        storm_wave_base_bathymetry: float = 50.0,
-        shelf_break_bathymetry: float = 200.0,
-        basin_max_bathymetry: float = 1000.0,
-    ) -> list[EnvironmentDefinition]:
-        """Build a carbonate-platform environment list from breakpoints.
-
-        The returned list follows the proximal → distal ordering of a
-        protected carbonate platform.
-
-        :param float lagoon_max_bathymetry: maximum depth of the lagoon
-            (default 15 m).
-        :param float fairweather_wave_breaking_bathymetry: fairweather
-            wave-breaking depth (default 5 m).
-        :param float fairweather_wave_base_bathymetry: fairweather
-            wave-base depth (default 20 m).
-        :param float storm_wave_base_bathymetry: storm wave-base depth
-            (default 50 m).
-        :param float shelf_break_bathymetry: shelf-break depth
-            (default 200 m).
-        :param float basin_max_bathymetry: practical upper limit for
-            basin depth (default 1000 m).
-        :returns: list of :class:`EnvironmentDefinition` suitable for
-            :meth:`__init__`.
-        """
-        shore_max = min(5.0, lagoon_max_bathymetry)
-        back_reef_max = min(5.0, lagoon_max_bathymetry)
-
-        return [
-            EnvironmentDefinition("shore", 0.0, shore_max),
-            EnvironmentDefinition("lagoon", 0.0, lagoon_max_bathymetry),
-            EnvironmentDefinition("back_reef", 0.0, back_reef_max),
-            EnvironmentDefinition("reef_crest", 0.0, 2.0),
-            EnvironmentDefinition(
-                "fore_reef", 2.0, fairweather_wave_base_bathymetry
-            ),
-            EnvironmentDefinition(
-                "outer_platform",
-                fairweather_wave_base_bathymetry,
-                storm_wave_base_bathymetry,
-            ),
-            EnvironmentDefinition(
-                "shelf",
-                storm_wave_base_bathymetry,
-                shelf_break_bathymetry,
-            ),
-            EnvironmentDefinition(
-                "basin",
-                shelf_break_bathymetry,
-                basin_max_bathymetry,
-            ),
-        ]
-
     # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------
-
     @property
-    def environments(self: Self) -> list[EnvironmentDefinition]:
-        """Return a copy of the environment definitions."""
-        return list(self._environments.values())
+    def environments(self: Self) -> list[DepositionalEnvironment]:
+        """Return a copy of the environments."""
+        return list(self.depositionalEnvironmentModel.environments)
 
     @property
     def environment_names(self: Self) -> list[str]:
@@ -377,7 +251,7 @@ class DepositionalEnvironmentSimulator:
         return list(self._names)
 
     @property
-    def params(self: Self) -> DepositionalEnvironmentSimulatorParameters:
+    def params(self: Self) -> DESimulatorParameters:
         """Return the simulator parameters."""
         return self._params
 
@@ -407,8 +281,13 @@ class DepositionalEnvironmentSimulator:
         if self._cached_prior is not None:
             return dict(self._cached_prior)
 
-        total = sum(e.weight for e in self._environments.values())
-        return {e.name: e.weight / total for e in self._environments.values()}
+        total = sum(
+            self._weights[env.name] for env in self._environments.values()
+        )
+        return {
+            e.name: self._weights[e.name] / total
+            for e in self._environments.values()
+        }
 
     # ------------------------------------------------------------------
     # Bathymetry likelihood
@@ -600,7 +479,7 @@ class DepositionalEnvironmentSimulator:
             known environment.
         """
         for name in previous_environments or []:
-            if name not in self._environments:
+            if (name not in self._environments) and (name.lower() != "none"):
                 raise ValueError(
                     f"Unknown environment '{name}' in previous_environments. "
                     f"Known: {self._names}"
@@ -614,7 +493,11 @@ class DepositionalEnvironmentSimulator:
         # compare to the implied increment from each candidate environment.
         # The more the mismatch, the lower the likelihood.
         trend_window = self._params.trend_window
-        history_tail = previous_environments[-trend_window:]
+        history_tail = [
+            name
+            for name in previous_environments[-trend_window:]
+            if name.lower() != "none"
+        ]
         distality_series = [
             self._distality_by_environment[name] for name in history_tail
         ]
@@ -716,6 +599,27 @@ class DepositionalEnvironmentSimulator:
         if (trend_threshold is not None) and (trend_threshold > 0):
             self._trend_threshold = trend_threshold * 0.01
 
+        #: mapping from environment name to distality
+        #: (the higher, the more distal)
+        distality_by_environment_tmp: dict[str, float | None] = {
+            e.name: e.distality for e in self._environments.values()
+        }
+        if any(d is None for d in distality_by_environment_tmp.values()):
+            # if at least one distality is not defined, use the ordering in
+            # the environment list as distality
+            self._distality_by_environment = {
+                e.name: float(i)
+                for i, e in enumerate(self._environments.values())
+            }
+        else:
+            # use ordering based on distality values
+            sorted_envs = sorted(
+                self._environments.values(), key=lambda e: e.distality # type: ignore
+            )
+            self._distality_by_environment = {
+                e.name: float(i) for i, e in enumerate(sorted_envs)
+            }
+
     # ------------------------------------------------------------------
     # Posterior
     # ------------------------------------------------------------------
@@ -750,10 +654,10 @@ class DepositionalEnvironmentSimulator:
           If the posterior is numerically zero everywhere, the method
           applies a four-level fallback strategy:
 
-        1. **Relax** the transition constraint (σ_transition × 10)
-              while keeping bathymetry and trend constraints.
+          1. **Relax** the transition constraint (σ_transition × 10)
+             while keeping bathymetry and trend constraints.
           2. **Drop** the transition constraint entirely; keep bathymetry
-              and trend constraints.
+             and trend constraints.
           3. **Drop** trend as well; keep only bathymetry.
           4. **Return** the prior (no likelihoods at all).
 
@@ -776,7 +680,9 @@ class DepositionalEnvironmentSimulator:
             bathymetry_value=bathymetry_value,
             bathymetry_range=bathymetry_range,
         )
-        L_trans = self.compute_transition_likelihood(previous_environment)
+        L_trans = self._cached_transition_likelihood.get(
+            previous_environment, dict.fromkeys(self._names, 1.0)
+        )
         L_trend = self.compute_distality_trend_likelihood(
             previous_environments,
         )
@@ -895,7 +801,7 @@ class DepositionalEnvironmentSimulator:
         bathymetry_range: tuple[float, float] | None = None,
         previous_environments: list[str] | None = None,
         seed: int | None = None,
-    ) -> tuple[dict[str, float], str]:
+    ) -> tuple[dict[str, float], DepositionalEnvironment]:
         """Compute posterior and sample one environment.
 
         :param float | None bathymetry_value: exact bathymetry value.
@@ -915,4 +821,4 @@ class DepositionalEnvironmentSimulator:
             previous_environments=previous_environments,
         )
         sampled_environment = self.sample_environment(posterior, seed=seed)
-        return posterior, sampled_environment
+        return posterior, self._environments[sampled_environment]

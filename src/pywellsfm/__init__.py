@@ -7,7 +7,11 @@ from .model import (
     AccumulationModel,
     AccumulationModelElementEnvironmentOptimum,
     AccumulationModelElementGaussian,
+    CarbonateOpenRampDepositionalEnvironmentModel,
+    CarbonateProtectedRampDepositionalEnvironmentModel,
     Curve,
+    DepositionalEnvironment,
+    DepositionalEnvironmentModel,
     DepthAgeModel,
     Element,
     EnvironmentalFacies,
@@ -26,7 +30,13 @@ from .model import (
     UncertaintyCurve,
     Well,
 )
-from .simulator import FSSimulator, FSSimulatorData, Realization
+from .simulator import (
+    DepositionalEnvironmentSimulator,
+    DESimulatorParameters,
+    FSSimulator,
+    FSSimulatorParameters,
+    Realization,
+)
 
 __version__ = "0.0.1"
 __all__ = [
@@ -36,6 +46,12 @@ __all__ = [
     "AccumulationModelElementEnvironmentOptimum",
     "AccumulationModelElementGaussian",
     "Curve",
+    "DepositionalEnvironment",
+    "DepositionalEnvironmentModel",
+    "CarbonateOpenRampDepositionalEnvironmentModel",
+    "CarbonateProtectedRampDepositionalEnvironmentModel",
+    "DepositionalEnvironmentSimulator",
+    "DESimulatorParameters",
     "DepthAgeModel",
     "Element",
     "EnvironmentalFacies",
@@ -45,7 +61,7 @@ __all__ = [
     "FaciesCriteriaType",
     "FaciesModel",
     "FSSimulator",
-    "FSSimulatorData",
+    "FSSimulatorParameters",
     "Marker",
     "PetrophysicalFacies",
     "Realization",

@@ -19,7 +19,7 @@ This page is built from the following Python modules:
 * ``Element.py`` (``pywellsfm.model.Element``)
 * ``Facies.py`` (``pywellsfm.model.Facies``)
 * ``Marker.py`` (``pywellsfm.model.Marker``)
-* ``SimulationParameters.py`` (``pywellsfm.model.SimulationParameters``)
+* ``FSSimulatorParameters.py`` (``pywellsfm.model.FSSimulatorParameters``)
 * ``Well.py`` (``pywellsfm.model.Well``)
 
 API reference
@@ -49,6 +49,12 @@ API reference
    :show-inheritance:
    :no-index:
 
+.. automodule:: pywellsfm.model.DepositionalEnvironment
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
 .. automodule:: pywellsfm.model.DepthAgeModel
    :members:
    :undoc-members:
@@ -73,7 +79,7 @@ API reference
    :show-inheritance:
    :no-index:
 
-.. automodule:: pywellsfm.model.SimulationParameters
+.. automodule:: pywellsfm.model.FSSimulationParameters
    :members:
    :undoc-members:
    :show-inheritance:

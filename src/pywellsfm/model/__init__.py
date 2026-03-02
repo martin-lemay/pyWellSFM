@@ -13,6 +13,12 @@ from .AccumulationModel import (
     AccumulationModelElementGaussian,
 )
 from .Curve import AccumulationCurve, Curve, UncertaintyCurve
+from .DepositionalEnvironment import (
+    CarbonateOpenRampDepositionalEnvironmentModel,
+    CarbonateProtectedRampDepositionalEnvironmentModel,
+    DepositionalEnvironment,
+    DepositionalEnvironmentModel,
+)
 from .DepthAgeModel import DepthAgeModel
 from .Element import Element
 from .enums import SubsidenceType
@@ -26,8 +32,8 @@ from .Facies import (
     PetrophysicalFacies,
     SedimentaryFacies,
 )
+from .FSSimulationParameters import RealizationData, Scenario
 from .Marker import Marker, StratigraphicSurfaceType
-from .SimulationParameters import RealizationData, Scenario
 from .Well import Well
 
 __all__ = [
@@ -38,6 +44,10 @@ __all__ = [
     "AccumulationModelElementGaussian",
     "Curve",
     "DepthAgeModel",
+    "DepositionalEnvironment",
+    "DepositionalEnvironmentModel",
+    "CarbonateOpenRampDepositionalEnvironmentModel",
+    "CarbonateProtectedRampDepositionalEnvironmentModel",
     "Element",
     "EnvironmentalFacies",
     "Facies",

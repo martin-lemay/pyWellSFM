@@ -61,9 +61,8 @@ Core model
 * :class:`~pywellsfm.model.Facies.FaciesCriteriaType`
 * :class:`~pywellsfm.model.Facies.FaciesModel`
 * :class:`~pywellsfm.model.Marker.Marker`
-* :class:`~pywellsfm.model.SimulationParameters.Scenario`
-* :class:`~pywellsfm.model.SimulationParameters.SimulationData`
-* :class:`~pywellsfm.model.SimulationParameters.RealizationData`
+* :class:`~pywellsfm.model.FSSimulationParameters.Scenario`
+* :class:`~pywellsfm.model.FSSimulationParameters.RealizationData`
 * :class:`~pywellsfm.model.Well.Well`
 
 

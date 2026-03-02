@@ -7,7 +7,7 @@
     "properties": {
         "format": {
             "description": "Defines the file content for verification purposes.",
-            "const": "pyWellSFM.SimulationData"
+            "const": "pyWellSFM.FSSimulationData"
         },
         "version": {
             "description": "Defines the file content version.",
@@ -66,6 +66,47 @@
                     }
                 ]
             }
+        },
+        "use_depositional_environment_simulator": {
+            "type": "boolean",
+            "description": "Whether to use a depositional environment simulator. Default is false."
+        },
+        "deSimulator_weights": {
+            "description": "Optional mapping from environment name to prior weight. If omitted, equal weights are used.",
+            "type": "object",
+            "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DepositionalEnvironmentSimulatorSchema.json#/$defs/DESimulatorWeights"
+        },
+        "deSimulator_params": {
+            "description": "Parameters for the depositional environment simulator.",
+            "type": "object",
+            "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DepositionalEnvironmentSimulatorSchema.json#/$defs/DESimulatorParameters"
+        },
+        "params" : {
+            "type": "object",
+            "description": "Additional parameters for the simulation.",
+            "properties": {
+                "max_bathymetry_change_per_step": {
+                    "type": "number",
+                    "description": "Maximum allowed bathymetry change per step. Default is 0.5."
+                },
+                "dt_min": {
+                    "type": "number",
+                    "description": "Minimum time step size. Default is 1e-3."
+                },
+                "dt_max": {
+                    "type": "number",
+                    "description": "Maximum time step size. Default is 0.1."
+                },
+                "safety": {
+                    "type": "number",
+                    "description": "Safety factor for adaptive time stepping. Default is 0.9."
+                },
+                "max_steps": {
+                    "type": "integer",
+                    "description": "Maximum number of steps to simulate. Default is 1e9."
+                }
+            },
+            "additionalProperties": false
         }
     },
     "required": [
@@ -74,6 +115,5 @@
         "name",
         "scenario",
         "realizations"
-    ],
-    "additionalProperties": false
+    ]
 }

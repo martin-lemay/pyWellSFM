@@ -6,7 +6,7 @@ from typing import Optional, Self
 import numpy as np
 
 from pywellsfm.model.enums import SubsidenceType
-from pywellsfm.model.SimulationParameters import RealizationData, Scenario
+from pywellsfm.model.FSSimulationParameters import RealizationData, Scenario
 from pywellsfm.model.Well import Well
 from pywellsfm.simulator.AccommodationSimulator import AccommodationSimulator
 from pywellsfm.simulator.AccumulationSimulator import AccumulationSimulator

@@ -16,7 +16,7 @@ This page is built from the following Python modules:
 * ``curve_io.py`` (``pywellsfm.io.curve_io``)
 * ``facies_model_io.py`` (``pywellsfm.io.facies_model_io``)
 * ``json_schema_validation.py`` (``pywellsfm.io.json_schema_validation``)
-* ``simulation_io.py`` (``pywellsfm.io.simulation_io``)
+* ``fssimulation_io.py`` (``pywellsfm.io.fssimulation_io``)
 * ``striplog_io.py`` (``pywellsfm.io.striplog_io``)
 * ``tabulated_function_io.py`` (``pywellsfm.io.tabulated_function_io``)
 * ``well_io.py`` (``pywellsfm.io.well_io``)
@@ -55,7 +55,7 @@ API reference
    :show-inheritance:
    :no-index:
 
-.. automodule:: pywellsfm.io.simulation_io
+.. automodule:: pywellsfm.io.fssimulation_io
    :members:
    :undoc-members:
    :show-inheritance:

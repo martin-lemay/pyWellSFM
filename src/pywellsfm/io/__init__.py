@@ -23,9 +23,29 @@ from .curve_io import (
     saveCurveToCsv,
     saveCurveToJson,
 )
+from .depositional_environment_model_io import (
+    depositionalEnvironmentModelToJsonObj,
+    loadDepositionalEnvironmentModel,
+    loadDepositionalEnvironmentModelFromJsonObj,
+    saveDepositionalEnvironmentModel,
+)
+from .depositional_environment_simulation_io import (
+    depositionalEnvironmentSimulationToJsonObj,
+    loadDepositionalEnvironmentSimulation,
+    loadDepositionalEnvironmentSimulationFromJsonObj,
+    saveDepositionalEnvironmentSimulation,
+)
 from .facies_model_io import (
     loadFaciesModel,
     saveFaciesModel,
+)
+from .fssimulation_io import (
+    loadFSSimulation,
+    loadRealizationData,
+    loadScenario,
+    saveFSSimulation,
+    saveRealizationData,
+    saveScenario,
 )
 from .json_schema_validation import (
     validate_json_file_against_schema,
@@ -33,14 +53,6 @@ from .json_schema_validation import (
     validateFaciesModelJsonFile,
     validateScenarioJsonFile,
     validateTabulatedFunctionJsonFile,
-)
-from .simulation_io import (
-    loadRealizationData,
-    loadScenario,
-    loadSimulationData,
-    saveRealizationData,
-    saveScenario,
-    saveSimulationData,
 )
 from .striplog_io import importStriplog
 from .tabulated_function_io import (
@@ -55,12 +67,16 @@ __all__ = [
     "loadAccumulationModel",
     "loadAccumulationModelGaussianFromCsv",
     "loadCurvesFromFile",
+    "loadDepositionalEnvironmentModel",
+    "loadDepositionalEnvironmentModelFromJsonObj",
+    "loadDepositionalEnvironmentSimulation",
+    "loadDepositionalEnvironmentSimulationFromJsonObj",
     "loadEustaticCurve",
     "loadFaciesModel",
     "loadRealizationData",
     "loadScenario",
     "loadSubsidenceCurve",
-    "loadSimulationData",
+    "loadFSSimulation",
     "loadTabulatedFunctionFromFile",
     "loadUncertaintyCurveFromFile",
     "loadWell",
@@ -71,10 +87,12 @@ __all__ = [
     "saveCurve",
     "saveCurveToCsv",
     "saveCurveToJson",
+    "saveDepositionalEnvironmentModel",
+    "saveDepositionalEnvironmentSimulation",
     "saveFaciesModel",
     "saveRealizationData",
     "saveScenario",
-    "saveSimulationData",
+    "saveFSSimulation",
     "saveTabulatedFunctionToCsv",
     "saveTabulatedFunctionToJson",
     "saveWell",
@@ -83,4 +101,6 @@ __all__ = [
     "validateScenarioJsonFile",
     "validateTabulatedFunctionJsonFile",
     "validate_json_file_against_schema",
+    "depositionalEnvironmentModelToJsonObj",
+    "depositionalEnvironmentSimulationToJsonObj",
 ]

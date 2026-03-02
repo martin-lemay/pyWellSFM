@@ -1,0 +1,99 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DESimulationSchema.json",
+    "title": "Input Depositional Environment Simulation data Schema",
+    "description": "Defines the input data for a depositional environment simulation.",
+    "type": "object",
+    "properties": {
+        "format": {
+            "description": "Defines the file content for verification purposes.",
+            "const": "pyWellSFM.DESimulationSchema"
+        },
+        "version": {
+            "description": "Defines the file content version.",
+            "const": "1.0"
+        },
+        "depositionalEnvironmentModel": {
+            "description": "Depositional environment model used by the simulator.",
+            "type": "object",
+            "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DepositionalEnvironmentModelSchema.json"
+        },
+        "weights": {
+            "description": "Optional mapping from environment name to prior weight. If omitted, equal weights are used.",
+            "type": "object",
+            "$ref": "#/$defs/DESimulatorWeights"
+        },
+        "params": {
+            "description": "Parameters for the depositional environment simulator.",
+            "type": "object",
+            "$ref": "#/$defs/DESimulatorParameters"
+        }
+    },
+    "required": [
+        "format",
+        "version",
+        "depositionalEnvironmentModel"
+    ],
+    "additionalProperties": false,
+    "$defs" : {
+        "DESimulatorWeights": {
+            "description": "Optional mapping from environment name to prior weight. If omitted, equal weights are used.",
+            "type": "object",
+            "propertyNames": {
+                "type": "string",
+                "minLength": 1
+            },
+            "additionalProperties": {
+                "type": "number",
+                "exclusiveMinimum": 0
+            }
+        },
+        "DESimulatorParameters": {
+            "type": "object",
+            "description": "Parameters for the depositional environment simulator.",
+            "properties": {
+                "bathymetry_sigma": {
+                    "description": "Standard deviation for bathymetry likelihood (must be > 0).",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "transition_sigma": {
+                    "description": "Standard deviation for transition likelihood (must be > 0).",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "trend_sigma": {
+                    "description": "Standard deviation for distality trend likelihood (must be > 0).",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "trend_window": {
+                    "description": "Number of previous environments used for trend likelihood (must be >= 2).",
+                    "type": "integer",
+                    "minimum": 2
+                },
+                "transition_mode": {
+                    "description": "Transition likelihood mode.",
+                    "type": "string",
+                    "enum": [
+                        "none",
+                        "adjacency"
+                    ]
+                },
+                "interval_distance_method": {
+                    "description": "Method used to compute distance between bathymetry intervals.",
+                    "type": "string",
+                    "enum": [
+                        "gap",
+                        "center",
+                        "hausdorff",
+                        "wasserstein2",
+                        "gap_times_center",
+                        "gap_overlapping_width"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}

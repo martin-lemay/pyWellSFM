@@ -345,7 +345,7 @@ Data model
   - `bathymetry_max: float`
   - `weight: float = 1.0`
 
-- `DepositionalEnvironmentSimulatorParameters`
+- `DESimulatorParameters`
   - `bathymetry_sigma: float` (controls strength/tolerance of the bathymetry likelihood)
   - `transition_mode: Literal["none","adjacency"]`
   - `transition_sigma: float` (controls strength/tolerance of the transition likelihood)
@@ -361,7 +361,7 @@ Implementation plan (Python)
 - Create a new module (suggested): `src/pywellsfm/simulator/DepositionalEnvironmentSimulator.py`
 - Add:
   - `@dataclass EnvironmentDefinition`
-  - `@dataclass DepositionalEnvironmentSimulatorParameters`
+  - `@dataclass DESimulatorParameters`
   - `class DepositionalEnvironmentSimulator`
 
 2) Implement configuration / parameterization
