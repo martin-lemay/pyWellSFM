@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/AccumulationModelSchema.json",
     "title": "Input Accumulation Model Data",
-    "description": "Defines the input data to create an accumulation model.\n\nThis schema matches the AccumulationModel class in src/pywellsfm/model/AccumulationModel.py:\n- accumulationModel.name: model name\n- accumulationModel.elements: dictionary mapping element name -> element accumulation model\n\nEach element accumulation model is either:\n- AccumulationModelElementGaussian\n- AccumulationModelElementEnvironmentOptimum",
+    "description": "Defines the input data to create an accumulation model.\n\nThis schema matches the AccumulationModel class in src/pywellsfm/model/AccumulationModel.py:\n- accumulationModel.name: model name\n- accumulationModel.elements: dictionary mapping element name -> element accumulation model\n\nEach element accumulation model is either:\n- AccumulationModelElementGaussian\n- AccumulationModelElementOptimum",
     "type": "object",
     "properties": {
         "format": {
@@ -79,7 +79,7 @@
             "additionalProperties": false
         },
         "ElementEnvironmentOptimumModel": {
-            "description": "Environment optimum element accumulation model (AccumulationModelElementEnvironmentOptimum).",
+            "description": "Environment optimum element accumulation model (AccumulationModelElementOptimum).",
             "type": "object",
             "properties": {
                 "modelType": {

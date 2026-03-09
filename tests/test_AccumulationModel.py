@@ -29,8 +29,9 @@ from pywellsfm.io.curve_io import curveToJsonObj  # noqa: E402
 from pywellsfm.model import AccumulationCurve  # noqa: E402
 from pywellsfm.model.AccumulationModel import (  # noqa: E402
     AccumulationModel,
+    AccumulationModelCombination,
     AccumulationModelElementBase,
-    AccumulationModelElementEnvironmentOptimum,
+    AccumulationModelElementOptimum,
     AccumulationModelElementGaussian,
 )
 
@@ -38,7 +39,7 @@ from pywellsfm.model.AccumulationModel import (  # noqa: E402
 bathy_curve = AccumulationCurve(
     "Bathymetry",
     np.array([0.0, 10.0, 50.0]),
-    np.array([0.0, 1.0, 0.0]),
+    np.array([0.0, 1.0, 0.8]),
 )
 energy_curve = AccumulationCurve(
     "Energy",
@@ -50,7 +51,11 @@ temp_curve = AccumulationCurve(
     np.array([0, 25, 50]),
     np.array([0.0, 1.0, 0.0]),
 )
-
+age_curve = AccumulationCurve(
+    "Age",
+    np.array([0, 5.0, 10]),
+    np.array([0.0, 1.0, 0.8]),
+)
 
 # ---------------------------------------
 # AccumulationModel.AccumulationModelElementBase
@@ -157,30 +162,26 @@ def test_gaussian_model_std_dev_factor() -> None:
 
 
 # ----------------------------------------------------------
-# AccumulationModel.AccumulationModelElementEnvironmentOptimum
+# AccumulationModel.AccumulationModelElementOptimum
 # ----------------------------------------------------------
 
 
-def test_environment_optimum_model_without_env_conditions_raises() -> None:
-    """Test raises error without conditions."""
-    element_model = AccumulationModelElementEnvironmentOptimum(
+def test_environment_optimum_model_without_env_conditions() -> None:
+    """Test reduction coefficient is 1.0 without conditions."""
+    element_model = AccumulationModelElementOptimum(
         "sand", 100.0, accumulationCurves={"Bathymetry": bathy_curve}
     )
     model = AccumulationModel("EnvModel", {"sand": element_model})
+    rate = model.getElementAccumulationAt("sand")
 
-    # Should raise ValueError when environmentConditions is None
-    with pytest.raises(ValueError) as exc_info:
-        model.getElementAccumulationAt("sand")
-
-    error_msg = str(exc_info.value)
-    assert "requires environmentConditions" in error_msg
+    assert rate == 100.0
 
 
 def test_environmentOptimum_addAccumulationCurve_getAccumulationCurve() -> (
     None
 ):
     """Test adding curves stores them by x-axis name and can be retrieved."""
-    element_model = AccumulationModelElementEnvironmentOptimum("sand", 10.0)
+    element_model = AccumulationModelElementOptimum("sand", 10.0)
     element_model.addAccumulationCurve(bathy_curve)
     element_model.addAccumulationCurve(energy_curve)
 
@@ -194,7 +195,7 @@ def test_environmentOptimum_removeCurve_removes_and_isNoopWhenMissing() -> (
     None
 ):
     """Test removes by name and doesn't error if missing."""
-    element_model = AccumulationModelElementEnvironmentOptimum("sand", 10.0)
+    element_model = AccumulationModelElementOptimum("sand", 10.0)
     element_model.addAccumulationCurve(bathy_curve)
 
     element_model.removeAccumulationCurve("Bathymetry")
@@ -207,7 +208,7 @@ def test_environmentOptimum_removeCurve_removes_and_isNoopWhenMissing() -> (
 
 def test_environment_optimum_getAccumulationCurve_raises_for_missing() -> None:
     """Test getAccumulationCurve raises KeyError when curve is missing."""
-    element_model = AccumulationModelElementEnvironmentOptimum("sand", 10.0)
+    element_model = AccumulationModelElementOptimum("sand", 10.0)
     with pytest.raises(KeyError):
         element_model.accumulationCurves["Bathymetry"]
 
@@ -216,7 +217,7 @@ def test_environmentOptimum_getElementAccumulationAt_matchesCurveProduct() -> (
     None
 ):
     """Migrated behavior test: accumulation equals rate * product(coeffs)."""
-    element_model = AccumulationModelElementEnvironmentOptimum(
+    element_model = AccumulationModelElementOptimum(
         "Sand",
         10.0,
         accumulationCurves={
@@ -233,7 +234,7 @@ def test_environmentOptimum_getElementAccumulationAt_matchesCurveProduct() -> (
 
 def test_environment_optimum_model_with_env_conditions() -> None:
     """Test AccumulationModelEnvironmentOptimum with environment conditions."""
-    element_model = AccumulationModelElementEnvironmentOptimum(
+    element_model = AccumulationModelElementOptimum(
         "sand", 100.0, accumulationCurves={"Bathymetry": bathy_curve}
     )
     model = AccumulationModel("EnvModel", {"sand": element_model})
@@ -248,19 +249,21 @@ def test_environment_optimum_model_with_env_conditions() -> None:
 
 def test_environment_optimum_model_multiple_factors() -> None:
     """Test with multiple environmental factors."""
-    element_model = AccumulationModelElementEnvironmentOptimum(
+    element_model = AccumulationModelElementOptimum(
         "sand",
         100.0,
         accumulationCurves={
             "Bathymetry": bathy_curve,
             "Temperature": temp_curve,
+            "Age": age_curve,
         },
     )
     model = AccumulationModel("EnvModel", {"sand": element_model})
 
     # Test with both factors at optimum
+    age: float = 5.0
     env_conditions = {"Bathymetry": 10.0, "Temperature": 25.0}
-    rate = model.getElementAccumulationAt("sand", env_conditions)
+    rate = model.getElementAccumulationAt("sand", env_conditions, age)
 
     # Both coefficients = 1.0, so rate = 100.0 * 1.0 * 1.0
     assert rate == pytest.approx(100.0, rel=1e-6)
@@ -270,15 +273,27 @@ def test_environment_optimum_model_multiple_factors() -> None:
         "Bathymetry": 10.0,
         "Temperature": 12.5,
     }  # temp coeff = 0.5
-    rate = model.getElementAccumulationAt("sand", env_conditions)
+    rate = model.getElementAccumulationAt("sand", env_conditions, age)
 
-    # Bathy coeff = 1.0, temp coeff = 0.5, so rate = 100.0 * 1.0 * 0.5 = 50.0
+    # Bathy coeff = 1.0, temp coeff = 0.5, age coeff = 1.0,
+    # so rate = 100.0 * 1.0 * 0.5 * 1.0 = 50.0
     assert rate == pytest.approx(50.0, rel=1e-6)
+
+    # Test with age factor suboptimal
+    env_conditions = {
+        "Bathymetry": 10.0,
+        "Temperature": 25.0,
+    }  # temp coeff = 1.0
+    rate = model.getElementAccumulationAt("sand", env_conditions, age=10.0)
+
+    # Bathy coeff = 1.0, temp coeff = 1.0, age coeff = 0.8,
+    # so rate = 100.0 * 1.0 * 1.0 * 0.8 = 80.0
+    assert rate == pytest.approx(80.0, rel=1e-6)
 
 
 def test_environment_optimum_model_ignores_unknown_factors() -> None:
     """Test that unknown environmental factors are ignored."""
-    element_model = AccumulationModelElementEnvironmentOptimum(
+    element_model = AccumulationModelElementOptimum(
         "sand", 100.0, accumulationCurves={"Bathymetry": bathy_curve}
     )
     model = AccumulationModel("EnvModel", {"sand": element_model})
@@ -306,11 +321,26 @@ def test_unified_api_consistency() -> None:
     env_model = AccumulationModel(
         "EnvModel",
         {
-            "sand": AccumulationModelElementEnvironmentOptimum(
+            "sand": AccumulationModelElementOptimum(
                 "sand",
                 100.0,
                 accumulationCurves={"Bathymetry": bathy_curve},
             ),
+        },
+    )
+    combination_model = AccumulationModel(
+        "CombinationModel",
+        {
+            "sand": AccumulationModelCombination(
+                [
+                    AccumulationModelElementOptimum(
+                        "sand",
+                        100.0,
+                        accumulationCurves={"Bathymetry": bathy_curve},
+                    ),
+                    AccumulationModelElementGaussian("sand", 100.0),
+                ]
+            )
         },
     )
 
@@ -319,9 +349,12 @@ def test_unified_api_consistency() -> None:
     # Both should accept this calling convention
     prob_rate = prob_model.getElementAccumulationAt("sand", env_conditions)
     env_rate = env_model.getElementAccumulationAt("sand", env_conditions)
-
+    comb_rate = combination_model.getElementAccumulationAt(
+        "sand", env_conditions
+    )
     assert isinstance(prob_rate, float)
     assert isinstance(env_rate, float)
+    assert isinstance(comb_rate, float)
     assert env_rate == pytest.approx(100.0, rel=1e-6)
 
 
@@ -360,16 +393,16 @@ def test_generic_client_code_pattern() -> None:
     assert isinstance(results1["sand"], float)
     assert isinstance(results1["clay"], float)
 
-    # Test with environment optimum model (requires env conditions)
+    # Test with environment optimum model
     env_model = AccumulationModel(
         "EnvModel",
         {
-            "sand": AccumulationModelElementEnvironmentOptimum(
+            "sand": AccumulationModelElementOptimum(
                 "sand",
                 100.0,
                 accumulationCurves={"Bathymetry": bathy_curve},
             ),
-            "clay": AccumulationModelElementEnvironmentOptimum(
+            "clay": AccumulationModelElementOptimum(
                 "clay",
                 50.0,
                 accumulationCurves={"Bathymetry": bathy_curve},
@@ -377,16 +410,49 @@ def test_generic_client_code_pattern() -> None:
         },
     )
 
-    # Without env conditions - should get nan
+    # Without env conditions - should get max accumulation
     results2 = compute_total_accumulation(env_model)
-    assert np.isnan(results2["sand"])
-    assert np.isnan(results2["clay"])
+    assert results2["sand"] == pytest.approx(100.0, rel=1e-6)
+    assert results2["clay"] == pytest.approx(50.0, rel=1e-6)
 
     # With env conditions - should work
-    env_conditions = {"Bathymetry": 10.0}
+    env_conditions = {"Bathymetry": 50.0}
     results3 = compute_total_accumulation(env_model, env_conditions)
-    assert results3["sand"] == pytest.approx(100.0, rel=1e-6)
-    assert results3["clay"] == pytest.approx(50.0, rel=1e-6)
+    assert results3["sand"] == pytest.approx(0.8 * 100.0, rel=1e-6)
+    assert results3["clay"] == pytest.approx(0.8 * 50.0, rel=1e-6)
+
+    # Test with environment optimum model
+    combination_model = AccumulationModel(
+        "CombinationModel",
+        {
+            "sand": AccumulationModelCombination(
+                [
+                    AccumulationModelElementOptimum(
+                        "sand",
+                        100.0,
+                        accumulationCurves={"Bathymetry": bathy_curve},
+                    ),
+                    AccumulationModelElementGaussian("sand", 100.0),
+                ]
+            ),
+            "clay": AccumulationModelCombination(
+                [
+                    AccumulationModelElementOptimum(
+                        "clay",
+                        50.0,
+                        accumulationCurves={"Bathymetry": bathy_curve},
+                    ),
+                    AccumulationModelElementGaussian("clay", 50.0),
+                ]
+            ),
+        },
+    )
+
+    results4 = compute_total_accumulation(combination_model)
+    assert "sand" in results4
+    assert "clay" in results4
+    assert isinstance(results4["sand"], float)
+    assert isinstance(results4["clay"], float)
 
 
 # ------------------------------
@@ -432,9 +498,7 @@ def _envopt_signature(
     elements: dict[str, float] = {}
     curves: dict[str, tuple[list[float], list[float]]] = {}
     for element_name, element_model in model.elements.items():
-        assert isinstance(
-            element_model, AccumulationModelElementEnvironmentOptimum
-        )
+        assert isinstance(element_model, AccumulationModelElementOptimum)
         elements[element_name] = float(element_model.accumulationRate)
         for curve_name, curve in element_model.accumulationCurves.items():
             curves[curve_name] = (
@@ -739,14 +803,14 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_inline_curves(
 
     assert model.name == "Env"
     sand_model = model.getElementModel("sand")
-    assert isinstance(sand_model, AccumulationModelElementEnvironmentOptimum)
+    assert isinstance(sand_model, AccumulationModelElementOptimum)
     assert "bathymetry" in sand_model.accumulationCurves
     assert "energy" in sand_model.accumulationCurves
 
     # Linear curve between 0 and 10 -> at 5 = 0.5
-    assert sand_model.getElementAccumulationAt(
-        {"bathymetry": 5.0}
-    ) == pytest.approx(10.0 * 0.5)
+    assert sand_model.getAccumulationAt({"bathymetry": 5.0}) == pytest.approx(
+        10.0 * 0.5
+    )
 
 
 def test_loadAccumulationModelEnvironmentOptimumFromJson_url_curves(
@@ -798,11 +862,11 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_url_curves(
     model = cast(AccumulationModel, loadAccumulationModel(json_path))
 
     sand_model = model.getElementModel("sand")
-    assert isinstance(sand_model, AccumulationModelElementEnvironmentOptimum)
+    assert isinstance(sand_model, AccumulationModelElementOptimum)
     assert "bathymetry" in sand_model.accumulationCurves
-    assert sand_model.getElementAccumulationAt(
-        {"bathymetry": 5.0}
-    ) == pytest.approx(10.0 * 0.5)
+    assert sand_model.getAccumulationAt({"bathymetry": 5.0}) == pytest.approx(
+        10.0 * 0.5
+    )
 
 
 def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
@@ -824,7 +888,7 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
     model = AccumulationModel(
         "Env",
         {
-            "sand": AccumulationModelElementEnvironmentOptimum(
+            "sand": AccumulationModelElementOptimum(
                 "sand",
                 10.0,
                 accumulationCurves={
@@ -840,7 +904,7 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_inline_round_trip(
                     ),
                 },
             ),
-            "shale": AccumulationModelElementEnvironmentOptimum(
+            "shale": AccumulationModelElementOptimum(
                 "shale",
                 2.5,
                 accumulationCurves={
@@ -878,7 +942,7 @@ def test_saveAccumulationModelEnvironmentOptimumToJson_external_raises(
     model = AccumulationModel(
         "Env",
         {
-            "sand": AccumulationModelElementEnvironmentOptimum(
+            "sand": AccumulationModelElementOptimum(
                 "sand",
                 10.0,
                 accumulationCurves={"Bathymetry": bathy_curve},

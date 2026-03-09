@@ -614,7 +614,8 @@ class DepositionalEnvironmentSimulator:
         else:
             # use ordering based on distality values
             sorted_envs = sorted(
-                self._environments.values(), key=lambda e: e.distality # type: ignore
+                self._environments.values(),
+                key=lambda e: e.distality,  # type: ignore
             )
             self._distality_by_environment = {
                 e.name: float(i) for i, e in enumerate(sorted_envs)

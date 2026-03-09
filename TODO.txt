@@ -1,18 +1,26 @@
 Short-term:
-
+- change bathymetry by water depth where relevant
+- Curve: add option No interpolation between ages (use previous value)
+- add environment condition vs time Curve
+- add env cond vs water depth for general case (without de simulator: OR using
+  other de de model. Same schema as AccumulationSimulator and Accumulation models)
+- production curve vs ages
 - fix problem of none environment in the middle of the simu
 - add environment dependent weights to favor some likelihood (ex: buildup favor transition with itself)
 - adapt time step calculation to match input marker ages
 - add unit tests for simulators
-- create simulated well from output xarray
-- create output plots (acco/accumulation/topo... vs time) (from well in time or from xarray?)
-- Wells: allowing to convert Depth to Age from DepthAgeModel composed of markers
-  linking depth with age. In between markers, assume a function (default is linear)
 - create missing unit tests for save methods
 - create export methods to save data objects (simulation, realization, scenario, etc.) where needed (+tests)
 - add logger
 
+Display:
+- create simulated well from output xarray
+- create output plots (acco/accumulation/topo... vs time) (from well in time or from xarray?)
+
+
 Long-term:
+- Wells: allowing to convert Depth to Age from DepthAgeModel composed of markers
+  linking depth with age. In between markers, assume a function (default is linear)
 - create Accumulation models based on Carbonate factories
 - define cost function to evaluate misfit between real and simulated well
 - implement multi-real framework from parameter ranges

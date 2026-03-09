@@ -23,6 +23,7 @@ from .Realization import Realization
 @dataclass
 class FSSimulatorParameters:
     """Parameters for the Forward Stratigraphic Simulator (FSSimulator)."""
+
     #: maximum bathymetry change and accumulated thickness
     #: per step (in meters). Default is 0.5 m.
     max_bathymetry_change_per_step: float = 0.5
@@ -102,9 +103,7 @@ class FSSimulator:
         self.basements: list[npt.NDArray[np.float64]] = []
         self.accommodations: list[npt.NDArray[np.float64]] = []
         self.depo_rate_totals: list[npt.NDArray[np.float64]] = []
-        self.depo_rate_elements: list[
-            list[dict[str, float]]
-        ] = []
+        self.depo_rate_elements: list[list[dict[str, float]]] = []
         self.thickness_steps: list[npt.NDArray[np.float64]] = []
         self.thickness_cumul: list[npt.NDArray[np.float64]] = []
         self.bathymetries: list[npt.NDArray[np.float64]] = []
@@ -231,11 +230,11 @@ class FSSimulator:
                 real.initialEnvironment for real in self.realizationDataList
             ]
 
-        # Set initial time
-        self.times.append(start)
+        # set initial sea level and subsidence values
         sea_level_t = 0.0
-        subs_t = np.zeros(self.n_real, dtype=np.float64)
+        cumul_subs_t = np.zeros(self.n_real, dtype=np.float64)
 
+        # Set initial time
         t = start
         for _ in range(self.params.max_steps):
             if t <= stop:
@@ -262,36 +261,16 @@ class FSSimulator:
             dt = self._adaptTimeStep(t, accumulationRates, remaining=remaining)
 
             t2 = t - dt
-            # Get sea level variation between t1 and t2
-            delta_sea_level_t = self._getDeltaSeaLevel(t, t2)
-            sea_level_t += delta_sea_level_t
-
-            # Get subsidence variation between t1 and t2 for all realizations
-            delta_subs_t = self._getDeltaSubsidence(t, t2)
-            subs_t += delta_subs_t
-
-            # positive subsidence means sinking
-            basement_t = (-self.initial_bathymetries) - subs_t
-            acco_t = subs_t + sea_level_t
-
-            # Compute thickness and bathymetry change
-            thickness_step = self._getAccumulatedThickness(
-                accumulationRates, dt
-            )
-            # Compute bathymetry change for this step
-            delta_bathy = self._getBathymetryVariation(
-                delta_sea_level_t, delta_subs_t, thickness_step
-            )
-            delta_bathy_array: npt.NDArray[np.float64]
-            if isinstance(delta_bathy, np.ndarray):
-                delta_bathy_array = delta_bathy.copy()
-            else:
-                delta_bathy_array = np.full(
-                    (self.n_real,), delta_bathy, dtype=np.float64
-                )
 
             # Record state at time t (step-start)
+            self.times.append(t)
+            # Record time step
+            self.dts.append(dt)
+
+            # Record bathymetry for this step
             self.bathymetries.append(bathy_t.copy())
+
+            # Record depositional environment for this step if needed
             if depEnv_t is not None:
                 self.environments.append(
                     np.array(
@@ -302,21 +281,10 @@ class FSSimulator:
                         dtype=str,
                     )
                 )
-            self.thickness_steps.append(thickness_step)
-            self.thickness_cumul.append(
-                thickness_step
-                if not self.thickness_cumul
-                else self.thickness_cumul[-1] + thickness_step
-            )
-            self.delta_bathymetries.append(delta_bathy_array)
-            self.sea_levels.append(
-                np.full((self.n_real,), sea_level_t, dtype=np.float64)
-            )
-            self.subsidences.append(subs_t.copy())
-            self.basements.append(basement_t)
-            self.accommodations.append(acco_t)
+
+            # Record deposition rates for this step
             self.depo_rate_totals.append(accumulationRates)
-            self.dts.append(dt)
+
             # element accumulation rates for this step
             accu_rates_step: list[dict[str, float]] = [
                 {} for _ in range(self.n_real)
@@ -329,6 +297,52 @@ class FSSimulator:
                     accu_rates_step[i][name] = accuRate
             self.depo_rate_elements.append(accu_rates_step)
 
+            # Compute and record deposited thickness for this step
+            thickness_step = self._getAccumulatedThickness(
+                accumulationRates, dt
+            )
+            self.thickness_steps.append(thickness_step)
+            self.thickness_cumul.append(
+                thickness_step
+                if not self.thickness_cumul
+                else self.thickness_cumul[-1] + thickness_step
+            )
+
+            # Get sea level variation between t and t2
+            delta_sea_level_t = self._getDeltaSeaLevel(t, t2)
+            sea_level_t += delta_sea_level_t
+            self.sea_levels.append(
+                np.full((self.n_real,), sea_level_t, dtype=np.float64)
+            )
+
+            # Get subsidence variation between t and t2 for all realizations
+            delta_subs_t = self._getDeltaSubsidence(t, t2)
+            cumul_subs_t += delta_subs_t
+            self.subsidences.append(cumul_subs_t.copy())
+
+            # Compute bathymetry change for this step
+            delta_bathy = self._getBathymetryVariation(
+                delta_sea_level_t, delta_subs_t, thickness_step
+            )
+            delta_bathy_array: npt.NDArray[np.float64]
+            if isinstance(delta_bathy, np.ndarray):
+                delta_bathy_array = delta_bathy.copy()
+            else:
+                delta_bathy_array = np.full(
+                    (self.n_real,), delta_bathy, dtype=np.float64
+                )
+            self.delta_bathymetries.append(delta_bathy_array)
+
+            # compute and record basement elevation
+            # (positive subsidence means sinking)
+            basement_t = (-self.initial_bathymetries) - cumul_subs_t
+            self.basements.append(basement_t)
+
+            # compute and record accommodation
+            acco_t = cumul_subs_t + sea_level_t
+            self.accommodations.append(acco_t)
+
+            # update state for next step
             # Update bathymetry for next step
             bathy_t = bathy_t + delta_bathy_array
 
@@ -355,10 +369,11 @@ class FSSimulator:
 
             # Advance time
             t -= dt
-            self.times.append(t)
         else:
             raise RuntimeError("Reached max_steps without reaching stop")
 
+        # Record final state at time t (step-end)
+        self.times.append(t)
         print(
             f"Finished simulation at age {t:.4f} Myr after "
             + f"{len(self.times) - 1} steps."
@@ -564,7 +579,7 @@ class FSSimulator:
         return env_conds
 
     def _getAllConditionsForEnvironment(
-        self: Self, env: DepositionalEnvironment|None, bathy: float
+        self: Self, env: DepositionalEnvironment | None, bathy: float
     ) -> dict[str, float]:
         """Get all environment condition values from known bathymetry.
 
@@ -624,7 +639,6 @@ class FSSimulator:
             ``"bathymetry"``).
 
         Notes:
-
         - This strategy is equivalent to a topological dependency resolution.
         - It supports mixed configurations: some properties fixed by midpoint,
           others constrained by curves.
@@ -767,7 +781,7 @@ class FSSimulator:
 
         if self.depositionalEnvironmentSimulator is not None:
             env_arr = np.stack(self.environments, axis=1)
-            data_vars["environment"] = (("realization", "time"), env_arr) # type: ignore[assignment]
+            data_vars["environment"] = (("realization", "time"), env_arr)  # type: ignore[assignment]
 
         ds = xr.Dataset(
             data_vars=data_vars,

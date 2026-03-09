@@ -282,8 +282,8 @@ def depositionalEnvironmentModelToJsonObj(
 
     if not isinstance(model.environments, list) or len(model.environments) < 1:
         raise ValueError(
-            "DepositionalEnvironmentModel.environments must be a "+
-            "non-empty list."
+            "DepositionalEnvironmentModel.environments must be a "
+            + "non-empty list."
         )
 
     return {

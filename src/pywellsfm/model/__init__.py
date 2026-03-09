@@ -9,7 +9,7 @@ should prefer importing from `pywellsfm.model` instead of submodules.
 from .AccommodationSpaceWellCalculator import AccommodationSpaceWellCalculator
 from .AccumulationModel import (
     AccumulationModel,
-    AccumulationModelElementEnvironmentOptimum,
+    AccumulationModelElementOptimum,
     AccumulationModelElementGaussian,
 )
 from .Curve import AccumulationCurve, Curve, UncertaintyCurve
@@ -40,7 +40,7 @@ __all__ = [
     "AccommodationSpaceWellCalculator",
     "AccumulationCurve",
     "AccumulationModel",
-    "AccumulationModelElementEnvironmentOptimum",
+    "AccumulationModelElementOptimum",
     "AccumulationModelElementGaussian",
     "Curve",
     "DepthAgeModel",

@@ -28,7 +28,7 @@ from pywellsfm.io.json_schema_validation import expect_format_version
 from pywellsfm.model.AccumulationModel import (
     AccumulationModel,
     AccumulationModelElementBase,
-    AccumulationModelElementEnvironmentOptimum,
+    AccumulationModelElementOptimum,
     AccumulationModelElementGaussian,
 )
 from pywellsfm.model.Curve import AccumulationCurve
@@ -76,9 +76,7 @@ def accumulationModelEnvironmentOptimumToJsonObjInline(
     Curves are embedded inline as CurveSchema-compliant objects.
     """
     for element_name, element_model in accumulationModel.elements.items():
-        if not isinstance(
-            element_model, AccumulationModelElementEnvironmentOptimum
-        ):
+        if not isinstance(element_model, AccumulationModelElementOptimum):
             raise ValueError(
                 "accumulationModelEnvironmentOptimumToJsonObjInline requires "
                 "all elements to be EnvironmentOptimum. Found "
@@ -107,9 +105,7 @@ def accumulationModelToJsonObj(model: AccumulationModel) -> dict[str, Any]:
                 "modelType": "Gaussian",
                 "stddevFactor": float(element_model.std_dev_factor),
             }
-        elif isinstance(
-            element_model, AccumulationModelElementEnvironmentOptimum
-        ):
+        elif isinstance(element_model, AccumulationModelElementOptimum):
             curves = getattr(element_model, "accumulationCurves", {})
             if not isinstance(curves, dict):
                 raise ValueError(
@@ -413,7 +409,7 @@ def _loadElementAccumulationModelFromJsonObj(
                         )
                 curves[curve_name] = curve
 
-        return AccumulationModelElementEnvironmentOptimum(
+        return AccumulationModelElementOptimum(
             element_name,
             float(rate),
             accumulationCurves=curves,
