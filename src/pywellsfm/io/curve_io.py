@@ -18,21 +18,31 @@ from pywellsfm.model.Curve import (
     UncertaintyCurve,
 )
 from pywellsfm.utils import PolynomialInterpolator
+from pywellsfm.utils.helpers import LowerBoundInterpolator, UpperBoundInterpolator
 
 
-def _curve_interpolation_method(curve: Curve) -> str | dict[str, int]:
+def _curve_interpolation_method(curve: Curve) -> str | dict[str, Any]:
     """Best-effort extraction of the interpolation method from a Curve."""
     interp_func = getattr(curve, "_interpFunc", None)
     kind = getattr(interp_func, "kind", None)
     if isinstance(kind, str) and kind.strip() != "":
         return kind
 
-    degree = getattr(interp_func, "deg", None)
-    nb_points = getattr(interp_func, "nbPts", None)
-    if isinstance(degree, int) and isinstance(nb_points, int):
-        return {"degree": int(degree), "nbPoints": int(nb_points)}
+    if isinstance(interp_func, PolynomialInterpolator):
+        degree = getattr(interp_func, "deg", None)
+        nb_points = getattr(interp_func, "nbPts", None)
+        if isinstance(degree, int) and isinstance(nb_points, int):
+            return {"name": interp_func.name,
+                    "degree": int(degree),
+                    "nbPoints": int(nb_points)}
 
-    return "linear"
+    if isinstance(interp_func, LowerBoundInterpolator):
+        return interp_func.name
+
+    if isinstance(interp_func, UpperBoundInterpolator):
+        return interp_func.name
+
+    return "LowerBound"
 
 
 def curveToJsonObj(
@@ -334,23 +344,39 @@ def loadCurveFromJsonObj(obj: dict[str, Any]) -> Curve:
             raise ValueError(
                 "Curve.curve.interpolationMethod must be non-empty."
             )
-        interpolation_function = interpolation_method
+        if interpolation_method == "LowerBound":
+            interpolation_function = LowerBoundInterpolator()
+        elif interpolation_method == "UpperBound":
+            interpolation_function = UpperBoundInterpolator()
+        else:
+            interpolation_function = interpolation_method
     elif isinstance(interpolation_method, dict):
-        degree = interpolation_method.get("degree")
-        nb_points = interpolation_method.get("nbPoints")
-        if not isinstance(degree, int) or degree < 1:
+        name = interpolation_method.get("name")
+        if not isinstance(name, str) or name.strip() == "":
             raise ValueError(
-                "Curve.curve.interpolationMethod.degree must be an"
-                " integer >= 1."
+                "Curve.curve.interpolationMethod.name must be a non-empty"
+                " string."
             )
-        if not isinstance(nb_points, int) or nb_points < 2:
+        if name == "PolynomialInterpolator":
+            degree = interpolation_method.get("degree")
+            nb_points = interpolation_method.get("nbPoints")
+            if not isinstance(degree, int) or degree < 1:
+                raise ValueError(
+                    "Curve.curve.interpolationMethod.degree must be an"
+                    " integer >= 1."
+                )
+            if not isinstance(nb_points, int) or nb_points < 2:
+                raise ValueError(
+                    "Curve.curve.interpolationMethod.nbPoints must be an"
+                    " integer >= 2."
+                )
+            interpolation_function = PolynomialInterpolator()
+            # PolynomialInterpolator expects 'deg' and 'nbPts'.
+            interpolation_args = {"deg": degree, "nbPts": nb_points}
+        else:
             raise ValueError(
-                "Curve.curve.interpolationMethod.nbPoints must be an"
-                " integer >= 2."
+                f"Unsupported Curve interpolation method name: '{name}'."
             )
-        interpolation_function = PolynomialInterpolator()
-        # PolynomialInterpolator expects 'deg' and 'nbPts'.
-        interpolation_args = {"deg": degree, "nbPts": nb_points}
     else:
         raise ValueError(
             "Curve.curve.interpolationMethod must be a string or an object."

@@ -8,6 +8,8 @@ import numpy.typing as npt
 import pandas as pd
 import scipy.interpolate as interp
 
+from pywellsfm.utils.helpers import LowerBoundInterpolator
+
 
 class Curve:
     def __init__(
@@ -16,7 +18,7 @@ class Curve:
         yAxisName: str,
         abscissa: npt.NDArray[np.float64],
         ordinate: npt.NDArray[np.float64],
-        interpolationFunction: str | Any = "linear",  # noqa: ANN401
+        interpolationFunction: str | Any | None = None,  # noqa: ANN401
         **args: Any,
     ) -> None:
         """Defines a curve by two lists of abscissa and ordinate coordinates.
@@ -25,29 +27,37 @@ class Curve:
         :param str yAxisName: y axis name
         :param npt.NDArray[np.float64] abscissa: abscissa values
         :param npt.NDArray[np.float64] ordinate: ordinate values
-        :param str | "function" interpolationFunction: name of interpolation
-            method according to scipy.interpolate.interp1d method, defaults to
-            "linear", or a class inherited from
+        :param str | "function" | None interpolationFunction: name of
+            interpolation method according to scipy.interpolate.interp1d
+            method, or a class inherited from
             `pywellsfm.utils.helpers.Interpolator` to compute the
             interpolation (see for instance
-            `pywellsfm.utils.helpers.PolynomialInterpolator`)
+            `pywellsfm.utils.helpers.PolynomialInterpolator`). By default, if
+            interpolationFunction is None, the LowerBoundInterpolator is used.
         """
         self._xAxisName: str = xAxisName
         self._yAxisName: str = yAxisName
         self._abscissa: npt.NDArray[np.float64] = abscissa
         self._ordinate: npt.NDArray[np.float64] = ordinate
         self._interpFunc: Any
-        if type(interpolationFunction) is str:
-            self._interpFunc = interp.interp1d(
-                self._abscissa,
-                self._ordinate,
-                kind=interpolationFunction,
-                bounds_error=False,
-            )
+        if interpolationFunction is None:
+            self._interpFunc = LowerBoundInterpolator()
+        elif type(interpolationFunction) is str:
+            try:
+                self._interpFunc = interp.interp1d(
+                    self._abscissa,
+                    self._ordinate,
+                    kind=interpolationFunction,
+                    bounds_error=False,
+                )
+            except ValueError as e:
+                raise ValueError(
+                    f"Invalid interpolation method: {interpolationFunction}."
+                ) from e
         else:
             self._interpFunc = interpolationFunction
-            self._interpFunc.initialize(self._abscissa, self._ordinate)
-            self._interpFunc.setAdditionalArgs(**args)
+            self._interpFunc.initialize(self._abscissa, self._ordinate) # type: ignore
+            self._interpFunc.setAdditionalArgs(**args)  # type: ignore
         # self._extrapMethod: ExtrapolationMethod = extrapolationMethod
         self._minAbscissa = np.nan
         self._maxAbscissa = np.nan

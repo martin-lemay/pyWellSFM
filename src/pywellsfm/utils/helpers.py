@@ -10,11 +10,13 @@ import numpy.typing as npt
 class Interpolator(Protocol):
     x: npt.NDArray[np.float64]
     y: npt.NDArray[np.float64]
+    name: str = ""
 
     def __init__(self: Self) -> None:
         """Interpolator parent class for a 1D increasing function."""
-        self.x: npt.NDArray[np.float64] = np.empty((0,), dtype=float)
-        self.y: npt.NDArray[np.float64] = np.empty((0,), dtype=float)
+        self.name = ""
+        self.x = np.empty((0,), dtype=float)
+        self.y = np.empty((0,), dtype=float)
 
     def initialize(
         self: Self, x: npt.NDArray[np.float64], y: npt.NDArray[np.float64]
@@ -47,12 +49,68 @@ class Interpolator(Protocol):
         """
         raise NotImplementedError
 
+class LowerBoundInterpolator(Interpolator):
+    def __init__(self: Self) -> None:
+        """Lower bound interpolator for a 1D increasing function."""
+        self.name = "LowerBound"
+        self.x = np.empty((0,), dtype=float)
+        self.y = np.empty((0,), dtype=float)
+
+    def __str__(self: Self) -> str:
+        """Overload of __str__ method.
+
+        :return str: description
+        """
+        return "Lower bound interpolator"
+
+    def __call__(self: Self, xx: float) -> float:
+        """Get the value at the given coordinate from lower bound.
+
+        Returns the first value if evaluated point is outside the definition
+        domain.
+
+        :param float xx: input coordinate
+        :return float: output value
+        """
+        if xx <= np.min(self.x):
+            return self.y[0]
+        idx = np.searchsorted(self.x, xx) - 1
+        return self.y[idx]
+
+class UpperBoundInterpolator(Interpolator):
+    def __init__(self: Self) -> None:
+        """Upper bound interpolator for a 1D increasing function."""
+        self.name = "UpperBound"
+        self.x = np.empty((0,), dtype=float)
+        self.y = np.empty((0,), dtype=float)
+
+    def __str__(self: Self) -> str:
+        """Overload of __str__ method.
+
+        :return str: description
+        """
+        return "Upper bound interpolator"
+
+    def __call__(self: Self, xx: float) -> float:
+        """Get the value at the given coordinate from upper bound.
+
+        Returns the last value if evaluated point is outside the definition
+        domain.
+
+        :param float xx: input coordinate
+        :return float: output value
+        """
+        if xx >= np.max(self.x):
+            return self.y[-1]
+        idx = np.searchsorted(self.x, xx)
+        return self.y[idx]
 
 class LinearInterpolator(Interpolator):
     def __init__(self: Self) -> None:
         """Linear interpolator for a 1D increasing function."""
-        self.x: npt.NDArray[np.float64] = np.empty((0,), dtype=float)
-        self.y: npt.NDArray[np.float64] = np.empty((0,), dtype=float)
+        self.name = "LinearInterpolator"
+        self.x = np.empty((0,), dtype=float)
+        self.y = np.empty((0,), dtype=float)
 
     def __str__(self: Self) -> str:
         """Overload of __str__ method.
@@ -89,8 +147,9 @@ class LinearInterpolator(Interpolator):
 class PolynomialInterpolator(Interpolator):
     def __init__(self: Self) -> None:
         """Polynomial interpolator for a 1D increasing function."""
-        self.x: npt.NDArray[np.float64] = np.empty((0,), dtype=float)
-        self.y: npt.NDArray[np.float64] = np.empty((0,), dtype=float)
+        self.name = "PolynomialInterpolator"
+        self.x = np.empty((0,), dtype=float)
+        self.y = np.empty((0,), dtype=float)
         self.deg: int = 0
         self.nbPts: int = 0
 

@@ -19,6 +19,8 @@ from .helpers import (
     Interpolator,
     LinearInterpolator,
     PolynomialInterpolator,
+    LowerBoundInterpolator,
+    UpperBoundInterpolator,
 )
 
 __all__ = [
@@ -30,6 +32,8 @@ __all__ = [
     "Interpolator",
     "IntervalDistanceMethod",
     "LinearInterpolator",
+    "LowerBoundInterpolator",
     "PolynomialInterpolator",
+    "UpperBoundInterpolator",
     "wasserstein2_distance",
 ]

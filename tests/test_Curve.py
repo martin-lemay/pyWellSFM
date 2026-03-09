@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+from pywellsfm.utils.helpers import LowerBoundInterpolator, UpperBoundInterpolator
+
 m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
@@ -48,7 +50,8 @@ interpMethods: tuple[str, ...] = (
     "previous",
     "next",
 )
-interpFunc = PolynomialInterpolator()
+interpFuncPolynomial = PolynomialInterpolator()
+interpFuncLowerBound = LowerBoundInterpolator()
 
 polyDeg = 3
 polyNbPts = 5
@@ -84,8 +87,22 @@ lyy2 = (
     2.272068,
     0.009948,
 )
-coords = np.array(lxx)
-coords = np.column_stack((coords, lyy2))
+coordsPolynom = np.column_stack((np.array(lxx), lyy2))
+
+# lower bound "interpolation"
+lyy3 = (
+    4.335269,
+    3.845454,
+    3.191186,
+    3.475562,
+    1.861709,
+    1.241210,
+    4.725100,
+    5.781522,
+    2.304078,
+    0.0,
+)
+coordsLowerBound = np.column_stack((np.array(lxx), lyy3))
 
 # Test Curve class
 
@@ -112,7 +129,7 @@ def test_Curve_init2() -> None:
         yAxisName,
         abscissa,
         ordinate,
-        interpFunc,
+        interpFuncPolynomial,
         deg=polyDeg,
         nbPts=polyNbPts,
     )
@@ -128,6 +145,20 @@ def test_Curve_init2() -> None:
         "Interpolation method is wrong"
     )
 
+def test_Curve_init3() -> None:
+    """Test of Curve class."""
+    curve = Curve(xAxisName, yAxisName, abscissa, ordinate)
+    assert curve._xAxisName == xAxisName, "X axis name is wrong"
+    assert curve._yAxisName == yAxisName, "Y axis name is wrong"
+    assert np.array_equal(curve._abscissa, abscissa), (
+        "Curve abscissa array is wrong"
+    )
+    assert np.array_equal(curve._ordinate, ordinate), (
+        "Curve ordinate array is wrong"
+    )
+    assert isinstance(curve._interpFunc, LowerBoundInterpolator), (
+        "Default interpolation method is wrong.")
+
 
 def test_Curve_toDataFrame_default() -> None:
     """Test of toDataFrame method."""
@@ -136,7 +167,7 @@ def test_Curve_toDataFrame_default() -> None:
         yAxisName,
         abscissa,
         ordinate,
-        interpFunc,
+        interpFuncPolynomial,
         deg=polyDeg,
         nbPts=polyNbPts,
     )
@@ -157,7 +188,7 @@ def test_Curve_toDataFrame() -> None:
         yAxisName,
         abscissa,
         ordinate,
-        interpFunc,
+        interpFuncPolynomial,
         deg=polyDeg,
         nbPts=polyNbPts,
     )
@@ -215,7 +246,7 @@ def test_Curve_compute2(testCase: TestCase) -> None:
     assert abs(curve(testCase.xx) - interp(testCase.xx)) < eps
 
 
-@pytest.mark.parametrize("xx, yy", coords)
+@pytest.mark.parametrize("xx, yy", coordsPolynom)
 def test_Curve_compute3(xx: float, yy: float) -> None:
     """Test of Curve class."""
     curve = Curve(
@@ -223,12 +254,26 @@ def test_Curve_compute3(xx: float, yy: float) -> None:
         yAxisName,
         abscissa,
         ordinate,
-        interpFunc,
+        interpFuncPolynomial,
         deg=polyDeg,
         nbPts=polyNbPts,
     )
     assert abs(curve(xx) - yy) < eps
 
+@pytest.mark.parametrize("xx, yy", coordsLowerBound)
+def test_Curve_compute4(xx: float, yy: float) -> None:
+    """Test of Curve class."""
+    curve = Curve(
+        xAxisName,
+        yAxisName,
+        abscissa,
+        ordinate,
+        interpFuncLowerBound,
+        deg=polyDeg,
+        nbPts=polyNbPts,
+    )
+    print(f"xx={xx}, yy={yy}, curve(xx)={curve(xx)}")
+    assert abs(curve(xx) - yy) < eps
 
 # Test of Curve IO functions
 def test_loadCurvesFromCsv_reads_header_and_sorts(tmp_path: Path) -> None:
@@ -350,7 +395,8 @@ def test_loadCurveFromJsonObj_polynomial() -> None:
         "curve": {
             "xAxisName": "Depth",
             "yAxisName": "Value",
-            "interpolationMethod": {"degree": 3, "nbPoints": 5},
+            "interpolationMethod": {
+                "name": "PolynomialInterpolator", "degree": 3, "nbPoints": 5},
             "data": [
                 {"x": 0.0, "y": 0.0},
                 {"x": 1.0, "y": 1.0},
@@ -368,6 +414,54 @@ def test_loadCurveFromJsonObj_polynomial() -> None:
     assert curve._interpFunc.deg == 3
     assert curve._interpFunc.nbPts >= 5
 
+
+def test_loadCurveFromJsonObj_lowerBound() -> None:
+    """Load a Curve from a CurveSchema.json-compatible object (lowerBound)."""
+    obj = {
+        "format": "pyWellSFM.CurveData",
+        "version": "1.0",
+        "curve": {
+            "xAxisName": "Depth",
+            "yAxisName": "Value",
+            "interpolationMethod": "LowerBound",
+            "data": [
+                {"x": 2, "y": 20},
+                {"x": 1, "y": 10},
+                {"x": 3, "y": 30},
+            ],
+        },
+    }
+
+    curve = loadCurveFromJsonObj(obj)
+    assert curve._xAxisName == "Depth"
+    assert curve._yAxisName == "Value"
+    assert np.array_equal(curve._abscissa, np.array([1.0, 2.0, 3.0]))
+    assert np.array_equal(curve._ordinate, np.array([10.0, 20.0, 30.0]))
+    assert isinstance(curve._interpFunc, LowerBoundInterpolator)
+
+def test_loadCurveFromJsonObj_upperBound() -> None:
+    """Load a Curve from a CurveSchema.json-compatible object (upperBound)."""
+    obj = {
+        "format": "pyWellSFM.CurveData",
+        "version": "1.0",
+        "curve": {
+            "xAxisName": "Depth",
+            "yAxisName": "Value",
+            "interpolationMethod": "UpperBound",
+            "data": [
+                {"x": 2, "y": 20},
+                {"x": 1, "y": 10},
+                {"x": 3, "y": 30},
+            ],
+        },
+    }
+
+    curve = loadCurveFromJsonObj(obj)
+    assert curve._xAxisName == "Depth"
+    assert curve._yAxisName == "Value"
+    assert np.array_equal(curve._abscissa, np.array([1.0, 2.0, 3.0]))
+    assert np.array_equal(curve._ordinate, np.array([10.0, 20.0, 30.0]))
+    assert isinstance(curve._interpFunc, UpperBoundInterpolator)
 
 def test_loadCurveFromFile_json(tmp_path: Path) -> None:
     """Load Curve from a JSON file matching CurveSchema.json."""

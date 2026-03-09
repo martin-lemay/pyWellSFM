@@ -1,10 +1,7 @@
 Short-term:
-- change bathymetry by water depth where relevant
-- Curve: add option No interpolation between ages (use previous value)
 - add environment condition vs time Curve
 - add env cond vs water depth for general case (without de simulator: OR using
-  other de de model. Same schema as AccumulationSimulator and Accumulation models)
-- production curve vs ages
+  other de model. Same schema as AccumulationSimulator and Accumulation models)
 - fix problem of none environment in the middle of the simu
 - add environment dependent weights to favor some likelihood (ex: buildup favor transition with itself)
 - adapt time step calculation to match input marker ages

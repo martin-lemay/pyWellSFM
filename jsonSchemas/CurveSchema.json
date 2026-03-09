@@ -33,6 +33,14 @@
                             "$ref": "#/$defs/PolynomialInterpolationFunction"
                         },
                         {
+                            "description": "Lower or Upper bound methods.",
+                            "type": "string",
+                            "enum": [
+                                "LowerBound",
+                                "UpperBound"
+                            ]
+                        },
+                        {
                             "description": "Methods from scipy.",
                             "type": "string",
                             "enum": [
