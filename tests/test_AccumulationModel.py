@@ -31,8 +31,8 @@ from pywellsfm.model.AccumulationModel import (  # noqa: E402
     AccumulationModel,
     AccumulationModelCombination,
     AccumulationModelElementBase,
-    AccumulationModelElementOptimum,
     AccumulationModelElementGaussian,
+    AccumulationModelElementOptimum,
 )
 
 # accumulation curve for environment optimum model tests

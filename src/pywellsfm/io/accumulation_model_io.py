@@ -28,8 +28,8 @@ from pywellsfm.io.json_schema_validation import expect_format_version
 from pywellsfm.model.AccumulationModel import (
     AccumulationModel,
     AccumulationModelElementBase,
-    AccumulationModelElementOptimum,
     AccumulationModelElementGaussian,
+    AccumulationModelElementOptimum,
 )
 from pywellsfm.model.Curve import AccumulationCurve
 

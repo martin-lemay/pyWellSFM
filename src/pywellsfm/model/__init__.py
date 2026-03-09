@@ -9,8 +9,8 @@ should prefer importing from `pywellsfm.model` instead of submodules.
 from .AccommodationSpaceWellCalculator import AccommodationSpaceWellCalculator
 from .AccumulationModel import (
     AccumulationModel,
-    AccumulationModelElementOptimum,
     AccumulationModelElementGaussian,
+    AccumulationModelElementOptimum,
 )
 from .Curve import AccumulationCurve, Curve, UncertaintyCurve
 from .DepositionalEnvironment import (
