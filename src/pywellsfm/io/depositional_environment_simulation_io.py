@@ -35,7 +35,7 @@ def loadSimulatorParametersFromJsonObj(
     reject_extra_keys(
         obj=obj,
         allowed_keys={
-            "bathymetry_sigma",
+            "waterDepth_sigma",
             "transition_sigma",
             "trend_sigma",
             "trend_window",
@@ -47,7 +47,7 @@ def loadSimulatorParametersFromJsonObj(
 
     kwargs: dict[str, Any] = {}
 
-    for key in ["bathymetry_sigma", "transition_sigma", "trend_sigma"]:
+    for key in ["waterDepth_sigma", "transition_sigma", "trend_sigma"]:
         val = obj.get(key)
         if val is not None:
             if not isinstance(val, (int, float)):
@@ -99,7 +99,7 @@ def simulatorWeightsToJsonObj(
 ) -> dict[str, Any]:
     """Serialize simulator weights to JSON object."""
     return {
-        "bathymetry_sigma": float(params.bathymetry_sigma),
+        "waterDepth_sigma": float(params.waterDepth_sigma),
         "transition_sigma": float(params.transition_sigma),
         "trend_sigma": float(params.trend_sigma),
         "trend_window": int(params.trend_window),
@@ -113,7 +113,7 @@ def simulatorParametersToJsonObj(
 ) -> dict[str, Any]:
     """Serialize simulator parameters to JSON object."""
     return {
-        "bathymetry_sigma": float(params.bathymetry_sigma),
+        "waterDepth_sigma": float(params.waterDepth_sigma),
         "transition_sigma": float(params.transition_sigma),
         "trend_sigma": float(params.trend_sigma),
         "trend_window": int(params.trend_window),

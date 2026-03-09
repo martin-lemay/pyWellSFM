@@ -85,9 +85,9 @@
             "type": "object",
             "description": "Additional parameters for the simulation.",
             "properties": {
-                "max_bathymetry_change_per_step": {
+                "max_waterDepth_change_per_step": {
                     "type": "number",
-                    "description": "Maximum allowed bathymetry change per step. Default is 0.5."
+                    "description": "Maximum allowed waterDepth change per step. Default is 0.5."
                 },
                 "dt_min": {
                     "type": "number",

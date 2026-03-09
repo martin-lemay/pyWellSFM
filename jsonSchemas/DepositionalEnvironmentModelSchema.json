@@ -51,8 +51,8 @@
                     "description": "Description of the depositional environment.",
                     "type": "string"
                 },
-                "bathymetry_range": {
-                    "description": "Range of bathymetry for the depositional environment (in meters), stored as [min, max].",
+                "waterDepth_range": {
+                    "description": "Range of waterDepth for the depositional environment (in meters), stored as [min, max].",
                     "$ref": "#/$defs/PropertyRange"
                 },
                 "distality": {
@@ -94,7 +94,7 @@
                     }
                 }
             },
-            "required": ["name", "bathymetry_range"],
+            "required": ["name", "waterDepth_range"],
             "additionalProperties": false
         }
     }

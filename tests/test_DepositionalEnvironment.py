@@ -38,7 +38,7 @@ def _curve_json() -> dict[str, object]:
         "format": "pyWellSFM.CurveData",
         "version": "1.0",
         "curve": {
-            "xAxisName": "bathymetry",
+            "xAxisName": "waterDepth",
             "yAxisName": "energy",
             "interpolationMethod": "linear",
             "data": [
@@ -59,14 +59,14 @@ def test_loadDepositionalEnvironmentModelFromJsonObj_inline_curve() -> None:
         "environments": [
             {
                 "name": "Lagoon",
-                "bathymetry_range": [0.0, 10.0],
+                "waterDepth_range": [0.0, 10.0],
                 "distality": 0.2,
                 "other_property_ranges": {
-                    "bathymetry": [20.0, 30.0],
+                    "waterDepth": [20.0, 30.0],
                     "energy": [0.0, 1.0],
                 },
                 "property_curves": {
-                    "energy_vs_bathymetry": _curve_json(),
+                    "energy_vs_waterDepth": _curve_json(),
                 },
             }
         ],
@@ -79,14 +79,14 @@ def test_loadDepositionalEnvironmentModelFromJsonObj_inline_curve() -> None:
 
     env = model.getEnvironmentByName("Lagoon")
     assert env is not None
-    assert env.bathymetry_range == (0.0, 10.0)
+    assert env.waterDepth_range == (0.0, 10.0)
     assert env.distality == 0.2
-    assert env.other_property_ranges["bathymetry"] == (20.0, 30.0)
+    assert env.other_property_ranges["waterDepth"] == (20.0, 30.0)
     assert env.other_property_ranges["energy"] == (0.0, 1.0)
-    assert "energy_vs_bathymetry" in env.property_curves
+    assert "energy_vs_waterDepth" in env.property_curves
 
-    curve = env.property_curves["energy_vs_bathymetry"]
-    assert curve._xAxisName == "bathymetry"
+    curve = env.property_curves["energy_vs_waterDepth"]
+    assert curve._xAxisName == "waterDepth"
     assert curve._yAxisName == "energy"
     assert np.isclose(curve.getValueAt(25.0), 0.6)
 
@@ -105,13 +105,13 @@ def test_loadDepositionalEnvironmentModel_curve_reference(
         "environments": [
             {
                 "name": "InnerRamp",
-                "bathymetry_range": [0.0, 5.0],
+                "waterDepth_range": [0.0, 5.0],
                 "other_property_ranges": {
-                    "bathymetry": [20.0, 30.0],
+                    "waterDepth": [20.0, 30.0],
                     "energy": [0.0, 1.0],
                 },
                 "property_curves": {
-                    "energy_vs_bathymetry": {"url": "energy_curve.json"},
+                    "energy_vs_waterDepth": {"url": "energy_curve.json"},
                 },
             }
         ],
@@ -124,9 +124,9 @@ def test_loadDepositionalEnvironmentModel_curve_reference(
 
     env = model.getEnvironmentByName("InnerRamp")
     assert env is not None
-    assert "energy_vs_bathymetry" in env.property_curves
+    assert "energy_vs_waterDepth" in env.property_curves
     assert np.isclose(
-        env.property_curves["energy_vs_bathymetry"].getValueAt(30.0),
+        env.property_curves["energy_vs_waterDepth"].getValueAt(30.0),
         0.9,
     )
 
@@ -136,7 +136,7 @@ def test_save_and_loadDepositionalEnvironmentModel_roundtrip(
 ) -> None:
     """Round-trips model through save/load and preserves key values."""
     curve = Curve(
-        "bathymetry",
+        "waterDepth",
         "energy",
         np.asarray([20.0, 30.0], dtype=float),
         np.asarray([0.1, 0.9], dtype=float),
@@ -144,9 +144,9 @@ def test_save_and_loadDepositionalEnvironmentModel_roundtrip(
     )
     environment = DepositionalEnvironment(
         name="OuterRamp",
-        bathymetry_range=(20.0, 50.0),
+        waterDepth_range=(20.0, 50.0),
         other_property_ranges={
-            "bathymetry": (10.0, 20.0),
+            "waterDepth": (10.0, 20.0),
             "energy": (0.0, 0.2),
         },
         distality=2.0,
@@ -169,11 +169,11 @@ def test_save_and_loadDepositionalEnvironmentModel_roundtrip(
 
     loaded_env = loaded.getEnvironmentByName("OuterRamp")
     assert loaded_env is not None
-    assert loaded_env.bathymetry_range == (20.0, 50.0)
+    assert loaded_env.waterDepth_range == (20.0, 50.0)
     assert loaded_env.distality == 2.0
-    assert loaded_env.other_property_ranges["bathymetry"] == (10.0, 20.0)
+    assert loaded_env.other_property_ranges["waterDepth"] == (10.0, 20.0)
     assert loaded_env.other_property_ranges["energy"] == (0.0, 0.2)
-    assert "energy_vs_bathymetry" in loaded_env.property_curves
+    assert "energy_vs_waterDepth" in loaded_env.property_curves
 
 
 #############################################################################
@@ -181,9 +181,9 @@ def test_save_and_loadDepositionalEnvironmentModel_roundtrip(
 #############################################################################
 
 
-def _energy_vs_bathymetry_curve() -> Curve:
+def _energy_vs_waterDepth_curve() -> Curve:
     return Curve(
-        "bathymetry",
+        "waterDepth",
         "energy",
         np.asarray([0.0, 10.0], dtype=float),
         np.asarray([0.0, 1.0], dtype=float),
@@ -192,10 +192,10 @@ def _energy_vs_bathymetry_curve() -> Curve:
 
 
 def test_depositional_environment_constructor_normalizes_ranges() -> None:
-    """Constructor stores sorted bounds for bathymetry and properties."""
+    """Constructor stores sorted bounds for waterDepth and properties."""
     env = DepositionalEnvironment(
         name="Lagoon",
-        bathymetry_range=(10.0, 0.0),
+        waterDepth_range=(10.0, 0.0),
         other_property_ranges={
             "energy": (1.0, 0.0),
             "temperature": (30.0, 20.0),
@@ -203,7 +203,7 @@ def test_depositional_environment_constructor_normalizes_ranges() -> None:
         distality=0.3,
     )
 
-    assert env.bathymetry_range == (0.0, 10.0)
+    assert env.waterDepth_range == (0.0, 10.0)
     assert env.other_property_ranges["energy"] == (0.0, 1.0)
     assert env.other_property_ranges["temperature"] == (20.0, 30.0)
     assert env.distality == 0.3
@@ -213,13 +213,13 @@ def test_depositional_environment_equality_hash_and_repr() -> None:
     """Objects compare by content and hash/repr rely on name."""
     env1 = DepositionalEnvironment(
         name="OuterRamp",
-        bathymetry_range=(20.0, 50.0),
+        waterDepth_range=(20.0, 50.0),
         other_property_ranges={"energy": (0.0, 0.2)},
         distality=2.0,
     )
     env2 = DepositionalEnvironment(
         name="OuterRamp",
-        bathymetry_range=(20.0, 50.0),
+        waterDepth_range=(20.0, 50.0),
         other_property_ranges={"energy": (0.0, 0.2)},
         distality=2.0,
     )
@@ -233,12 +233,12 @@ def test_depositional_environment_mid_and_width_helpers() -> None:
     """Mid-point and width helpers return expected values."""
     env = DepositionalEnvironment(
         name="Shore",
-        bathymetry_range=(0.0, 10.0),
+        waterDepth_range=(0.0, 10.0),
         other_property_ranges={"energy": (0.2, 0.8)},
     )
 
-    assert np.isclose(env.bathymetry_mid, 5.0)
-    assert np.isclose(env.bathymetry_range_width, 10.0)
+    assert np.isclose(env.waterDepth_mid, 5.0)
+    assert np.isclose(env.waterDepth_range_width, 10.0)
     assert np.isclose(env.getPropertyMid("energy"), 0.5)
     assert np.isclose(env.getPropertyRangeWidth("energy"), 0.6)
 
@@ -246,7 +246,7 @@ def test_depositional_environment_mid_and_width_helpers() -> None:
 def test_depositional_environment_property_helpers_raise_for_missing() -> None:
     """Missing property access raises ValueError."""
     env = DepositionalEnvironment(
-        name="Basin", bathymetry_range=(100.0, 200.0)
+        name="Basin", waterDepth_range=(100.0, 200.0)
     )
 
     with pytest.raises(ValueError):
@@ -257,7 +257,7 @@ def test_depositional_environment_property_helpers_raise_for_missing() -> None:
 
 def test_depositional_environment_set_other_property_range() -> None:
     """SetOtherPropertyRange adds/overwrites property bounds."""
-    env = DepositionalEnvironment(name="Lagoon", bathymetry_range=(0.0, 5.0))
+    env = DepositionalEnvironment(name="Lagoon", waterDepth_range=(0.0, 5.0))
 
     env.setOtherPropertyRange("energy", (0.0, 0.4))
     assert env.other_property_ranges["energy"] == (0.0, 0.4)
@@ -270,24 +270,24 @@ def test_depositional_environment_set_curve_and_get_value() -> None:
     """Property curve can be stored and queried through helper."""
     env = DepositionalEnvironment(
         name="InnerRamp",
-        bathymetry_range=(0.0, 10.0),
+        waterDepth_range=(0.0, 10.0),
         other_property_ranges={
-            "bathymetry": (0.0, 10.0),
+            "waterDepth": (0.0, 10.0),
             "energy": (0.0, 1.0),
         },
     )
-    env.setPropertyCurve(_energy_vs_bathymetry_curve())
+    env.setPropertyCurve(_energy_vs_waterDepth_curve())
 
-    assert "energy_vs_bathymetry" in env.property_curves
+    assert "energy_vs_waterDepth" in env.property_curves
     assert np.isclose(
-        env.getValueFromCurveAt("bathymetry", "energy", 5.0), 0.5
+        env.getValueFromCurveAt("waterDepth", "energy", 5.0), 0.5
     )
     assert np.isclose(
-        env.getValueFromCurveAt("bathymetry", "energy", -10.0),
+        env.getValueFromCurveAt("waterDepth", "energy", -10.0),
         0.0,
     )
     assert np.isclose(
-        env.getValueFromCurveAt("bathymetry", "energy", 20.0),
+        env.getValueFromCurveAt("waterDepth", "energy", 20.0),
         1.0,
     )
 
@@ -296,29 +296,29 @@ def test_depositional_environment_curve_value_fallbacks() -> None:
     """Edge cases for zero-width y and x property ranges are handled."""
     env_y_width_zero = DepositionalEnvironment(
         name="FlatEnergy",
-        bathymetry_range=(0.0, 10.0),
+        waterDepth_range=(0.0, 10.0),
         other_property_ranges={
-            "bathymetry": (0.0, 10.0),
+            "waterDepth": (0.0, 10.0),
             "energy": (0.4, 0.4),
         },
     )
-    env_y_width_zero.setPropertyCurve(_energy_vs_bathymetry_curve())
+    env_y_width_zero.setPropertyCurve(_energy_vs_waterDepth_curve())
     assert np.isclose(
-        env_y_width_zero.getValueFromCurveAt("bathymetry", "energy", 7.0),
+        env_y_width_zero.getValueFromCurveAt("waterDepth", "energy", 7.0),
         0.4,
     )
 
     env_x_width_zero = DepositionalEnvironment(
         name="FlatBathymetry",
-        bathymetry_range=(0.0, 10.0),
+        waterDepth_range=(0.0, 10.0),
         other_property_ranges={
-            "bathymetry": (5.0, 5.0),
+            "waterDepth": (5.0, 5.0),
             "energy": (0.2, 0.6),
         },
     )
-    env_x_width_zero.setPropertyCurve(_energy_vs_bathymetry_curve())
+    env_x_width_zero.setPropertyCurve(_energy_vs_waterDepth_curve())
     assert np.isclose(
-        env_x_width_zero.getValueFromCurveAt("bathymetry", "energy", 7.0),
+        env_x_width_zero.getValueFromCurveAt("waterDepth", "energy", 7.0),
         0.4,
     )
 
@@ -327,22 +327,22 @@ def test_depositional_environment_get_value_from_curve_errors() -> None:
     """Missing curve or missing property definitions raise ValueError."""
     env_no_curve = DepositionalEnvironment(
         name="NoCurve",
-        bathymetry_range=(0.0, 10.0),
+        waterDepth_range=(0.0, 10.0),
         other_property_ranges={
-            "bathymetry": (0.0, 10.0),
+            "waterDepth": (0.0, 10.0),
             "energy": (0.0, 1.0),
         },
     )
     with pytest.raises(ValueError):
-        env_no_curve.getValueFromCurveAt("bathymetry", "energy", 5.0)
+        env_no_curve.getValueFromCurveAt("waterDepth", "energy", 5.0)
 
     env_missing_property = DepositionalEnvironment(
         name="MissingProperty",
-        bathymetry_range=(0.0, 10.0),
-        other_property_ranges={"bathymetry": (0.0, 10.0)},
+        waterDepth_range=(0.0, 10.0),
+        other_property_ranges={"waterDepth": (0.0, 10.0)},
     )
     curve = Curve(
-        "bathymetry",
+        "waterDepth",
         "salinity",
         np.asarray([0.0, 10.0], dtype=float),
         np.asarray([20.0, 40.0], dtype=float),
@@ -350,7 +350,7 @@ def test_depositional_environment_get_value_from_curve_errors() -> None:
     )
     env_missing_property.setPropertyCurve(curve)
     with pytest.raises(ValueError):
-        env_missing_property.getValueFromCurveAt("bathymetry", "salinity", 5.0)
+        env_missing_property.getValueFromCurveAt("waterDepth", "salinity", 5.0)
 
 
 #############################################################################
@@ -361,7 +361,7 @@ def test_depositional_environment_get_value_from_curve_errors() -> None:
 def _make_environment(name: str) -> DepositionalEnvironment:
     return DepositionalEnvironment(
         name=name,
-        bathymetry_range=(0.0, 10.0),
+        waterDepth_range=(0.0, 10.0),
         other_property_ranges={"energy": (0.0, 1.0)},
     )
 
@@ -450,8 +450,8 @@ def test_carbonate_open_ramp_default_environments() -> None:
     basin = model.getEnvironmentByName("Basin")
     assert sabkha is not None
     assert basin is not None
-    assert sabkha.bathymetry_range == (-2.0, 0.0)
-    assert basin.bathymetry_range == (1000.0, 10000.0)
+    assert sabkha.waterDepth_range == (-2.0, 0.0)
+    assert basin.waterDepth_range == (1000.0, 10000.0)
     assert basin.other_property_ranges["energy"] == (0.0, 0.0)
 
 
@@ -459,11 +459,11 @@ def test_carbonate_open_ramp_parameters_update_ranges() -> None:
     """Open ramp constructor parameters propagate to environment ranges."""
     model = CarbonateOpenRampDepositionalEnvironmentModel(
         tidal_range=3.0,
-        fairweather_wave_breaking_bathymetry=6.0,
-        fairweather_wave_base_bathymetry=30.0,
-        storm_wave_base_bathymetry=60.0,
-        shelf_break_bathymetry=220.0,
-        slope_toe_max_bathymetry=1200.0,
+        fairweather_wave_breaking_waterDepth=6.0,
+        fairweather_wave_base_waterDepth=30.0,
+        storm_wave_base_waterDepth=60.0,
+        shelf_break_waterDepth=220.0,
+        slope_toe_max_waterDepth=1200.0,
     )
 
     sabkha = model.getEnvironmentByName("Sabkha")
@@ -478,11 +478,11 @@ def test_carbonate_open_ramp_parameters_update_ranges() -> None:
     assert outer_ramp is not None
     assert shelf_slope is not None
 
-    assert sabkha.bathymetry_range == (-3.0, 0.0)
-    assert upper_shoreface.bathymetry_range == (0.0, 6.0)
-    assert lower_shoreface.bathymetry_range == (6.0, 30.0)
-    assert outer_ramp.bathymetry_range == (30.0, 60.0)
-    assert shelf_slope.bathymetry_range == (220.0, 1200.0)
+    assert sabkha.waterDepth_range == (-3.0, 0.0)
+    assert upper_shoreface.waterDepth_range == (0.0, 6.0)
+    assert lower_shoreface.waterDepth_range == (6.0, 30.0)
+    assert outer_ramp.waterDepth_range == (30.0, 60.0)
+    assert shelf_slope.waterDepth_range == (220.0, 1200.0)
 
 
 def test_carbonate_protected_ramp_default_environments() -> None:
@@ -499,8 +499,8 @@ def test_carbonate_protected_ramp_default_environments() -> None:
     fore_reef = model.getEnvironmentByName("ForeReef")
     assert lagoon is not None
     assert fore_reef is not None
-    assert lagoon.bathymetry_range == (2.0, 10.0)
-    assert fore_reef.bathymetry_range == (1.0, 20.0)
+    assert lagoon.waterDepth_range == (2.0, 10.0)
+    assert fore_reef.waterDepth_range == (1.0, 20.0)
     assert fore_reef.other_property_ranges["energy"] == (0.2, 0.7)
 
 
@@ -508,11 +508,11 @@ def test_carbonate_protected_ramp_parameters_update_ranges() -> None:
     """Protected ramp constructor parameters propagate to key ranges."""
     model = CarbonateProtectedRampDepositionalEnvironmentModel(
         tidal_range=4.0,
-        lagoon_max_bathymetry=12.0,
-        fairweather_wave_base_bathymetry=25.0,
-        storm_wave_base_bathymetry=70.0,
-        shelf_break_bathymetry=250.0,
-        slope_toe_max_bathymetry=1400.0,
+        lagoon_max_waterDepth=12.0,
+        fairweather_wave_base_waterDepth=25.0,
+        storm_wave_base_waterDepth=70.0,
+        shelf_break_waterDepth=250.0,
+        slope_toe_max_waterDepth=1400.0,
     )
 
     sabkha = model.getEnvironmentByName("Sabkha")
@@ -527,8 +527,8 @@ def test_carbonate_protected_ramp_parameters_update_ranges() -> None:
     assert outer_ramp is not None
     assert shelf_slope is not None
 
-    assert sabkha.bathymetry_range == (-4.0, 0.0)
-    assert lagoon.bathymetry_range == (2.0, 12.0)
-    assert fore_reef.bathymetry_range == (1.0, 25.0)
-    assert outer_ramp.bathymetry_range == (25.0, 70.0)
-    assert shelf_slope.bathymetry_range == (250.0, 1400.0)
+    assert sabkha.waterDepth_range == (-4.0, 0.0)
+    assert lagoon.waterDepth_range == (2.0, 12.0)
+    assert fore_reef.waterDepth_range == (1.0, 25.0)
+    assert outer_ramp.waterDepth_range == (25.0, 70.0)
+    assert shelf_slope.waterDepth_range == (250.0, 1400.0)

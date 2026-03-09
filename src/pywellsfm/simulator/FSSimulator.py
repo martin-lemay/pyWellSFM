@@ -24,9 +24,9 @@ from .Realization import Realization
 class FSSimulatorParameters:
     """Parameters for the Forward Stratigraphic Simulator (FSSimulator)."""
 
-    #: maximum bathymetry change and accumulated thickness
+    #: maximum waterDepth change and accumulated thickness
     #: per step (in meters). Default is 0.5 m.
-    max_bathymetry_change_per_step: float = 0.5
+    max_waterDepth_change_per_step: float = 0.5
     #: minimum time step (in Myr). Default is 1e-3 Myr.
     dt_min: float = 1e-3
     #: maximum time step (in Myr). Default is 0.1 Myr.
@@ -52,7 +52,7 @@ class FSSimulator:
 
         The FS simulator runner is used to run one or multiple realizations of
         a scenario over time using adaptive time steps. Time step is adjusted
-        such as accumulated thickness and bathymetry change do not exceed the
+        such as accumulated thickness and waterDepth change do not exceed the
         given threshold (by default 0.5m).
 
         The FS simulator runner also manages uncertainties over multiple
@@ -117,8 +117,8 @@ class FSSimulator:
     def prepare(self: Self) -> None:
         """Prepare the FS simulator for running."""
         # Validate configuration
-        if self.params.max_bathymetry_change_per_step <= 0:
-            raise ValueError("max_bathymetry_change_per_step must be > 0")
+        if self.params.max_waterDepth_change_per_step <= 0:
+            raise ValueError("max_waterDepth_change_per_step must be > 0")
         if self.params.dt_min <= 0 or self.params.dt_max <= 0:
             raise ValueError("dt_min and dt_max must be > 0")
         if self.params.dt_min > self.params.dt_max:
@@ -320,8 +320,8 @@ class FSSimulator:
             cumul_subs_t += delta_subs_t
             self.subsidences.append(cumul_subs_t.copy())
 
-            # Compute bathymetry change for this step
-            delta_bathy = self._getBathymetryVariation(
+            # Compute waterDepth change for this step
+            delta_bathy = self._getWaterDepthVariation(
                 delta_sea_level_t, delta_subs_t, thickness_step
             )
             delta_bathy_array: npt.NDArray[np.float64]
@@ -382,10 +382,10 @@ class FSSimulator:
     def _adaptTimeStep(
         self: Self, t: float, rates: npt.NDArray[np.float64], remaining: float
     ) -> float:
-        """Choose an adaptive time step based on bathymetry change constraint.
+        """Choose an adaptive time step based on waterDepth change constraint.
 
         Max time step duration is limited by the maximum accumulated thickness
-        and bathymetry change allowed.
+        and waterDepth change allowed.
 
         :param float t: current time.
         :param npt.NDArray[np.float64] rates: deposition rates for each
@@ -396,26 +396,26 @@ class FSSimulator:
         # set dt max as the minimum of user-defined dt_max and the dt that
         # would cause max deposition (use max deposition rate as proxy)
         # TODO: to improve, better evaluate max deposition rate (need to
-        # cumulate over bathymetry range)
+        # cumulate over waterDepth range)
         dt_max = min(
             self.params.dt_max,
-            self.params.max_bathymetry_change_per_step
+            self.params.max_waterDepth_change_per_step
             / float(np.nanmax(rates)),
         )
         dt_hi = float(min(dt_max, remaining))
         dt_lo = float(min(self.params.dt_min, dt_hi))
-        max_change = self.params.max_bathymetry_change_per_step
+        max_change = self.params.max_waterDepth_change_per_step
 
         # Check if constraint can be satisfied at dt_min
-        if self._computeMaxBathymetryChange(t, rates, dt_lo) > max_change:
+        if self._computeMaxWaterDepthChange(t, rates, dt_lo) > max_change:
             raise RuntimeError(
-                "Cannot satisfy bathymetry-change constraint at dt_min. "
-                "Increase dt_min, increase max_bathymetry_change_per_step, "
+                "Cannot satisfy waterDepth-change constraint at dt_min. "
+                "Increase dt_min, increase max_waterDepth_change_per_step, "
                 "or reduce forcing/rates."
             )
 
         # Check if dt_max satisfies constraint
-        if self._computeMaxBathymetryChange(t, rates, dt_hi) <= max_change:
+        if self._computeMaxWaterDepthChange(t, rates, dt_hi) <= max_change:
             dt = dt_hi
         else:
             # Binary search for optimal dt between dt_lo and dt_hi
@@ -461,16 +461,16 @@ class FSSimulator:
                 raise ValueError(f"Unknown subsidence type: {subsType}")
         return delta_subs
 
-    def _computeMaxBathymetryChange(
+    def _computeMaxWaterDepthChange(
         self: Self, t1: float, rates: npt.NDArray[np.float64], dt: float
     ) -> float:
-        """Compute maximum bathymetry change across realizations for a dt.
+        """Compute maximum water depth change across realizations for a dt.
 
         :param float t1: start time of the step.
         :param npt.NDArray[np.float64] rates: deposition rates at t1 for each
             realization.
         :param float dt: candidate time step.
-        :return float: maximum absolute bathymetry change.
+        :return float: maximum absolute water depth change.
         """
         t2 = float(t1 + dt)
 
@@ -483,15 +483,15 @@ class FSSimulator:
         # Compute accumulated thickness between t1 and t2 for all realizations
         thicknesses_step = self._getAccumulatedThickness(rates, dt)
 
-        # Compute bathymetry change
-        d_bathy = self._getBathymetryVariation(
+        # Compute water depth change
+        d_water_depth = self._getWaterDepthVariation(
             delta_sea_level,
             delta_subsidences,
             thicknesses_step,
         )
 
         # Return max absolute change
-        finite = d_bathy[np.isfinite(d_bathy)]  # type: ignore
+        finite = d_water_depth[np.isfinite(d_water_depth)]  # type: ignore
         if finite.size == 0:
             return float("inf")
         return float(np.max(np.abs(finite)))
@@ -511,12 +511,12 @@ class FSSimulator:
         :param float dt_hi: upper bound for time step.
         :return float: optimal time step.
         """
-        max_change = float(self.params.max_bathymetry_change_per_step)
+        max_change = float(self.params.max_waterDepth_change_per_step)
         lo = dt_lo
         hi = dt_hi
         for _ in range(40):
             mid = 0.5 * (lo + hi)
-            if self._computeMaxBathymetryChange(t, rates, mid) <= max_change:
+            if self._computeMaxWaterDepthChange(t, rates, mid) <= max_change:
                 lo = mid
             else:
                 hi = mid
@@ -529,7 +529,7 @@ class FSSimulator:
     ) -> Optional[list[DepositionalEnvironment | None]]:
         """Compute depositional environment for each realization.
 
-        :param npt.NDArray[np.float64] bathy: bathymetry value for each
+        :param npt.NDArray[np.float64] bathy: waterDepth value for each
             realization.
         :return list[list[str] | None]: list of previous depositional
             environment names for each realization.
@@ -547,7 +547,7 @@ class FSSimulator:
         env: list[DepositionalEnvironment | None] = []
         for i in range(self.n_real):
             _, env_i = self.depositionalEnvironmentSimulator.run(
-                bathymetry_value=bathy[i],
+                waterDepth_value=bathy[i],
                 previous_environments=prev_env[i],
             )
             env.append(env_i)
@@ -560,7 +560,7 @@ class FSSimulator:
     ) -> list[dict[str, float]]:
         """Compute environmental conditions based on DepostionalEnvironment.
 
-        :param npt.NDArray[np.float64] bathy: bathymetry value for each
+        :param npt.NDArray[np.float64] bathy: waterDepth value for each
             realization.
         :param list[DepositionalEnvironment|None], optional env: list of
             depositional environments for each realization. Defaults to None.
@@ -570,7 +570,7 @@ class FSSimulator:
         """
         env_conds: list[dict[str, float]] = []
         for i, bathy_i in enumerate(bathy):
-            env_conds_i: dict[str, float] = {"bathymetry": float(bathy_i)}
+            env_conds_i: dict[str, float] = {"waterDepth": float(bathy_i)}
             if (env is not None) and (env[i] is not None):
                 env_conds_i.update(
                     self._getAllConditionsForEnvironment(env[i], bathy_i)  # type: ignore[assignment]
@@ -581,17 +581,17 @@ class FSSimulator:
     def _getAllConditionsForEnvironment(
         self: Self, env: DepositionalEnvironment | None, bathy: float
     ) -> dict[str, float]:
-        """Get all environment condition values from known bathymetry.
+        """Get all environment condition values from known waterDepth.
 
         Resolution plan
         ---------------
         The objective is to compute every property value for ``env`` from a
-        known bathymetry ``bathy`` while respecting curve dependencies.
+        known waterDepth ``bathy`` while respecting curve dependencies.
 
         1. Build the property universe
 
           - Start from ``env.other_property_ranges`` keys.
-          - Keep ``"bathymetry"`` as an already known
+          - Keep ``"waterDepth"`` as an already known
             base variable with value ``bathy``.
 
         2. Analyze dependency graph from curves
@@ -609,12 +609,12 @@ class FSSimulator:
           - Assign these values directly using their range midpoint via
             ``env.getPropertyMid(property_name)``.
 
-        4. Resolve properties directly dependent on bathymetry
+        4. Resolve properties directly dependent on waterDepth
 
           - For every unresolved property with dependency
-            ``x_axis == "bathymetry"``, compute value with:
+            ``x_axis == "waterDepth"``, compute value with:
             ``env.getValueFromCurveAt(
-            "bathymetry", property_name, bathy)``.
+            "waterDepth", property_name, bathy)``.
 
         5. Resolve remaining properties iteratively
 
@@ -636,7 +636,7 @@ class FSSimulator:
         7. Return merged conditions
 
           - Return a dict containing all resolved properties (excluding
-            ``"bathymetry"``).
+            ``"waterDepth"``).
 
         Notes:
         - This strategy is equivalent to a topological dependency resolution.
@@ -672,10 +672,10 @@ class FSSimulator:
                 x_axis = dependencies.get(property_name)
                 if x_axis is None:
                     continue
-                # resolve properties directly dependent on bathymetry
-                if x_axis == "bathymetry":
+                # resolve properties directly dependent on water Depth
+                if x_axis == "WaterDepth":
                     env_conds[property_name] = env.getValueFromCurveAt(
-                        "bathymetry", property_name, bathy
+                        "WaterDepth", property_name, bathy
                     )
                     progress = True
                     continue
@@ -761,7 +761,7 @@ class FSSimulator:
                 thickness_cumul_arr,
             ),
             "bathymetry": (("realization", "time"), bathy_arr),
-            "delta_bathymetry": (("realization", "time"), delta_bathy_arr),
+            "delta_waterDepth": (("realization", "time"), delta_bathy_arr),
         }
         for elementName in self.scenario.accumulationModel.elements:
             element_arr = np.array(
@@ -793,8 +793,8 @@ class FSSimulator:
                 "scenario_name": self.scenario.name,
                 "start": float(self.times[0]),
                 "stop": float(self.times[-1]),
-                "max_bathymetry_change_per_step": float(
-                    self.params.max_bathymetry_change_per_step
+                "max_waterDepth_change_per_step": float(
+                    self.params.max_waterDepth_change_per_step
                 ),
             },
         )
@@ -816,19 +816,19 @@ class FSSimulator:
         return accumulationRate * dt
 
     @staticmethod
-    def _getBathymetryVariation(
+    def _getWaterDepthVariation(
         delta_seaLevel: float,
         delta_subs: npt.NDArray[np.float64],
         thickness_step: npt.NDArray[np.float64],
     ) -> float | npt.NDArray[np.float64]:
-        """Compute bathymetry variation over a time step.
+        """Compute water depth variation over a time step.
 
         :param float delta_seaLevel: change in sea level over the time step.
         :param npt.NDArray[np.float64] delta_subs: change in subsidence of each
             realization over the time step.
         :param npt.NDArray[np.float64] thickness_step: deposited thickness of
             each realization over the time step.
-        :return float | npt.NDArray[np.float64]: bathymetry variation over the
+        :return float | npt.NDArray[np.float64]: water depth variation over the
             time step.
         """
         return delta_seaLevel + delta_subs - thickness_step

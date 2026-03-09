@@ -59,7 +59,7 @@ def _loadDepositionalEnvironmentFromJsonObj(
         allowed_keys={
             "name",
             "description",
-            "bathymetry_range",
+            "waterDepth_range",
             "distality",
             "other_property_ranges",
             "property_curves",
@@ -71,9 +71,9 @@ def _loadDepositionalEnvironmentFromJsonObj(
     if not isinstance(name, str) or name.strip() == "":
         raise ValueError(f"{ctx}.name must be a non-empty string.")
 
-    bathymetry_range = _loadPropertyRangeFromJsonObj(
-        obj.get("bathymetry_range"),
-        ctx=f"{ctx}.bathymetry_range",
+    waterDepth_range = _loadPropertyRangeFromJsonObj(
+        obj.get("waterDepth_range"),
+        ctx=f"{ctx}.waterDepth_range",
     )
 
     distality_raw = obj.get("distality")
@@ -103,7 +103,7 @@ def _loadDepositionalEnvironmentFromJsonObj(
 
     environment = DepositionalEnvironment(
         name=name,
-        bathymetry_range=bathymetry_range,
+        waterDepth_range=waterDepth_range,
         other_property_ranges=other_property_ranges,
         distality=distality,
     )
@@ -241,9 +241,9 @@ def _depositionalEnvironmentToJsonObj(
     """Serialize one DepositionalEnvironment to JSON object."""
     env_obj: dict[str, Any] = {
         "name": str(environment.name),
-        "bathymetry_range": [
-            float(environment.bathymetry_range[0]),
-            float(environment.bathymetry_range[1]),
+        "waterDepth_range": [
+            float(environment.waterDepth_range[0]),
+            float(environment.waterDepth_range[1]),
         ],
     }
 

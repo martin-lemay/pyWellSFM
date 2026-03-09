@@ -55,44 +55,44 @@ lithoLogName = "lithology"
 lithoLogBarbier = Striplog.from_csv(text=lithoLogBarbierTxt)
 wellBarbier.addLog(lithoLogName, lithoLogBarbier)
 
-# defines facies bathymetry
+# defines facies waterDepth
 sandstoneFac1 = SedimentaryFacies(
     "sandstone",
     {
         FaciesCriteria(
-            "Bathymetry", 0.0, 20.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+            "WaterDepth", 0.0, 20.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
     },
 )
 sandstoneFac1.addCriteria(
     FaciesCriteria(
-        "Bathymetry", 0.0, 20.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        "WaterDepth", 0.0, 20.0, FaciesCriteriaType.SEDIMENTOLOGICAL
     )
 )
 siltstoneFac1 = SedimentaryFacies(
     "siltstone",
     {
         FaciesCriteria(
-            "Bathymetry", 20.0, 50.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+            "WaterDepth", 20.0, 50.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
     },
 )
 siltstoneFac1.addCriteria(
     FaciesCriteria(
-        "Bathymetry", 20.0, 50.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        "WaterDepth", 20.0, 50.0, FaciesCriteriaType.SEDIMENTOLOGICAL
     )
 )
 shaleFac1 = SedimentaryFacies(
     "shale",
     {
         FaciesCriteria(
-            "Bathymetry", 40.0, 100.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+            "WaterDepth", 40.0, 100.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
     },
 )
 shaleFac1.addCriteria(
     FaciesCriteria(
-        "Bathymetry", 40.0, 100.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        "WaterDepth", 40.0, 100.0, FaciesCriteriaType.SEDIMENTOLOGICAL
     )
 )
 faciesList1: list[SedimentaryFacies] = [
@@ -101,42 +101,42 @@ faciesList1: list[SedimentaryFacies] = [
     shaleFac1,
 ]
 
-# defines facies bathymetry
+# defines facies waterDepth
 sandstoneFac2 = SedimentaryFacies(
     "sandstone",
     {
         FaciesCriteria(
-            "Bathymetry", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+            "WaterDepth", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
     },
 )
 sandstoneFac2.addCriteria(
-    FaciesCriteria("Bathymetry", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL)
+    FaciesCriteria("WaterDepth", 5.0, 5.0, FaciesCriteriaType.SEDIMENTOLOGICAL)
 )
 siltstoneFac2 = SedimentaryFacies(
     "siltstone",
     {
         FaciesCriteria(
-            "Bathymetry", 10.0, 10.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+            "WaterDepth", 10.0, 10.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
     },
 )
 siltstoneFac2.addCriteria(
     FaciesCriteria(
-        "Bathymetry", 10.0, 10.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        "WaterDepth", 10.0, 10.0, FaciesCriteriaType.SEDIMENTOLOGICAL
     )
 )
 shaleFac2 = SedimentaryFacies(
     "shale",
     {
         FaciesCriteria(
-            "Bathymetry", 60.0, 60.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+            "WaterDepth", 60.0, 60.0, FaciesCriteriaType.SEDIMENTOLOGICAL
         )
     },
 )
 shaleFac2.addCriteria(
     FaciesCriteria(
-        "Bathymetry", 60.0, 60.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        "WaterDepth", 60.0, 60.0, FaciesCriteriaType.SEDIMENTOLOGICAL
     )
 )
 faciesList2: list[SedimentaryFacies] = [
@@ -159,34 +159,34 @@ def test_ASPC_init() -> None:
     aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList1)
     assert aspc._well is not None, "Well is undefined."
     assert aspc._faciesDict is not None, "facies map is undefined."
-    assert (aspc.bathymetryCurve is not None) and (
-        isinstance(aspc.bathymetryCurve, UncertaintyCurve)
-    ), "Bathymetry curve is undefined."
+    assert (aspc.waterDepthCurve is not None) and (
+        isinstance(aspc.waterDepthCurve, UncertaintyCurve)
+    ), "WaterDepth curve is undefined."
     assert (aspc.accommodationChangeCurve is not None) and (
-        isinstance(aspc.bathymetryCurve, UncertaintyCurve)
+        isinstance(aspc.waterDepthCurve, UncertaintyCurve)
     ), "Accommodation curve is undefined."
 
 
 @pytest.mark.parametrize("facies", faciesList1)
-def test_getBathymetryRangeFromFaciesName(facies: SedimentaryFacies) -> None:
-    """Test of getBathymetryRangeFromFaciesName method."""
+def test_getWaterDepthRangeFromFaciesName(facies: SedimentaryFacies) -> None:
+    """Test of getWaterDepthRangeFromFaciesName method."""
     aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList1)
-    (minBathy, maxBathy) = aspc._getBathymetryRangeFromFaciesName(facies.name)
-    fac: FaciesCriteria | None = facies.getCriteria("Bathymetry")
+    (minBathy, maxBathy) = aspc._getWaterDepthRangeFromFaciesName(facies.name)
+    fac: FaciesCriteria | None = facies.getCriteria("WaterDepth")
     assert fac is not None, "Facies criteria is undefined."
     assert minBathy == fac.minRange, "Min value is wrong"
     assert maxBathy == fac.maxRange, "Max value is wrong"
 
 
-def test_computeBathymetryStepCurve() -> None:
-    """Test of computeBathymetryStepCurve method."""
+def test_computeWaterDepthStepCurve() -> None:
+    """Test of computeWaterDepthStepCurve method."""
     aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList1)
-    bathymetryStepCurves = aspc._computeBathymetryStepCurve(
+    waterDepthStepCurves = aspc._computeWaterDepthStepCurve(
         lithoLogBarbier, depth, 0
     )
     # np.savetxt(
-    #     os.path.join(fileDir, "bathyStepCurves.csv"),
-    #     bathymetryStepCurves,
+    #     os.path.join(fileDir, "waterDepthStepCurves.csv"),
+    #     waterDepthStepCurves,
     #     fmt="%.3e",
     #     delimiter=",",
     # )
@@ -194,63 +194,63 @@ def test_computeBathymetryStepCurve() -> None:
         os.path.join(dataDir, "bathyStepCurves.csv"), delimiter=","
     )
     eps = 1e-6
-    assert array_equal(expArray, bathymetryStepCurves, eps), (
-        "Bathymetry step curve array is wrong."
+    assert array_equal(expArray, waterDepthStepCurves, eps), (
+        "Water Depth step curve array is wrong."
     )
 
 
-def test_computeBathymetryCurve() -> None:
-    """Test of computeBathymetryCurve method."""
+def test_computeWaterDepthCurve() -> None:
+    """Test of computeWaterDepthCurve method."""
     aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList1)
-    bathymetryCurve = aspc.computeBathymetryCurve(lithoLogName)
-    assert bathymetryCurve is not None, "Bathymetry curve is undefined"
+    waterDepthCurve = aspc.computeWaterDepthCurve(lithoLogName)
+    assert waterDepthCurve is not None, "WaterDepth curve is undefined"
 
     # check curves coherency
     eps = 1e-4
     assert array_equal(
-        bathymetryCurve._medianCurve._abscissa,
-        bathymetryCurve._minCurve._abscissa,
+        waterDepthCurve._medianCurve._abscissa,
+        waterDepthCurve._minCurve._abscissa,
         eps,
     ) and array_equal(
-        bathymetryCurve._medianCurve._abscissa,
-        bathymetryCurve._maxCurve._abscissa,
+        waterDepthCurve._medianCurve._abscissa,
+        waterDepthCurve._maxCurve._abscissa,
         eps,
-    ), "Bathymetry curves do not have same abscissa values."
+    ), "WaterDepth curves do not have same abscissa values."
 
-    # plot bathymetry curves to check results
-    # bathymetryStepCurves = aspc._computeBathymetryStepCurve(
+    # plot waterDepth curves to check results
+    # waterDepthStepCurves = aspc._computeWaterDepthStepCurve(
     #     lithoLog, depth, 0
     # )
     # fig, (ax0, ax1) = plt.subplots(figsize=(5, 10), ncols=2, sharey=True)
     # lithoLog.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
-    # for row in bathymetryStepCurves:
+    # for row in waterDepthStepCurves:
     #     ax1.plot((row[2], row[2]), row[:2], ":", color="grey")
     #     ax1.plot((row[3], row[3]), row[:2], ":k")
     # ax1.plot(
-    #     bathymetryCurve.getMedianValues(),
-    #     bathymetryCurve.getAbscissa(),
+    #     waterDepthCurve.getMedianValues(),
+    #     waterDepthCurve.getAbscissa(),
     #     "--r"
     # )
     # ax1.plot(
-    #     bathymetryCurve.getMinValues(),
-    #     bathymetryCurve.getAbscissa(),
+    #     waterDepthCurve.getMinValues(),
+    #     waterDepthCurve.getAbscissa(),
     #     "--b"
     # )
     # ax1.plot(
-    #     bathymetryCurve.getMaxValues(),
-    #     bathymetryCurve.getAbscissa(),
+    #     waterDepthCurve.getMaxValues(),
+    #     waterDepthCurve.getAbscissa(),
     #     "--g"
     # )
-    # ax1.set_xlabel("Bathymetry")
+    # ax1.set_xlabel("WaterDepth")
     # plt.show()
 
     # outputArray = np.column_stack(
     #     (
-    #         bathymetryCurve._medianCurve._abscissa,
-    #         bathymetryCurve._medianCurve._ordinate,
-    #         bathymetryCurve._minCurve._ordinate,
-    #         bathymetryCurve._maxCurve._ordinate,
+    #         waterDepthCurve._medianCurve._abscissa,
+    #         waterDepthCurve._medianCurve._ordinate,
+    #         waterDepthCurve._minCurve._ordinate,
+    #         waterDepthCurve._maxCurve._ordinate,
     #     )
     # )
     # np.savetxt(
@@ -265,17 +265,17 @@ def test_computeBathymetryCurve() -> None:
     expArray = np.loadtxt(
         os.path.join(dataDir, "bathyUncertaintyCurves.csv"), delimiter=","
     )
-    assert array_equal(bathymetryCurve.getAbscissa(), expArray[:, 0], eps), (
-        "Abscissa values of bathymetry curve are wrong."
+    assert array_equal(waterDepthCurve.getAbscissa(), expArray[:, 0], eps), (
+        "Abscissa values of waterDepth curve are wrong."
     )
     assert array_equal(
-        bathymetryCurve.getMedianValues(), expArray[:, 1], eps
-    ), "Ordinate values of median bathymetry curve are wrong."
-    assert array_equal(bathymetryCurve.getMinValues(), expArray[:, 2], eps), (
-        "Ordinate values of min bathymetry curve are wrong."
+        waterDepthCurve.getMedianValues(), expArray[:, 1], eps
+    ), "Ordinate values of median waterDepth curve are wrong."
+    assert array_equal(waterDepthCurve.getMinValues(), expArray[:, 2], eps), (
+        "Ordinate values of min waterDepth curve are wrong."
     )
-    assert array_equal(bathymetryCurve.getMaxValues(), expArray[:, 3], eps), (
-        "Ordinate values of max bathymetry curve are wrong."
+    assert array_equal(waterDepthCurve.getMaxValues(), expArray[:, 3], eps), (
+        "Ordinate values of max waterDepth curve are wrong."
     )
 
 
@@ -300,7 +300,7 @@ def test_computeAccommodationArray() -> None:
     )
 
 
-# No facies variation, no bathymetry uncertainty
+# No facies variation, no waterDepth uncertainty
 def test_computeAccommodationCurve01() -> None:
     """Test of computeAccommodationCurve method."""
     aspc = AccommodationSpaceWellCalculator(well0, faciesList2)
@@ -315,15 +315,15 @@ def test_computeAccommodationCurve01() -> None:
         accoCurve._medianCurve._abscissa, accoCurve._maxCurve._abscissa, eps
     ), "Accommodation curves do not have same abscissa values."
 
-    # plot bathymetry curves to check results
+    # plot waterDepth curves to check results
     # fig, (ax0, ax1, ax2) = plt.subplots(figsize=(5, 10), ncols=3,
     #     sharey=True)
     # lithoLog0.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
-    # for row in aspc._bathymetryStepCurve:
+    # for row in aspc._waterDepthStepCurve:
     #     ax1.plot((row[2], row[2]), row[:2], ":b")
     #     ax1.plot((row[3], row[3]), row[:2], ":b")
-    # ax1.set_xlabel("Bathymetry")
+    # ax1.set_xlabel("WaterDepth")
     # ax2.plot(accoCurve.getMedianValues(), accoCurve.getAbscissa(), "--r")
     # ax2.plot(accoCurve.getMinValues(), accoCurve.getAbscissa(), "--b")
     # ax2.plot(accoCurve.getMaxValues(), accoCurve.getAbscissa(), "--g")
@@ -372,7 +372,7 @@ def test_computeAccommodationCurve01() -> None:
     )
 
 
-# No facies variation, no bathymetry uncertainty
+# No facies variation, no waterDepth uncertainty
 def test_computeAccommodationCurve02() -> None:
     """Test of computeAccommodationCurve method."""
     aspc = AccommodationSpaceWellCalculator(well0, faciesList1)
@@ -387,14 +387,14 @@ def test_computeAccommodationCurve02() -> None:
         accoCurve._medianCurve._abscissa, accoCurve._maxCurve._abscissa, eps
     ), "Accommodation curves do not have same abscissa values."
 
-    # plot bathymetry curves to check results
+    # plot waterDepth curves to check results
     # fig, (ax0, ax1, ax2) = plt.subplots(figsize=(5, 10), ncols=3,
     # lithoLog0.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
-    # for row in aspc._bathymetryStepCurve:
+    # for row in aspc._waterDepthStepCurve:
     #     ax1.plot((row[2], row[2]), row[:2], ":b")
     #     ax1.plot((row[3], row[3]), row[:2], ":b")
-    # ax1.set_xlabel("Bathymetry")
+    # ax1.set_xlabel("WaterDepth")
     # ax2.plot(accoCurve.getMedianValues(), accoCurve.getAbscissa(), "--r")
     # ax2.plot(accoCurve.getMinValues(), accoCurve.getAbscissa(), "--b")
     # ax2.plot(accoCurve.getMaxValues(), accoCurve.getAbscissa(), "--g")
@@ -456,16 +456,16 @@ def test_computeAccommodationCurve1() -> None:
         accoCurve._medianCurve._abscissa, accoCurve._maxCurve._abscissa, eps
     ), "Accommodation curves do not have same abscissa values."
 
-    # plot bathymetry curves to check results
+    # plot waterDepth curves to check results
     # fig, (ax0, ax1, ax2) = plt.subplots(
     #     figsize=(5, 10), ncols=3, sharey=True
     # )
     # lithoLog.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
-    # for row in aspc._bathymetryStepCurve:
+    # for row in aspc._waterDepthStepCurve:
     #     ax1.plot((row[2], row[2]), row[:2], ":b")
     #     ax1.plot((row[3], row[3]), row[:2], ":b")
-    # ax1.set_xlabel("Bathymetry")
+    # ax1.set_xlabel("WaterDepth")
     # ax2.plot(accoCurve.getMedianValues(), accoCurve.getAbscissa(), "--r")
     # ax2.plot(accoCurve.getMinValues(), accoCurve.getAbscissa(), "--b")
     # ax2.plot(accoCurve.getMaxValues(), accoCurve.getAbscissa(), "--g")
@@ -532,15 +532,15 @@ def test_computeAccommodationCurve2() -> None:
         accoCurve._medianCurve._abscissa, accoCurve._maxCurve._abscissa, eps
     ), "Accommodation curves do not have same abscissa values."
 
-    # plot bathymetry curves to check results
+    # plot waterDepth curves to check results
     # fig, (ax0, ax1, ax2) = plt.subplots(
     #     figsize=(5, 10), ncols=3, sharey=True)
     # lithoLogBarbier.plot(legend, ax=ax0)
     # ax0.set_ylabel("Depth")
-    # for row in aspc._bathymetryStepCurve:
+    # for row in aspc._waterDepthStepCurve:
     #     ax1.plot((row[2], row[2]), row[:2], ":b")
     #     ax1.plot((row[3], row[3]), row[:2], ":b")
-    # ax1.set_xlabel("Bathymetry")
+    # ax1.set_xlabel("WaterDepth")
     # ax2.plot(accoCurve.getMedianValues(), accoCurve.getAbscissa(), "--r")
     # ax2.plot(accoCurve.getMinValues(), accoCurve.getAbscissa(), "--b")
     # ax2.plot(accoCurve.getMaxValues(), accoCurve.getAbscissa(), "--g")

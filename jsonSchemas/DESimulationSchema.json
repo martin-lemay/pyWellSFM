@@ -52,8 +52,8 @@
             "type": "object",
             "description": "Parameters for the depositional environment simulator.",
             "properties": {
-                "bathymetry_sigma": {
-                    "description": "Standard deviation for bathymetry likelihood (must be > 0).",
+                "waterDepth_sigma": {
+                    "description": "Standard deviation for waterDepth likelihood (must be > 0).",
                     "type": "number",
                     "exclusiveMinimum": 0
                 },
@@ -81,7 +81,7 @@
                     ]
                 },
                 "interval_distance_method": {
-                    "description": "Method used to compute distance between bathymetry intervals.",
+                    "description": "Method used to compute distance between waterDepth intervals.",
                     "type": "string",
                     "enum": [
                         "gap",

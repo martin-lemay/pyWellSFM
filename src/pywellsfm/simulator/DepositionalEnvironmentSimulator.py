@@ -26,38 +26,38 @@ from pywellsfm.utils import (
 __doc__ = """
 This module contains the DepositionalEnvironmentSimulator class, which
 simulates the depositional environment at a given point based on its location,
-bathymetry, and energy conditions.
+waterDepth, and energy conditions.
 
 Let's assume a list of possible depositional environments. Each environment is
-defined by its location on a 2D map, and by bathymetry and energy ranges.
+defined by its location on a 2D map, and by waterDepth and energy ranges.
 For instance, for a protected carbonate platform, the list includes from
 proximal to distal:
 
-- shore: between the subaerial beach and the lagoon, bathymetry <5m, low energy
+- shore: between the subaerial beach and the lagoon, waterDepth <5m, low energy
   zone.
-- lagoon: between shore and reef environments, bathymetry <15m, very low energy
+- lagoon: between shore and reef environments, waterDepth <15m, very low energy
   zone.
-- back reef: located between laggon and reef crest, bathymetry <5m,
+- back reef: located between laggon and reef crest, waterDepth <5m,
   intermediate energy.
-- reef crest: very high energy zone (wave swash zone), bathymetry <2m
+- reef crest: very high energy zone (wave swash zone), waterDepth <2m
 - fore reef: in the front of the reef, high energy zone (wave surf zone),
-  bathymetry 2-20m
+  waterDepth 2-20m
 - outer platform: more distal than fore reef, before shelf, low energy zone
-  (intermediate if storms), bathymetry 20-50m
-- shelf: more distal than outer platform, bathymetry 50-100s m, very low energy
-- basin: deep than shelf, bathymetry >100s m, very low energy.
+  (intermediate if storms), waterDepth 20-50m
+- shelf: more distal than outer platform, waterDepth 50-100s m, very low energy
+- basin: deep than shelf, waterDepth >100s m, very low energy.
 
-Exact bathymetry ranges depends on user inputs including lagoon maximum depth,
+Exact waterDepth ranges depends on user inputs including lagoon maximum depth,
 fairweather wave breaking depth, fairweather wave base depth, storm wave base
 depth, and shelf break depth.
 
 The Depositional environment simulator stochastically simulate in which zone a
-given point is. The unconstrained case uses bathymetry ranges to compute
+given point is. The unconstrained case uses waterDepth ranges to compute
 probabilities to be in a given zone, then pick one of the zones according to
 these probabilities.
 
-A constrained simulation by the bathymetry at the given point, recompute the
-probabilities such as the given bathymetry at the point preferentially fall
+A constrained simulation by the waterDepth at the given point, recompute the
+probabilities such as the given waterDepth at the point preferentially fall
 within the range of the selected zone.
 
 A forward constrained simulation computes the probabilities by assuming
@@ -75,8 +75,8 @@ probabilities are computed according to:
 All constraints can be combined together.
 
 The conditioning algorithm is based on bayesian approach, where the prior
-probabilities are computed based on the bathymetry ranges defined for each
-environment, and the likelihood is computed based on the bathymetry constraint
+probabilities are computed based on the waterDepth ranges defined for each
+environment, and the likelihood is computed based on the waterDepth constraint
 and the previous environment constraint. The posterior probabilities are then
 computed by multiplying the prior and the likelihood, and normalizing the
 result. Finally, the environment is selected by sampling from the posterior
@@ -90,7 +90,7 @@ time* and *given location/order* using Bayesian conditioning.
 The algorithm combines:
 
 - **Prior** probabilities computed from environment weights.
-- **Bathymetry likelihood** from a measured or uncertain bathymetry value /
+- **waterDepth likelihood** from a measured or uncertain waterDepth value /
   range.
 - **Transition likelihood** from an optional *previous-step* environment
   (Walther's law / spatial continuity).
@@ -119,16 +119,16 @@ order).
 class DESimulatorParameters:
     """Configuration parameters for :class:`DepositionalEnvironmentSimulator`.
 
-    :param float bathymetry_sigma: standard-deviation (metres) for the
-        Gaussian bathymetry likelihood kernel.  Controls tolerance to
-        bathymetry mismatches.
+    :param float waterDepth_sigma: standard-deviation (metres) for the
+        Gaussian waterDepth likelihood kernel.  Controls tolerance to
+        waterDepth mismatches.
     :param float transition_sigma: standard-deviation (metres) for the
         Gaussian transition (adjacency) likelihood kernel.
     :param str transition_mode: ``"none"`` disables transition
-        likelihood; ``"adjacency"`` computes it from bathymetry-range
+        likelihood; ``"adjacency"`` computes it from waterDepth-range
         distances.
     :param IntervalDistanceMethod interval_distance_method: method to compute
-        the distance between bathymetry intervals for likelihood
+        the distance between waterDepth intervals for likelihood
         computation.
     :param float trend_sigma: standard-deviation for the Gaussian distality
         trend likelihood kernel. Controls tolerance to distality trend
@@ -137,7 +137,7 @@ class DESimulatorParameters:
         distality trend likelihood.
     """
 
-    bathymetry_sigma: float = 5.0
+    waterDepth_sigma: float = 5.0
     transition_sigma: float = 5.0
     trend_sigma: float = 2.0
     trend_window: int = 5
@@ -148,8 +148,8 @@ class DESimulatorParameters:
 
     def __post_init__(self: Self) -> None:
         """Validate parameter constraints."""
-        if self.bathymetry_sigma <= 0:
-            raise ValueError("bathymetry_sigma must be > 0.")
+        if self.waterDepth_sigma <= 0:
+            raise ValueError("waterDepth_sigma must be > 0.")
         if self.transition_sigma <= 0:
             raise ValueError("transition_sigma must be > 0.")
         if self.trend_sigma <= 0:
@@ -169,8 +169,8 @@ class DepositionalEnvironmentSimulator:
     At a *single* time-slice and location the simulator:
 
     1. Computes **prior** probabilities from environment weights.
-    2. Computes **bathymetry likelihood** from a measured (or uncertain)
-       bathymetry value / range.
+    2. Computes **waterDepth likelihood** from a measured (or uncertain)
+       waterDepth value / range.
     3. Computes **transition likelihood** from an optional
        *previous-step* environment (spatial continuity / Walther's law).
     4. Multiplies prior × likelihoods and normalises to obtain the
@@ -290,19 +290,19 @@ class DepositionalEnvironmentSimulator:
         }
 
     # ------------------------------------------------------------------
-    # Bathymetry likelihood
+    # waterDepth likelihood
     # ------------------------------------------------------------------
 
-    def compute_bathymetry_likelihood(
+    def compute_waterDepth_likelihood(
         self: Self,
         *,
-        bathymetry_value: float | None = None,
-        bathymetry_range: tuple[float, float] | None = None,
+        waterDepth_value: float | None = None,
+        waterDepth_range: tuple[float, float] | None = None,
     ) -> dict[str, float]:
-        r"""Compute likelihood of each environment given bathymetry evidence.
+        r"""Compute likelihood of each environment given waterDepth evidence.
 
         The likelihood uses a Gaussian kernel on the *interval distance*
-        between the observation and each environment's bathymetry range:
+        between the observation and each environment's waterDepth range:
 
         .. math::
 
@@ -311,44 +311,44 @@ class DepositionalEnvironmentSimulator:
                        {2\,\sigma_{\text{bathy}}^2}
             \right)
 
-        If neither *bathymetry_value* nor *bathymetry_range* is given,
+        If neither *waterDepth_value* nor *waterDepth_range* is given,
         all likelihoods are 1 (unconstrained).
 
-        :param float | None bathymetry_value: exact bathymetry
+        :param float | None waterDepth_value: exact waterDepth
             measurement.
-        :param tuple[float, float] | None bathymetry_range: uncertain
-            bathymetry interval ``(min, max)``.
+        :param tuple[float, float] | None waterDepth_range: uncertain
+            waterDepth interval ``(min, max)``.
         :returns: likelihood value for each environment (unnormalised).
         :raises ValueError: if both parameters are specified
             simultaneously.
         """
-        if bathymetry_value is not None and bathymetry_range is not None:
+        if waterDepth_value is not None and waterDepth_range is not None:
             raise ValueError(
-                "Provide either bathymetry_value or bathymetry_range, "
+                "Provide either waterDepth_value or waterDepth_range, "
                 "not both."
             )
 
         # Unconstrained
-        if bathymetry_value is None and bathymetry_range is None:
+        if waterDepth_value is None and waterDepth_range is None:
             return dict.fromkeys(self._names, 1.0)
 
         # Compute likelihoods based on interval distance to each environment's
-        # bathymetry range.
-        sigma = self._params.bathymetry_sigma
+        # waterDepth range.
+        sigma = self._params.waterDepth_sigma
 
-        if bathymetry_value is not None:
-            obs_min = obs_max = bathymetry_value
+        if waterDepth_value is not None:
+            obs_min = obs_max = waterDepth_value
         else:
-            assert bathymetry_range is not None
-            obs_min, obs_max = bathymetry_range
+            assert waterDepth_range is not None
+            obs_min, obs_max = waterDepth_range
 
         result: dict[str, float] = {}
         for env in self._environments.values():
             delta = self._interval_distance(
                 obs_min,
                 obs_max,
-                env.bathymetry_min,
-                env.bathymetry_max,
+                env.waterDepth_min,
+                env.waterDepth_max,
                 method=self._params.interval_distance_method,
             )
             result[env.name] = self._gaussian_kernel(delta, sigma)
@@ -405,7 +405,7 @@ class DepositionalEnvironmentSimulator:
 
         In ``"adjacency"`` mode the likelihood is a Gaussian kernel on
         the interval distance between the previous environment's
-        bathymetry range and each candidate's range.
+        waterDepth range and each candidate's range.
 
         :param str | None previous_environment: name of the environment
             selected at the previous step, or ``None``.
@@ -446,10 +446,10 @@ class DepositionalEnvironmentSimulator:
         result: dict[str, float] = {}
         for env in self._environments.values():
             delta = self._interval_distance(
-                prev.bathymetry_min,
-                prev.bathymetry_max,
-                env.bathymetry_min,
-                env.bathymetry_max,
+                prev.waterDepth_min,
+                prev.waterDepth_max,
+                env.waterDepth_min,
+                env.waterDepth_max,
                 method=self._params.interval_distance_method,
             )
             result[env.name] = self._gaussian_kernel(delta, sigma)
@@ -641,8 +641,8 @@ class DepositionalEnvironmentSimulator:
     def compute_posterior(
         self: Self,
         *,
-        bathymetry_value: float | None = None,
-        bathymetry_range: tuple[float, float] | None = None,
+        waterDepth_value: float | None = None,
+        waterDepth_range: tuple[float, float] | None = None,
         previous_environments: list[str] | None = None,
     ) -> dict[str, float]:
         r"""Compute posterior probabilities via Bayesian conditioning.
@@ -656,16 +656,16 @@ class DepositionalEnvironmentSimulator:
           applies a four-level fallback strategy:
 
           1. **Relax** the transition constraint (σ_transition × 10)
-             while keeping bathymetry and trend constraints.
-          2. **Drop** the transition constraint entirely; keep bathymetry
+             while keeping waterDepth and trend constraints.
+          2. **Drop** the transition constraint entirely; keep waterDepth
              and trend constraints.
-          3. **Drop** trend as well; keep only bathymetry.
+          3. **Drop** trend as well; keep only waterDepth.
           4. **Return** the prior (no likelihoods at all).
 
-        :param float | None bathymetry_value: exact bathymetry
-            measurement (mutually exclusive with *bathymetry_range*).
-        :param tuple[float, float] | None bathymetry_range: uncertain
-            bathymetry interval ``(min, max)``.
+        :param float | None waterDepth_value: exact waterDepth
+            measurement (mutually exclusive with *waterDepth_range*).
+        :param tuple[float, float] | None waterDepth_range: uncertain
+            waterDepth interval ``(min, max)``.
         :param list[str] | None previous_environments: full ordered
             history of previous environments.
         :returns: normalised posterior probabilities.
@@ -677,9 +677,9 @@ class DepositionalEnvironmentSimulator:
             previous_environment = previous_environments[-1]
 
         prior = self.compute_prior()
-        L_bathy = self.compute_bathymetry_likelihood(
-            bathymetry_value=bathymetry_value,
-            bathymetry_range=bathymetry_range,
+        L_bathy = self.compute_waterDepth_likelihood(
+            waterDepth_value=waterDepth_value,
+            waterDepth_range=waterDepth_range,
         )
         L_trans = self._cached_transition_likelihood.get(
             previous_environment, dict.fromkeys(self._names, 1.0)
@@ -798,16 +798,16 @@ class DepositionalEnvironmentSimulator:
 
     def run(
         self: Self,
-        bathymetry_value: float | None = None,
-        bathymetry_range: tuple[float, float] | None = None,
+        waterDepth_value: float | None = None,
+        waterDepth_range: tuple[float, float] | None = None,
         previous_environments: list[str] | None = None,
         seed: int | None = None,
     ) -> tuple[dict[str, float], DepositionalEnvironment]:
         """Compute posterior and sample one environment.
 
-        :param float | None bathymetry_value: exact bathymetry value.
-        :param tuple[float, float] | None bathymetry_range: uncertain
-            bathymetry range.
+        :param float | None waterDepth_value: exact waterDepth value.
+        :param tuple[float, float] | None waterDepth_range: uncertain
+            waterDepth range.
         :param list[str] | None previous_environments: ordered history
             of previous-step environments.
         :param dict[str, float] | None distality_by_environment:
@@ -817,8 +817,8 @@ class DepositionalEnvironmentSimulator:
         :returns: ``(posterior, sampled_environment)``.
         """
         posterior = self.compute_posterior(
-            bathymetry_value=bathymetry_value,
-            bathymetry_range=bathymetry_range,
+            waterDepth_value=waterDepth_value,
+            waterDepth_range=waterDepth_range,
             previous_environments=previous_environments,
         )
         sampled_environment = self.sample_environment(posterior, seed=seed)

@@ -389,9 +389,9 @@ def test_loadFSSimulation_from_json_with_desimulator(tmp_path: Path) -> None:
             "version": "1.0",
             "name": "simple3",
             "environments": [
-                {"name": "shallow", "bathymetry_range": [0.0, 10.0]},
-                {"name": "mid", "bathymetry_range": [10.0, 50.0]},
-                {"name": "deep", "bathymetry_range": [50.0, 200.0]},
+                {"name": "shallow", "waterDepth_range": [0.0, 10.0]},
+                {"name": "mid", "waterDepth_range": [10.0, 50.0]},
+                {"name": "deep", "waterDepth_range": [50.0, 200.0]},
             ],
         },
     }
@@ -423,7 +423,7 @@ def test_loadFSSimulation_from_json_with_desimulator(tmp_path: Path) -> None:
         "use_depositional_environment_simulator": True,
         "deSimulator_weights": {"shallow": 3.0, "mid": 2.0, "deep": 1.0},
         "deSimulator_params": {
-            "bathymetry_sigma": 7.0,
+            "waterDepth_sigma": 7.0,
             "transition_sigma": 9.0,
             "trend_sigma": 0.5,
             "trend_window": 4,

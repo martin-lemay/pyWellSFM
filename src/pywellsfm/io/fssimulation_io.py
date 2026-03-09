@@ -483,8 +483,8 @@ def exportSimulationDataToJsonObj(
             for r in fsSimulator.realizationDataList
         ],
         "params": {
-            "max_bathymetry_change_per_step": (
-                fsSimulator.params.max_bathymetry_change_per_step
+            "max_waterDepth_change_per_step": (
+                fsSimulator.params.max_waterDepth_change_per_step
             ),
             "dt_min": fsSimulator.params.dt_min,
             "dt_max": fsSimulator.params.dt_max,
@@ -654,9 +654,9 @@ def loadFSSimulation(filepath: str) -> FSSimulator:
     else:
         if not isinstance(params_obs, dict):
             raise ValueError("Simulation.params must be a dictionary.")
-        max_bathymetry_change = params_obs.get(
-            "max_bathymetry_change_per_step",
-            defaultSimulationParams.max_bathymetry_change_per_step,
+        max_waterDepth_change = params_obs.get(
+            "max_waterDepth_change_per_step",
+            defaultSimulationParams.max_waterDepth_change_per_step,
         )
         dt_min = params_obs.get("dt_min", defaultSimulationParams.dt_min)
         dt_max = params_obs.get("dt_max", defaultSimulationParams.dt_max)
@@ -665,7 +665,7 @@ def loadFSSimulation(filepath: str) -> FSSimulator:
             "max_steps", defaultSimulationParams.max_steps
         )
         simulationParams = FSSimulatorParameters(
-            max_bathymetry_change_per_step=max_bathymetry_change,
+            max_waterDepth_change_per_step=max_waterDepth_change,
             dt_min=dt_min,
             dt_max=dt_max,
             safety=safety,

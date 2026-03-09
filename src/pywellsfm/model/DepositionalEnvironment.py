@@ -10,26 +10,26 @@ class DepositionalEnvironment:
     def __init__(
         self: Self,
         name: str,
-        bathymetry_range: tuple[float, float],
+        waterDepth_range: tuple[float, float],
         other_property_ranges: dict[str, tuple[float, float]] | None = None,
         distality: float | None = None,
     ) -> None:
         """Defines a depositional environment.
 
-        The environment is defined from a bathymetry range and optionaly other
+        The environment is defined from a waterDepth range and optionaly other
         property ranges including energy, temperature, salinity, etc.
 
         Curves can be set to define relationships between properties,
-        e.g. energy vs bathymetry.
+        e.g. energy vs waterDepth.
 
         .. NOTE::
 
             Properties can be related to a single other property,
-            e.g. temperature can be defined as a function of bathymetry, but
-            not as a function of both bathymetry and energy.
+            e.g. temperature can be defined as a function of waterDepth, but
+            not as a function of both waterDepth and energy.
 
         :param str name: name of the environment
-        :param tuple[float, float] bathymetry_range: bathymetry range of the
+        :param tuple[float, float] waterDepth_range: waterDepth range of the
             environment
         :param dict[str, tuple[float, float]] other_property_ranges: ranges of
             any other properties of the environment
@@ -37,9 +37,9 @@ class DepositionalEnvironment:
             distance from the shoreline, in km.
         """
         self.name: str = name
-        self.bathymetry_range: tuple[float, float] = (
-            min(bathymetry_range),
-            max(bathymetry_range),
+        self.waterDepth_range: tuple[float, float] = (
+            min(waterDepth_range),
+            max(waterDepth_range),
         )
         self.other_property_ranges: dict[str, tuple[float, float]] = {}
         if other_property_ranges is not None:
@@ -47,7 +47,7 @@ class DepositionalEnvironment:
                 k: (min(v), max(v)) for k, v in other_property_ranges.items()
             }
         # curves defining relationships between properties, e.g. energy vs
-        # bathymetry
+        # waterDepth
         self.property_curves: dict[str, Curve] = {}
         self.distality: float | None = distality
 
@@ -69,37 +69,37 @@ class DepositionalEnvironment:
         """Defines __eq__ method.
 
         :return bool: True if input object is a DepositionalEnvironment with
-            the same name, same distality, same bathymetry and other property
+            the same name, same distality, same waterDepth and other property
             ranges.
         """
         if isinstance(other, DepositionalEnvironment):
             return (
                 other.name == self.name
                 and other.distality == self.distality
-                and other.bathymetry_range == self.bathymetry_range
+                and other.waterDepth_range == self.waterDepth_range
                 and other.other_property_ranges == self.other_property_ranges
             )
         return False
 
     @property
-    def bathymetry_min(self: Self) -> float:
-        """Minimum bathymetry of the environment."""
-        return self.bathymetry_range[0]
+    def waterDepth_min(self: Self) -> float:
+        """Minimum waterDepth of the environment."""
+        return self.waterDepth_range[0]
 
     @property
-    def bathymetry_max(self: Self) -> float:
-        """Maximum bathymetry of the environment."""
-        return self.bathymetry_range[1]
+    def waterDepth_max(self: Self) -> float:
+        """Maximum waterDepth of the environment."""
+        return self.waterDepth_range[1]
 
     @property
-    def bathymetry_mid(self: Self) -> float:
-        """Mid-point of the bathymetry range."""
-        return (self.bathymetry_range[0] + self.bathymetry_range[1]) / 2.0
+    def waterDepth_mid(self: Self) -> float:
+        """Mid-point of the waterDepth range."""
+        return (self.waterDepth_range[0] + self.waterDepth_range[1]) / 2.0
 
     @property
-    def bathymetry_range_width(self: Self) -> float:
-        """Width of the bathymetry range."""
-        return self.bathymetry_range[1] - self.bathymetry_range[0]
+    def waterDepth_range_width(self: Self) -> float:
+        """Width of the waterDepth range."""
+        return self.waterDepth_range[1] - self.waterDepth_range[0]
 
     def getPropertyMid(self: Self, property_name: str) -> float:
         """Get the mid-point of a property range.
@@ -192,7 +192,7 @@ class DepositionalEnvironment:
     def getValueFromCurveAt(
         self: Self, x_property_name: str, y_property_name: str, x_value: float
     ) -> float:
-        """Get the value of a property at a given bathymetry.
+        """Get the value of a property at a given waterDepth.
 
         :param str x_property_name: name of the x-axis property
         :param str y_property_name: name of the y-axis property
@@ -223,7 +223,7 @@ class DepositionalEnvironment:
             return y_range[0]
 
         # linear interpolation between property range limits based on
-        # bathymetry range limits
+        # waterDepth range limits
         x_width = self.getPropertyRangeWidth(x_property_name)
         if x_width == 0.0:
             # return mean value
@@ -231,7 +231,7 @@ class DepositionalEnvironment:
 
         value = (
             y_range[0]
-            + y_width * (x_value - self.bathymetry_range[0]) / x_width
+            + y_width * (x_value - self.waterDepth_range[0]) / x_width
         )
         # clamp value to property range limits
         if value < y_range[0]:
@@ -256,7 +256,7 @@ class DepositionalEnvironment:
                     f"other_property_ranges for environment {self.name}."
                 )
             if (
-                x_axis != "bathymetry"
+                x_axis != "waterDepth"
                 and x_axis not in self.other_property_ranges
             ):
                 raise ValueError(
@@ -402,11 +402,11 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
     def __init__(
         self: Self,
         tidal_range: float = 2.0,
-        fairweather_wave_breaking_bathymetry: float = 5.0,
-        fairweather_wave_base_bathymetry: float = 20.0,
-        storm_wave_base_bathymetry: float = 50.0,
-        shelf_break_bathymetry: float = 200.0,
-        slope_toe_max_bathymetry: float = 1000.0,
+        fairweather_wave_breaking_waterDepth: float = 5.0,
+        fairweather_wave_base_waterDepth: float = 20.0,
+        storm_wave_base_waterDepth: float = 50.0,
+        shelf_break_waterDepth: float = 200.0,
+        slope_toe_max_waterDepth: float = 1000.0,
     ) -> None:
         """Defines an open carbonate ramp depositional environment model.
 
@@ -415,7 +415,7 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
         plateform zone is typically dominated by patch reefs and other
         buildups, but is not protected from wave energy by a barrier.
         The outer ramp is characterized by a lower energy.
-        The model has a pre-defined list of environmnents, but bathymetry
+        The model has a pre-defined list of environmnents, but waterDepth
         ranges are parameterized based on input parameters.
         The list of pre-defined environmnets includes:
 
@@ -425,7 +425,7 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
         - Inner Ramp Lower Shoreface: fairweather wave-breaking depth to
             fairweather wave-base where energy is lower than the shoreface zone
         - Buildup: patch reefs and other buildups creating locally low
-            bathymetry () and high energy () environment.
+            waterDepth () and high energy () environment.
         - Outer Ramp: fairweather wave-base to storm wave-base (offshore zone),
             where energy is low
         - Shelf Slope: Continental slope
@@ -436,26 +436,26 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
         most significant is the relative distality between environments.
 
         :param float tidal_range: tidal range in meters (default 2 m).
-        :param float fairweather_wave_breaking_bathymetry: fairweather
+        :param float fairweather_wave_breaking_waterDepth: fairweather
             wave-breaking depth (default 5 m).
-        :param float fairweather_wave_base_bathymetry: fairweather
+        :param float fairweather_wave_base_waterDepth: fairweather
             wave-base depth (default 20 m).
-        :param float storm_wave_base_bathymetry: storm wave-base depth
+        :param float storm_wave_base_waterDepth: storm wave-base depth
             (default 50 m).
-        :param float shelf_break_bathymetry: shelf-break depth (default 200 m).
-        :param float slope_toe_max_bathymetry: base of the slope maximum
-            bathymetry (default 1000 m).
+        :param float shelf_break_waterDepth: shelf-break depth (default 200 m).
+        :param float slope_toe_max_waterDepth: base of the slope maximum
+            waterDepth (default 1000 m).
         """
         name = "Carbonate Open Ramp"
         environments = [
             DepositionalEnvironment(
                 name="Sabkha",
-                bathymetry_range=(-tidal_range, 0.0),
+                waterDepth_range=(-tidal_range, 0.0),
                 distality=-1.0,
             ),
             DepositionalEnvironment(
                 name="InnerRampUpperShoreface",
-                bathymetry_range=(0.0, fairweather_wave_breaking_bathymetry),
+                waterDepth_range=(0.0, fairweather_wave_breaking_waterDepth),
                 other_property_ranges={
                     "energy": (0.5, 1.0),
                     "temperature": (25.0, 30.0),
@@ -464,9 +464,9 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="InnerRampLowerShoreface",
-                bathymetry_range=(
-                    fairweather_wave_breaking_bathymetry,
-                    fairweather_wave_base_bathymetry,
+                waterDepth_range=(
+                    fairweather_wave_breaking_waterDepth,
+                    fairweather_wave_base_waterDepth,
                 ),
                 other_property_ranges={
                     "energy": (0.2, 0.5),
@@ -476,7 +476,7 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="Buildup",
-                bathymetry_range=(0.0, storm_wave_base_bathymetry),
+                waterDepth_range=(0.0, storm_wave_base_waterDepth),
                 other_property_ranges={
                     "energy": (0.7, 1.0),
                     "temperature": (25.0, 30.0),
@@ -485,9 +485,9 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="OuterRamp",
-                bathymetry_range=(
-                    fairweather_wave_base_bathymetry,
-                    storm_wave_base_bathymetry,
+                waterDepth_range=(
+                    fairweather_wave_base_waterDepth,
+                    storm_wave_base_waterDepth,
                 ),
                 other_property_ranges={
                     "energy": (0.0, 0.1),
@@ -497,9 +497,9 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="ShelfSlope",
-                bathymetry_range=(
-                    shelf_break_bathymetry,
-                    slope_toe_max_bathymetry,
+                waterDepth_range=(
+                    shelf_break_waterDepth,
+                    slope_toe_max_waterDepth,
                 ),
                 other_property_ranges={
                     "energy": (0.0, 0.0),
@@ -509,7 +509,7 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="Basin",
-                bathymetry_range=(slope_toe_max_bathymetry, 10000.0),
+                waterDepth_range=(slope_toe_max_waterDepth, 10000.0),
                 other_property_ranges={
                     "energy": (0.0, 0.0),
                     "temperature": (4.0, 6.0),
@@ -526,16 +526,16 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
     def __init__(
         self: Self,
         tidal_range: float = 2.0,
-        lagoon_max_bathymetry: float = 10.0,
-        fairweather_wave_base_bathymetry: float = 20.0,
-        storm_wave_base_bathymetry: float = 50.0,
-        shelf_break_bathymetry: float = 200.0,
-        slope_toe_max_bathymetry: float = 1000.0,
+        lagoon_max_waterDepth: float = 10.0,
+        fairweather_wave_base_waterDepth: float = 20.0,
+        storm_wave_base_waterDepth: float = 50.0,
+        shelf_break_waterDepth: float = 200.0,
+        slope_toe_max_waterDepth: float = 1000.0,
     ) -> None:
         """Defines a carbonate ramp depositional environment model.
 
         The model is defined as a list of depositional environments. The
-        model has a pre-defined list of environmnents, but bathymetry ranges
+        model has a pre-defined list of environmnents, but waterDepth ranges
         are parameterized based on input parameters.
         The list of pre-defined environmnets includes:
 
@@ -545,30 +545,30 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
         - Inner Ramp Lower Shoreface: fairweather wave-breaking depth to
             fairweather wave-base where energy is lower than the shoreface zone
         - Buildup: patch reefs and other buildups creating locally low
-            bathymetry () and high energy () environment.
+            waterDepth () and high energy () environment.
         - Outer Ramp: fairweather wave-base to storm wave-base (offshore zone),
             where energy is low
         - Shelf Slope: Continental slope
         - Basin: Deep basin (intra-shelf or open ocean)
 
         :param float tidal_range: tidal range in meters (default 2 m).
-        :param float lagoon_max_bathymetry: maximum depth of the lagoon
+        :param float lagoon_max_waterDepth: maximum depth of the lagoon
             (default 10 m).
 
-        :param float fairweather_wave_base_bathymetry: fairweather
+        :param float fairweather_wave_base_waterDepth: fairweather
             wave-base depth (default 20 m).
-        :param float storm_wave_base_bathymetry: storm wave-base depth
+        :param float storm_wave_base_waterDepth: storm wave-base depth
             (default 50 m).
-        :param float shelf_break_bathymetry: shelf-break depth
+        :param float shelf_break_waterDepth: shelf-break depth
             (default 200 m).
-        :param float slope_toe_max_bathymetry: base of the slope maximum
-            bathymetry (default 1000 m).
+        :param float slope_toe_max_waterDepth: base of the slope maximum
+            waterDepth (default 1000 m).
         """
         name = "Carbonate Protected Ramp"
         environments = [
             DepositionalEnvironment(
                 name="Sabkha",
-                bathymetry_range=(-tidal_range, 0.0),
+                waterDepth_range=(-tidal_range, 0.0),
                 other_property_ranges={
                     "salinity": (0.5, 1.0),  # hypersaline conditions, no unit
                 },
@@ -576,7 +576,7 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="Shore",
-                bathymetry_range=(0.0, 2.0),
+                waterDepth_range=(0.0, 2.0),
                 other_property_ranges={
                     "energy": (0.1, 0.5),
                     "temperature": (20.0, 30.0),
@@ -586,7 +586,7 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             DepositionalEnvironment(
                 # deepest part of the lagoon
                 name="Lagoon",
-                bathymetry_range=(2.0, lagoon_max_bathymetry),
+                waterDepth_range=(2.0, lagoon_max_waterDepth),
                 other_property_ranges={
                     "energy": (0.0, 0.1),
                     "temperature": (20.0, 30.0),
@@ -595,7 +595,7 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="Buildup",
-                bathymetry_range=(0.0, lagoon_max_bathymetry),
+                waterDepth_range=(0.0, lagoon_max_waterDepth),
                 other_property_ranges={
                     "energy": (0.0, 0.5),
                     "temperature": (25.0, 30.0),
@@ -604,7 +604,7 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="BackReef",
-                bathymetry_range=(1.0, 2.0),
+                waterDepth_range=(1.0, 2.0),
                 other_property_ranges={
                     "energy": (0.1, 0.2),
                     "temperature": (20.0, 30.0),
@@ -613,7 +613,7 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="ReefCrest",
-                bathymetry_range=(0.0, 1.0),
+                waterDepth_range=(0.0, 1.0),
                 other_property_ranges={
                     "energy": (0.7, 1.0),
                     "temperature": (20.0, 30.0),
@@ -622,7 +622,7 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="ForeReef",
-                bathymetry_range=(1.0, fairweather_wave_base_bathymetry),
+                waterDepth_range=(1.0, fairweather_wave_base_waterDepth),
                 other_property_ranges={
                     "energy": (0.2, 0.7),
                     "temperature": (15.0, 20.0),
@@ -631,9 +631,9 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="OuterRamp",
-                bathymetry_range=(
-                    fairweather_wave_base_bathymetry,
-                    storm_wave_base_bathymetry,
+                waterDepth_range=(
+                    fairweather_wave_base_waterDepth,
+                    storm_wave_base_waterDepth,
                 ),
                 other_property_ranges={
                     "energy": (0.0, 0.2),
@@ -643,9 +643,9 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="ShelfSlope",
-                bathymetry_range=(
-                    shelf_break_bathymetry,
-                    slope_toe_max_bathymetry,
+                waterDepth_range=(
+                    shelf_break_waterDepth,
+                    slope_toe_max_waterDepth,
                 ),
                 other_property_ranges={
                     "energy": (0.0, 0.0),
@@ -655,7 +655,7 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="Basin",
-                bathymetry_range=(slope_toe_max_bathymetry, 10000.0),
+                waterDepth_range=(slope_toe_max_waterDepth, 10000.0),
                 other_property_ranges={
                     "energy": (0.0, 0.0),
                     "temperature": (4.0, 6.0),

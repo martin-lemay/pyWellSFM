@@ -9,7 +9,7 @@ This package aims at simulating the deposition of sedimentary layers over time a
 - a Gaussian model: at each step, the accumulated thickness of each element follows a Normal law
 - a Environment Optimum model: at each step, the accumulated thickness of each element depends on environment conditions. When conditions are optimal, the rate is maximal, but it decreases according to the acummulation curves when conditions move away from optimum values.
 
-Time step duration is computed such as both deposited thickness and bathymetry variation do not exceed a user-defined value (0.5m by default).
+Time step duration is computed such as both deposited thickness and water depth variation do not exceed a user-defined value (0.5m by default).
 
 The simulator is designed such as it can easily be used through an optimization loop.
 
@@ -56,7 +56,7 @@ Supported input formats:
   - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/WellSchema.json
 
 - curves (subsidence, eustatism, accumulation curve, etc.; use `loadCurvesFromFile()`):
-  - csv: expects 2 columns, `AbscissaName` (e.g., "Age", "Bathymetry") and `CurveName` (e.g., "Eustacy", "Subsidence", "ReductionCoeff").
+  - csv: expects 2 columns, `AbscissaName` (e.g., "Age", "WaterDepth") and `CurveName` (e.g., "Eustacy", "Subsidence", "ReductionCoeff").
   - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json
 
 - Accumulation model (use `loadAccumulationModel()`):

@@ -26,7 +26,7 @@ class AccommodationSpaceWellCalculator:
 
         :param Well well: input well
         :param list[SedimentaryFacies] faciesList: list of sedimentary facies
-            with depositional conditions to get the bathymetry from facies log.
+            with depositional conditions to get the waterDepth from facies log.
         """
         #: input well
         self._well: Well = well
@@ -34,12 +34,12 @@ class AccommodationSpaceWellCalculator:
         self._faciesDict: dict[str, SedimentaryFacies] = {
             facies.name: facies for facies in faciesList
         }
-        self._bathymetryComputed: bool = False
+        self._waterDepthComputed: bool = False
         self._accommodationComputed: bool = False
-        #: bathymetry per interval
-        self._bathymetryStepCurve: Optional[npt.NDArray[np.float64]] = None
-        #: output bathymetry curve with uncertainties
-        self.bathymetryCurve: UncertaintyCurve
+        #: waterDepth per interval
+        self._waterDepthStepCurve: Optional[npt.NDArray[np.float64]] = None
+        #: output waterDepth curve with uncertainties
+        self.waterDepthCurve: UncertaintyCurve
         #: accommodation per interval
         self._accommodationStepCurve: Optional[npt.NDArray[np.float64]] = None
         #: output accommodation variation curve with uncertainties
@@ -53,8 +53,8 @@ class AccommodationSpaceWellCalculator:
     def _initCurves(self: Self) -> None:
         abscissa = np.array([0.0, self._well.depth])
         ordinate = np.full_like(abscissa, np.nan)
-        self.bathymetryCurve = UncertaintyCurve(
-            "Bathymetry", Curve("Depth", "Bathymetry", abscissa, ordinate)
+        self.waterDepthCurve = UncertaintyCurve(
+            "waterDepth", Curve("Depth", "waterDepth", abscissa, ordinate)
         )
         self.accommodationChangeCurve = UncertaintyCurve(
             "AccommodationChange",
@@ -65,31 +65,31 @@ class AccommodationSpaceWellCalculator:
             Curve("Depth", "Accommodation", abscissa, ordinate),
         )
 
-    def getInitialBathymetry(self: Self) -> float:
-        """Get the initial bathymetry.
+    def getInitialwaterDepth(self: Self) -> float:
+        """Get the initial waterDepth.
 
-        Take the middle value of the range as initial bathymetry get from
+        Take the middle value of the range as initial waterDepth get from
         facies log.
 
-        :return float: initial bathymetry value.
+        :return float: initial waterDepth value.
         """
-        bathyRange: tuple[float, float] = self._getInitialBathymetryRange()
+        bathyRange: tuple[float, float] = self._getInitialwaterDepthRange()
         return 0.5 * (bathyRange[0] + bathyRange[1])
 
     # Helper functions
-    def _getInitialBathymetryRange(self: Self) -> tuple[float, float]:
-        """Get the initial bathymetry range.
+    def _getInitialwaterDepthRange(self: Self) -> tuple[float, float]:
+        """Get the initial waterDepth range.
 
-        The bathymetry is retreive from the facies log at and facies
+        The waterDepth is retreive from the facies log at and facies
         conditions.
 
-        :return tuple[float, float]: min and max initial bathymetry values.
+        :return tuple[float, float]: min and max initial waterDepth values.
         """
         faciesLogNames: set[str] = self._well.getDiscreteLogNames()
         if len(faciesLogNames) == 0:
             raise ValueError(
                 f"No discrete log found in well '{self._well.name}' "
-                "to get initial bathymetry."
+                "to get initial waterDepth."
             )
         faciesLog: Striplog = cast(
             Striplog, self._well.getDepthLog(faciesLogNames.pop())
@@ -97,15 +97,15 @@ class AccommodationSpaceWellCalculator:
         if faciesLog is None:
             raise ValueError(
                 f"Facies log not found in well '{self._well.name}' to "
-                "get initial bathymetry."
+                "get initial waterDepth."
             )
 
         interval: Interval = cast(Interval, faciesLog[-1])
         faciesName: str = interval.primary["lithology"]  # type: ignore
-        bathyRange = self._getBathymetryRangeFromFaciesName(faciesName)
+        bathyRange = self._getWaterDepthRangeFromFaciesName(faciesName)
         if bathyRange is None:
             raise ValueError(
-                f"Bathymetry condition not found for facies {faciesName}."
+                f"waterDepth condition not found for facies {faciesName}."
             )
         return bathyRange
 
@@ -144,9 +144,9 @@ class AccommodationSpaceWellCalculator:
             toMarker.depth if toMarker is not None else faciesLog.start.z
         )
 
-        # compute bathymetry curve if it is not defined
-        if self._bathymetryStepCurve is None:
-            self.computeBathymetryCurve(faciesLogName, fromMarker, toMarker)
+        # compute waterDepth curve if it is not defined
+        if self._waterDepthStepCurve is None:
+            self.computeWaterDepthCurve(faciesLogName, fromMarker, toMarker)
 
         # Accommodation array: depth, acco min 1, acco min 2, acco max 1,
         # acco max 2
@@ -179,13 +179,13 @@ class AccommodationSpaceWellCalculator:
         (i.e., len(faciesLog) + 1) and columns are:
 
         * depth where accommodation is computed
-        * minimum accommodation computed from the bathymetry right below the
+        * minimum accommodation computed from the waterDepth right below the
           depth
-        * minimum accommodation computed from the bathymetry right above the
+        * minimum accommodation computed from the waterDepth right above the
           depth
-        * maximum accommodation computed from the bathymetry right below the
+        * maximum accommodation computed from the waterDepth right below the
           depth
-        * maximum accommodation computed from the bathymetry right above the
+        * maximum accommodation computed from the waterDepth right above the
           depth
 
         :param str faciesLog: sedimentary facies log
@@ -195,15 +195,15 @@ class AccommodationSpaceWellCalculator:
             base depth. Defaults to 0.
         :return npt.NDArray[np.float64]: accommodation array
         """
-        # compute bathymetry curve if it is not defined
-        if self._bathymetryStepCurve is None:
-            self._computeBathymetryStepCurve(faciesLog, baseDepth, topDepth)
+        # compute waterDepth curve if it is not defined
+        if self._waterDepthStepCurve is None:
+            self._computeWaterDepthStepCurve(faciesLog, baseDepth, topDepth)
 
-        # get bathymetry at the base and computation depth
+        # get waterDepth at the base and computation depth
         depthBase: float = baseDepth
         bathyAtBase: tuple[float, float] = (0.0, 0.0)
         lastIndex: int = len(faciesLog)
-        for row in self._bathymetryStepCurve[::-1]:  # type: ignore
+        for row in self._waterDepthStepCurve[::-1]:  # type: ignore
             if row[0] > baseDepth:
                 lastIndex -= 1
                 continue
@@ -212,13 +212,13 @@ class AccommodationSpaceWellCalculator:
             break
 
         assert np.isfinite(bathyAtBase[0]), (
-            "Bathymetry at the base is undefined."
+            "waterDepth at the base is undefined."
         )
 
         # accommodation array: depth, acco min 1, acco min 2, acco max 1,
         # acco max 2
         accoArray: npt.NDArray[np.float64] = np.full(
-            (self._bathymetryStepCurve.shape[0] + 1, 5),  # type: ignore
+            (self._waterDepthStepCurve.shape[0] + 1, 5),  # type: ignore
             np.nan,
         )
         interval: Interval
@@ -226,14 +226,14 @@ class AccommodationSpaceWellCalculator:
             # skip stratas below the base
             if interval.base.z > depthBase:
                 continue
-            # bathymetry of the interval
-            bathyInterval = self._bathymetryStepCurve[i, 2:]  # type: ignore
+            # waterDepth of the interval
+            bathyInterval = self._waterDepthStepCurve[i, 2:]  # type: ignore
             # compute accommodation at top
             thickness: float
             if i == 0:
                 thickness = depthBase - interval.top.z
-                # bathymetry of the interval
-                bathyInterval = self._bathymetryStepCurve[i, 2:]  # type: ignore
+                # waterDepth of the interval
+                bathyInterval = self._waterDepthStepCurve[i, 2:]  # type: ignore
                 # compute accommodation from bathy of the interval
                 acco0: tuple[float, float] = self._computeAccommodationValue(
                     thickness, bathyAtBase, tuple(bathyInterval.tolist())
@@ -249,10 +249,10 @@ class AccommodationSpaceWellCalculator:
             # compute accommodation at the base
             thickness = depthBase - interval.base.z
 
-            # bathymetry of above interval
+            # waterDepth of above interval
             bathyAboveInterval = bathyInterval
             if (i < len(faciesLog) - 1) and (i < lastIndex):
-                bathyAboveInterval = self._bathymetryStepCurve[i + 1, 2:]  # type: ignore
+                bathyAboveInterval = self._waterDepthStepCurve[i + 1, 2:]  # type: ignore
 
             # compute accommodation
             # computed from bathy of the interval
@@ -284,19 +284,19 @@ class AccommodationSpaceWellCalculator:
         bathyBase: tuple[float, float],
         bathyTop: tuple[float, float],
     ) -> tuple[float, float]:
-        """Compute the accommodation according to thickness and bathymetry.
+        """Compute the accommodation according to thickness and waterDepth.
 
         :param float thickness: interval thickness
-        :param tuple[float, float] bathyBase: bathymetry at the base of the
+        :param tuple[float, float] bathyBase: waterDepth at the base of the
             interval
-        :param tuple[float, float] bathyTop: bathymetry at the top of the
+        :param tuple[float, float] bathyTop: waterDepth at the top of the
             interval
         :return tuple[float, float]: accommodation variation from base to top
         """
-        # minimum bathymetry variation: consider bathy is max at base marker
+        # minimum waterDepth variation: consider bathy is max at base marker
         # and min at top marker
         deltaBathyMin: float = bathyTop[0] - bathyBase[1]
-        # maximum bathymetry variation: consider bathy is min at base marker
+        # maximum waterDepth variation: consider bathy is min at base marker
         # and max at top marker
         deltaBathyMax: float = bathyTop[1] - bathyBase[0]
         accoMin: float = thickness + deltaBathyMin
@@ -356,13 +356,13 @@ class AccommodationSpaceWellCalculator:
         )
         return self.accommodationCurve
 
-    def computeBathymetryCurve(
+    def computeWaterDepthCurve(
         self: Self,
         faciesLogName: str,
         fromMarker: Optional[Marker] = None,
         toMarker: Optional[Marker] = None,
     ) -> UncertaintyCurve:
-        """Compute the bathymetry along the well.
+        """Compute the waterDepth along the well.
 
         :param str faciesLogName: name of the sedimentary facies log
         :param float step: step between continuous log samples
@@ -372,7 +372,7 @@ class AccommodationSpaceWellCalculator:
         :param Marker toMarker: to marker where to stop calculation. If no
             marker is given, calculation stops at the top of the well.
             Defaults to None.
-        :return UncertaintyCurve: bathymetry curve
+        :return UncertaintyCurve: waterDepth curve
         """
         assert isinstance(self._well.getDepthLog(faciesLogName), Striplog), (
             f"The discrete log {faciesLogName} does not exist in the well "
@@ -387,26 +387,26 @@ class AccommodationSpaceWellCalculator:
         topDepth: float = (
             toMarker.depth if toMarker is not None else faciesLog.start.z
         )
-        self._computeBathymetryStepCurve(faciesLog, baseDepth, topDepth)
+        self._computeWaterDepthStepCurve(faciesLog, baseDepth, topDepth)
 
-        assert self._bathymetryStepCurve is not None, (
-            "Bathymetry step curve is not computed."
+        assert self._waterDepthStepCurve is not None, (
+            "waterDepth step curve is not computed."
         )
         self._convertIntervalCurve2UncertaintyCurve(
-            self._bathymetryStepCurve, self.bathymetryCurve
+            self._waterDepthStepCurve, self.waterDepthCurve
         )
-        self._bathymetryComputed = True
-        return self.bathymetryCurve
+        self._waterDepthComputed = True
+        return self.waterDepthCurve
 
-    def _getBathymetryRangeFromFaciesName(
+    def _getWaterDepthRangeFromFaciesName(
         self: Self, faciesName: str
     ) -> tuple[float, float]:
-        """Get the bathymetry range from the facies name.
+        """Get the waterDepth range from the facies name.
 
         :param str faciesName: facies name
         :raises ValueError: if the facies name is not in the list or the
-            bathymetry conditions is undefined for a given facies.
-        :return tuple[float, float]: bathymetry minimum and maximum values.
+            waterDepth conditions is undefined for a given facies.
+        :return tuple[float, float]: waterDepth minimum and maximum values.
         """
         facies: Optional[SedimentaryFacies] = self._faciesDict.get(
             faciesName, None
@@ -414,23 +414,23 @@ class AccommodationSpaceWellCalculator:
         if facies is None:
             raise ValueError(
                 f"Facies {faciesName} is not in the facies list. "
-                + "Bathymetry curve cannot be computed."
+                + "waterDepth curve cannot be computed."
             )
-        bathyRange: Optional[FaciesCriteria] = facies.getCriteria("Bathymetry")
+        bathyRange: Optional[FaciesCriteria] = facies.getCriteria("waterDepth")
         if bathyRange is None:
             raise ValueError(
-                f"Bathymetry is undefined for the facies {faciesName}. "
-                + "Bathymetry curve cannot be computed."
+                f"waterDepth is undefined for the facies {faciesName}. "
+                + "waterDepth curve cannot be computed."
             )
         return (bathyRange.minRange, bathyRange.maxRange)
 
-    def _computeBathymetryStepCurve(
+    def _computeWaterDepthStepCurve(
         self: Self,
         faciesLog: Striplog,
         baseDepth: float,
         topDepth: float,
     ) -> npt.NDArray[np.float64]:
-        self._bathymetryStepCurve = np.full((len(faciesLog), 4), np.nan)
+        self._waterDepthStepCurve = np.full((len(faciesLog), 4), np.nan)
         # add epsilon because if Interval.completely_contains returns True only
         # if limits are not equal
         eps: float = 1e-6
@@ -445,46 +445,46 @@ class AccommodationSpaceWellCalculator:
                 "Interval primary attribute is None."
             )
             faciesName: str = interval.primary["lithology"]
-            bathRange = self._getBathymetryRangeFromFaciesName(faciesName)
-            self._bathymetryStepCurve[i, 0] = interval.base.z
-            self._bathymetryStepCurve[i, 1] = interval.top.z
-            self._bathymetryStepCurve[i, 2:] = bathRange
+            bathRange = self._getWaterDepthRangeFromFaciesName(faciesName)
+            self._waterDepthStepCurve[i, 0] = interval.base.z
+            self._waterDepthStepCurve[i, 1] = interval.top.z
+            self._waterDepthStepCurve[i, 2:] = bathRange
             nbIntervals += 1
 
-        return self._bathymetryStepCurve
+        return self._waterDepthStepCurve
 
     def _computeAccommodationStepCurve(
         self: Self, faciesLog: Striplog, baseDepth: float, topDepth: float
     ) -> npt.NDArray[np.float64]:
-        # compute bathymetry per interval if not computed yet
-        if self._bathymetryStepCurve is None:
-            self._computeBathymetryStepCurve(faciesLog, baseDepth, topDepth)
+        # compute waterDepth per interval if not computed yet
+        if self._waterDepthStepCurve is None:
+            self._computeWaterDepthStepCurve(faciesLog, baseDepth, topDepth)
 
         self._accommodationStepCurve = np.full_like(
-            self._bathymetryStepCurve, np.nan
+            self._waterDepthStepCurve, np.nan
         )
         interval: Interval
         for i, interval in enumerate(faciesLog):
-            # bathymetry at the top of the interval
-            (bathyMinEnd, bathyMaxEnd) = self._bathymetryStepCurve[i, 2:]  # type: ignore
-            # bathymetry at the top of the interval (=base of above interval,
+            # waterDepth at the top of the interval
+            (bathyMinEnd, bathyMaxEnd) = self._waterDepthStepCurve[i, 2:]  # type: ignore
+            # waterDepth at the top of the interval (=base of above interval,
             # except for the last interval where we assume no variations)
             bathyMinStart, bathyMaxStart = bathyMinEnd, bathyMaxEnd
-            if i > 0:  # self._bathymetryStepCurve.shape[0] - 1:
-                (bathyMinStart, bathyMaxStart) = self._bathymetryStepCurve[  # type: ignore
+            if i > 0:  # self._waterDepthStepCurve.shape[0] - 1:
+                (bathyMinStart, bathyMaxStart) = self._waterDepthStepCurve[  # type: ignore
                     i - 1, 2:
                 ]
-            # minimum bathymetry variation: consider bathy is max at bottom
+            # minimum waterDepth variation: consider bathy is max at bottom
             # interval and min at current interval
             deltaBathyMin: float = bathyMinEnd - bathyMaxStart
-            # minimum bathymetry variation: consider bathy is min at bottom
+            # minimum waterDepth variation: consider bathy is min at bottom
             # interval and max at current interval
             deltaBathyMax: float = bathyMaxEnd - bathyMinStart
             accoMin: float = interval.thickness + deltaBathyMin
             accoMax: float = interval.thickness + deltaBathyMax
             if accoMin > accoMax:
                 accoMin, accoMax = accoMax, accoMin
-            self._accommodationStepCurve[i, :2] = self._bathymetryStepCurve[  # type: ignore
+            self._accommodationStepCurve[i, :2] = self._waterDepthStepCurve[  # type: ignore
                 i, :2
             ]
             self._accommodationStepCurve[i, 2:] = (accoMin, accoMax)
