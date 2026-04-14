@@ -42,6 +42,7 @@ class Curve:
         self._interpFunc: Any
         if interpolationFunction is None:
             self._interpFunc = LowerBoundInterpolator()
+            self._interpFunc.initialize(self._abscissa, self._ordinate)
         elif type(interpolationFunction) is str:
             try:
                 self._interpFunc = interp.interp1d(
@@ -56,8 +57,8 @@ class Curve:
                 ) from e
         else:
             self._interpFunc = interpolationFunction
-            self._interpFunc.initialize(self._abscissa, self._ordinate) # type: ignore
-            self._interpFunc.setAdditionalArgs(**args)  # type: ignore
+            self._interpFunc.initialize(self._abscissa, self._ordinate)
+            self._interpFunc.setAdditionalArgs(**args)
         # self._extrapMethod: ExtrapolationMethod = extrapolationMethod
         self._minAbscissa = np.nan
         self._maxAbscissa = np.nan
@@ -261,12 +262,6 @@ class AccumulationCurve(Curve):
         :param npt.NDArray[np.float64] abscissa: abscissa values
         :param npt.NDArray[np.float64] ordinate: ordinate values. Must be
             between 0 and 1.
-        :param str | "function" interpolationFunction: name of interpolation
-            method according to scipy.interpolate.interp1d method, defaults to
-            "linear", or a class inherited from
-            `pywellsfm.utils.helpers.Interpolator` to compute
-            the interpolation (see for instance
-            `pywellsfm.utils.helpers.PolynomialInterpolator`)
         """
         assert (np.min(ordinate) >= 0.0) and (np.max(ordinate) <= 1.0), (
             "Accumulation curve ordinates must be between 0 and 1."

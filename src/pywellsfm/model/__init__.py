@@ -22,6 +22,14 @@ from .DepositionalEnvironment import (
 from .DepthAgeModel import DepthAgeModel
 from .Element import Element
 from .enums import SubsidenceType
+from .EnvironmentConditionModel import (
+    EnvironmentConditionModelCombination,
+    EnvironmentConditionModelConstant,
+    EnvironmentConditionModelCurve,
+    EnvironmentConditionModelGaussian,
+    EnvironmentConditionModelUniform,
+    EnvironmentConditionsModel,
+)
 from .Facies import (
     EnvironmentalFacies,
     Facies,
@@ -42,13 +50,19 @@ __all__ = [
     "AccumulationModel",
     "AccumulationModelElementOptimum",
     "AccumulationModelElementGaussian",
+    "CarbonateOpenRampDepositionalEnvironmentModel",
+    "CarbonateProtectedRampDepositionalEnvironmentModel",
     "Curve",
     "DepthAgeModel",
     "DepositionalEnvironment",
     "DepositionalEnvironmentModel",
-    "CarbonateOpenRampDepositionalEnvironmentModel",
-    "CarbonateProtectedRampDepositionalEnvironmentModel",
     "Element",
+    "EnvironmentConditionModelUniform",
+    "EnvironmentConditionModelConstant",
+    "EnvironmentConditionModelGaussian",
+    "EnvironmentConditionModelCurve",
+    "EnvironmentConditionModelCombination",
+    "EnvironmentConditionsModel",
     "EnvironmentalFacies",
     "Facies",
     "FaciesCriteria",

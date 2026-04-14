@@ -83,7 +83,6 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
             )
 
         criteria_set: set[FaciesCriteria] = set()
-
         for jdx, crit_def in enumerate(criteria_list):
             if not isinstance(crit_def, dict):
                 raise ValueError(

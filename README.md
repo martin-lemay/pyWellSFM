@@ -65,9 +65,6 @@ Supported input formats:
 - Facies model (use `loadFaciesModel()`):
   - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FaciesModelSchema.json
 
-- Realization Data(use `loadRealizationData()`):
-  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/RealizationDataSchema.json
-
 - Scenario (use `loadScenario()`):
   - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/ScenarioSchema.json
 

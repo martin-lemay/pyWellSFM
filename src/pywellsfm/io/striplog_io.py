@@ -38,7 +38,7 @@ def _importStriplogFromCsv(path: Path, delimiter: str) -> Striplog:
     """
     df = pd.read_csv(str(path), delimiter=delimiter, engine="python")
     # Convert from m to cm
-    df.loc[:, ("top", "base")] *= 100  # type: ignore
+    df.loc[:, ("top", "base")] *= 100
     intervals = []
     for _, row in df.iterrows():
         compDict = {

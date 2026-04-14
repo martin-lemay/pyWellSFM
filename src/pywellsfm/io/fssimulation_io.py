@@ -93,6 +93,7 @@ def _loadRealizationDataFromJsonObj(
             "version",
             "well",
             "subsidenceCurve",
+            "initialEnvironment",
             "initialBathymetry",
         },
         ctx="RealizationData",
@@ -126,6 +127,16 @@ def _loadRealizationDataFromJsonObj(
     if not isinstance(initial_bathymetry_obj, (int, float)):
         raise ValueError("RealizationData.initialBathymetry must be a number.")
     initial_bathymetry = float(initial_bathymetry_obj)
+
+    # --- Initial environment ---
+    initial_environment_obj: Any = obj.get("initialEnvironment")
+    if initial_environment_obj is not None and not isinstance(
+        initial_environment_obj, str
+    ):
+        raise ValueError(
+            "RealizationData.initialEnvironment must be a string."
+        )
+    initial_environment = initial_environment_obj
 
     # --- Subsidence curve (optional) ---
     subsidence_curve: Curve | None
@@ -171,6 +182,7 @@ def _loadRealizationDataFromJsonObj(
     return RealizationData(
         well=well,
         initialBathymetry=initial_bathymetry,
+        initialEnvironmentName=initial_environment,
         subsidenceCurve=subsidence_curve,
         subsidenceType=SubsidenceType(subs_type),
     )

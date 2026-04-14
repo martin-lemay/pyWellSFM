@@ -71,14 +71,6 @@
                     "description": "Property name used as a criteria.",
                     "type": "string"
                 },
-                "type": {
-                    "description": "Criteria type. If omitted, defaults to 'uncategorized'.",
-                    "allOf": [
-                        {
-                            "$ref": "#/$defs/CriteriaType"
-                        }
-                    ]
-                },
                 "minRange": {
                     "description": "Minimum value of the property. If omitted, defaults to -infinity in the Python model.",
                     "type": "number"

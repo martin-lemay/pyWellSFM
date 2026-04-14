@@ -18,8 +18,8 @@ from .geometry import (
 from .helpers import (
     Interpolator,
     LinearInterpolator,
-    PolynomialInterpolator,
     LowerBoundInterpolator,
+    PolynomialInterpolator,
     UpperBoundInterpolator,
 )
 

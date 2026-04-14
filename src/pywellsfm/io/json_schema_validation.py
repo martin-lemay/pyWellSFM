@@ -235,3 +235,27 @@ def validateWellJsonFile(filepath: str) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError("Well JSON must be an object.")
     return data
+
+
+def validateEnvironmentConditionModelJsonFile(filepath: str) -> dict[str, Any]:
+    """Validate an environment condition model JSON file against schema."""
+    data = validate_json_file_against_schema(
+        filepath, "EnvironmentConditionModelSchema.json"
+    )
+    if not isinstance(data, dict):
+        raise ValueError("Environment condition model JSON must be an object.")
+    return data
+
+
+def validateEnvironmentConditionsModelJsonFile(
+    filepath: str,
+) -> dict[str, Any]:
+    """Validate an environment conditions model JSON file against schema."""
+    data = validate_json_file_against_schema(
+        filepath, "EnvironmentConditionsModelSchema.json"
+    )
+    if not isinstance(data, dict):
+        raise ValueError(
+            "Environment conditions model JSON must be " + "an object."
+        )
+    return data

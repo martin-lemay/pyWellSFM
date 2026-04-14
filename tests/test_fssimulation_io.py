@@ -18,7 +18,7 @@ m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
 
-from pywellsfm.io.fssimulation_io import (  # noqa: E402
+from pywellsfm.io.fssimulation_io import (
     loadFSSimulation,
     loadRealizationData,
     loadScenario,
@@ -27,7 +27,7 @@ from pywellsfm.io.fssimulation_io import (  # noqa: E402
     saveScenario,
 )
 from pywellsfm.model.AccumulationModel import (
-    AccumulationModel,  # noqa: E402
+    AccumulationModel,
 )
 
 fileDir = os.path.dirname(os.path.abspath(__file__))
@@ -389,9 +389,42 @@ def test_loadFSSimulation_from_json_with_desimulator(tmp_path: Path) -> None:
             "version": "1.0",
             "name": "simple3",
             "environments": [
-                {"name": "shallow", "waterDepth_range": [0.0, 10.0]},
-                {"name": "mid", "waterDepth_range": [10.0, 50.0]},
-                {"name": "deep", "waterDepth_range": [50.0, 200.0]},
+                {
+                    "name": "shallow",
+                    "waterDepthModel": {
+                        "format": "pyWellSFM.EnvironmentConditionModelData",
+                        "version": "1.0",
+                        "model": {
+                            "modelType": "Uniform",
+                            "minValue": 0.0,
+                            "maxValue": 10.0,
+                        },
+                    },
+                },
+                {
+                    "name": "mid",
+                    "waterDepthModel": {
+                        "format": "pyWellSFM.EnvironmentConditionModelData",
+                        "version": "1.0",
+                        "model": {
+                            "modelType": "Uniform",
+                            "minValue": 10.0,
+                            "maxValue": 50.0,
+                        },
+                    },
+                },
+                {
+                    "name": "deep",
+                    "waterDepthModel": {
+                        "format": "pyWellSFM.EnvironmentConditionModelData",
+                        "version": "1.0",
+                        "model": {
+                            "modelType": "Uniform",
+                            "minValue": 50.0,
+                            "maxValue": 200.0,
+                        },
+                    },
+                },
             ],
         },
     }
@@ -404,6 +437,7 @@ def test_loadFSSimulation_from_json_with_desimulator(tmp_path: Path) -> None:
         "version": "1.0",
         "well": {"url": f"{dataDir}/well.json"},
         "initialBathymetry": 15.0,
+        "initialEnvironment": "mid",
         "subsidenceCurve": {
             "type": "cumulative",
             "curve": {"url": f"{dataDir}/subsidence_curve.csv"},

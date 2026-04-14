@@ -34,7 +34,6 @@ The main API can be imported directly from pywellsfm package:
         FSSimulator,
         Marker,
         PetrophysicalFacies,
-        Realization,
         RealizationData,
         Scenario,
         SedimentaryFacies,

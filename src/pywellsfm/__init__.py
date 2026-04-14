@@ -1,6 +1,6 @@
 """PyWellSFM public API."""
 
-from .io import validate_json_file_against_schema  # noqa: F401
+from .io import validate_json_file_against_schema
 from .model import (
     AccommodationSpaceWellCalculator,
     AccumulationCurve,
@@ -33,9 +33,9 @@ from .model import (
 from .simulator import (
     DepositionalEnvironmentSimulator,
     DESimulatorParameters,
+    EnvironmentConditionSimulator,
     FSSimulator,
     FSSimulatorParameters,
-    Realization,
 )
 
 __version__ = "0.0.1"
@@ -45,15 +45,16 @@ __all__ = [
     "AccumulationModel",
     "AccumulationModelElementOptimum",
     "AccumulationModelElementGaussian",
+    "CarbonateOpenRampDepositionalEnvironmentModel",
+    "CarbonateProtectedRampDepositionalEnvironmentModel",
     "Curve",
     "DepositionalEnvironment",
     "DepositionalEnvironmentModel",
-    "CarbonateOpenRampDepositionalEnvironmentModel",
-    "CarbonateProtectedRampDepositionalEnvironmentModel",
     "DepositionalEnvironmentSimulator",
-    "DESimulatorParameters",
     "DepthAgeModel",
+    "DESimulatorParameters",
     "Element",
+    "EnvironmentConditionSimulator",
     "EnvironmentalFacies",
     "Facies",
     "FaciesCriteria",
@@ -64,7 +65,6 @@ __all__ = [
     "FSSimulatorParameters",
     "Marker",
     "PetrophysicalFacies",
-    "Realization",
     "RealizationData",
     "Scenario",
     "SedimentaryFacies",

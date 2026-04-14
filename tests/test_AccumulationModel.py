@@ -18,16 +18,16 @@ m_path = os.path.dirname(os.getcwd())
 if m_path not in sys.path:
     sys.path.insert(0, os.path.join(m_path, "src"))
 
-from pywellsfm.io import (  # noqa: E402
+from pywellsfm.io import (
     loadAccumulationModel,
     loadAccumulationModelGaussianFromCsv,
     saveAccumulationModelEnvironmentOptimumToJson,
     saveAccumulationModelGaussianToCsv,
     saveAccumulationModelGaussianToJson,
 )
-from pywellsfm.io.curve_io import curveToJsonObj  # noqa: E402
-from pywellsfm.model import AccumulationCurve  # noqa: E402
-from pywellsfm.model.AccumulationModel import (  # noqa: E402
+from pywellsfm.io.curve_io import curveToJsonObj
+from pywellsfm.model import AccumulationCurve
+from pywellsfm.model.AccumulationModel import (
     AccumulationModel,
     AccumulationModelCombination,
     AccumulationModelElementBase,
@@ -828,8 +828,8 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_url_curves(
     bathy_curve_obj = curveToJsonObj(
         AccumulationCurve(
             "WaterDepth",
-            np.array([0.0, 10.0]),
-            np.array([0.0, 1.0]),
+            np.array([0.0, 10.0]),  # WaterDepth array
+            np.array([0.0, 1.0]),  # ReductionCoeff array,
         ),
         y_axis_name="ReductionCoeff",
         x_axis_name_default="WaterDepth",

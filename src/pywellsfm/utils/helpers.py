@@ -49,6 +49,7 @@ class Interpolator(Protocol):
         """
         raise NotImplementedError
 
+
 class LowerBoundInterpolator(Interpolator):
     def __init__(self: Self) -> None:
         """Lower bound interpolator for a 1D increasing function."""
@@ -77,6 +78,7 @@ class LowerBoundInterpolator(Interpolator):
         idx = np.searchsorted(self.x, xx) - 1
         return self.y[idx]
 
+
 class UpperBoundInterpolator(Interpolator):
     def __init__(self: Self) -> None:
         """Upper bound interpolator for a 1D increasing function."""
@@ -104,6 +106,7 @@ class UpperBoundInterpolator(Interpolator):
             return self.y[-1]
         idx = np.searchsorted(self.x, xx)
         return self.y[idx]
+
 
 class LinearInterpolator(Interpolator):
     def __init__(self: Self) -> None:

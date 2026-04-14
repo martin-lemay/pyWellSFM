@@ -41,7 +41,7 @@ class Well:
             )
         )
         #: well markers defining remarkable horizons
-        self._markers: set[Marker] = set()
+        self._markers: list[Marker] = []
         #: well logs (discrete or continuous) in depth domain
         self._logs: dict[str, Curve | Striplog] = {}
 
@@ -65,6 +65,7 @@ class Well:
         newWell = Well(newName, self.wellHeadCoords, self.depth)
         newWell.setWellPath(self._wellPath)
         if copyMarkers:
+            # TODO: copy by reference?
             newWell._markers = self._markers
         if copyLogs:
             newWell._logs = self._logs
@@ -85,33 +86,77 @@ class Well:
         )
         self._wellPath = wellPath
 
-    def getMarkers(self: Self) -> set[Marker]:
+    @property
+    def oldestMarker(self: Self) -> Marker:
+        """Get the first (oldest) marker age.
+
+        :return Marker: oldest marker
+        """
+        markerOut: Marker = self._markers[0]
+        ageMax: float = -np.inf
+        for marker in self._markers:
+            if marker.age > ageMax:
+                ageMax = marker.age
+                markerOut = marker
+        return markerOut
+
+    @property
+    def oldestMarkerAge(self: Self) -> float:
+        """Get the first (oldest) marker age.
+
+        :return float: oldest marker age
+        """
+        return self.oldestMarker.age
+
+    @property
+    def youngestMarker(self: Self) -> Marker:
+        """Get the last (youngest) marker age.
+
+        :return Marker: youngest marker
+        """
+        markerOut: Marker = self._markers[0]
+        ageMin: float = np.inf
+        for marker in self._markers:
+            if marker.age < ageMin:
+                ageMin = marker.age
+                markerOut = marker
+        return markerOut
+
+    @property
+    def youngestMarkerAge(self: Self) -> float:
+        """Get the last (youngest) marker age.
+
+        :return float: youngest marker age
+        """
+        return self.youngestMarker.age
+
+    def getMarkers(self: Self) -> list[Marker]:
         """Get well markers.
 
-        :return set[Marker]: set of well markers
+        :return list[Marker]: list of well markers
         """
         return self._markers
 
-    def setMarkers(self: Self, markers: set[Marker]) -> None:
+    def setMarkers(self: Self, markers: list[Marker]) -> None:
         """Set well markers.
 
         Existing makers are deleted. Use `Well.addMarkers` if you want to keep
         existing markers instead.
 
-        :param set[Marker] markers: set of well markers
+        :param list[Marker] markers: list of well markers
         """
         self._markers.clear()
         self.addMarkers(markers)
 
-    def addMarkers(self: Self, markers: Marker | set[Marker]) -> None:
+    def addMarkers(self: Self, markers: Marker | list[Marker]) -> None:
         """Add well markers.
 
-        :param Marker | set[Marker] markers: a marker or a set of markers
+        :param Marker | list[Marker] markers: a marker or a list of markers
         """
         if isinstance(markers, Marker):
-            self._markers.add(markers)
+            self._markers.append(markers)
         else:
-            self._markers.update(markers)
+            self._markers.extend(markers)
 
     def addLog(self: Self, logName: str, log: Curve | Striplog) -> None:
         """Add a well log.
@@ -212,4 +257,4 @@ class Well:
     def initDepthAgeModel(self: Self) -> None:
         """Initialize depth-age model."""
         self._depthAgeModel = DepthAgeModel(self)
-        self._depthAgeModel.setMarkers(self._markers)
+        self._depthAgeModel.setMarkers(set(self._markers))

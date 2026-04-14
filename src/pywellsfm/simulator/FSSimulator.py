@@ -9,15 +9,20 @@ import xarray as xr
 from attr import dataclass
 
 from pywellsfm.model.DepositionalEnvironment import DepositionalEnvironment
+from pywellsfm.model.EnvironmentConditionModel import (
+    EnvironmentConditionModelUniform,
+)
 from pywellsfm.model.FSSimulationParameters import RealizationData, Scenario
 from pywellsfm.model.Marker import Marker
 
 from .AccommodationSimulator import AccommodationSimulator
+from .AccumulationSimulator import AccumulationSimulator
 from .DepositionalEnvironmentSimulator import (
+    DepositionalEnvironmentModel,
     DepositionalEnvironmentSimulator,
     DESimulatorParameters,
 )
-from .Realization import Realization
+from .EnvironmentConditionSimulator import EnvironmentConditionSimulator
 
 
 @dataclass
@@ -73,19 +78,31 @@ class FSSimulator:
         :param FSSimulatorParameters fsSimulator_params: parameters for the FS
             simulator.
         """
+        # store scenario and realization data
         self.scenario: Scenario = scenario
         self.realizationDataList: list[RealizationData] = realizationDataList
-        self.fsSimulators: list[Realization] = []
 
-        # sea level is the same for all realizations, so we use the first
-        # FS simulator's accommodation simulator
-        self.seaLevelSimulator: AccommodationSimulator
-
-        # depositional environment simulator is set when a depositional
-        # environment model is provided in the scenario
+        # realization simulators
+        # depositional environment simulator is shared by all realizations
+        # It is set when the depositional environment model contains multiple
+        # environments, otherwise we consider a single environment
         self.depositionalEnvironmentSimulator: Optional[
             DepositionalEnvironmentSimulator
         ] = None
+        # environment condition simulator is shared by all realizations
+        self.environmentConditionSimulator = EnvironmentConditionSimulator()
+        # accumulation simulator is shared by all realizations
+        self.accumulationSimulator = AccumulationSimulator()
+
+        # accommodation simulators, one for each realization
+        self.accommodationSimulators: list[AccommodationSimulator] = [
+            AccommodationSimulator() for _ in self.realizationDataList
+        ]
+        # sea level is shared by all realizations, will use the first
+        # element of accommodationSimulators list
+        self.seaLevelSimulator: AccommodationSimulator
+
+        # depositional environment simulator configuration
         self.use_deSimulator = use_depositional_environment_simulator
         self.deSimulator_weights = deSimulator_weights
         self.deSimulator_params = deSimulator_params
@@ -95,6 +112,9 @@ class FSSimulator:
             self.realizationDataList
         )  # number of realizations
         self.params: FSSimulatorParameters = fsSimulator_params
+
+        # marker ages
+        self.markerAges: set[float] = set()
 
         # State tracking for ensemble results
         self.times: list[float] = []
@@ -114,6 +134,8 @@ class FSSimulator:
 
         self.outputs: Optional[xr.Dataset] = None
 
+        self._ready: bool = False
+
     def prepare(self: Self) -> None:
         """Prepare the FS simulator for running."""
         # Validate configuration
@@ -126,32 +148,54 @@ class FSSimulator:
         if not (0.0 < self.params.safety <= 1.0):
             raise ValueError("safety must be in (0, 1]")
 
-        # Create FSSimulator instances for each realization
-        self.fsSimulators = [
-            Realization(self.scenario, realizationData)
-            for realizationData in self.realizationDataList
-        ]
-
-        # Prepare all simulators
-        for fsSimulator in self.fsSimulators:
-            fsSimulator.prepare()
-
-        # Extract initial bathymetries
-        # Initial bathymetry = -topographyStart (since topography=-bathymetry)
-        self.initial_bathymetries = np.array(
-            [
-                realizationData.initialBathymetry
-                for realizationData in self.realizationDataList
-            ],
-            dtype=np.float64,
+        # Set accumulation simulator data
+        self.accumulationSimulator.setAccumulationModel(
+            self.scenario.accumulationModel
         )
+        self.accumulationSimulator.prepare()
 
-        # Use the first simulator's accommodation simulator for sea level
-        self.seaLevelSimulator = self.fsSimulators[0].accommodationSimulator
+        # Set environment condition simulator data
+        deModel = self.scenario.depositionalEnvironmentModel
+        if deModel is None:
+            # create a model where water depth ranges from 0 to 10000m
+            deModel = DepositionalEnvironmentModel(
+                name="Default",
+                environments=[
+                    DepositionalEnvironment(
+                        name="Default",
+                        waterDepthModel=EnvironmentConditionModelUniform(
+                            "waterDepth", -np.inf, np.inf
+                        ),
+                    )
+                ],
+            )
+        self.environmentConditionSimulator.setEnvironmentModel(deModel)
+        self.environmentConditionSimulator.prepare()
+
+        # set accommodation simulator data for each realization
+        for i in range(self.n_real):
+            self.accommodationSimulators[i].setSubsidenceCurve(
+                self.realizationDataList[i].subsidenceCurve,
+                self.realizationDataList[i].subsidenceType,
+            )
+            self.accommodationSimulators[i].setInitialBathymetry(
+                self.realizationDataList[i].initialBathymetry
+            )
+            if self.scenario.eustaticCurve is not None:
+                # set the eustatic curve if defined, otherwise considers
+                # no eustacy variations
+                self.accommodationSimulators[i].setEustaticCurve(
+                    self.scenario.eustaticCurve
+                )
+            self.accommodationSimulators[i].prepare()
+            self.accommodationSimulators[i].initialEustacy(self.getStartAge())
+
+        # Use the first accommodation simulator for sea level calculation
+        self.seaLevelSimulator = self.accommodationSimulators[0]
 
         # Initialize depositional environment simulator if needed
-        deModel = self.scenario.depositionalEnvironmentModel
-        if self.use_deSimulator and (deModel is not None):
+        # no need if a single environment
+        if self.use_deSimulator and deModel.getEnvironmentCount() > 1:
             self.depositionalEnvironmentSimulator = (
                 DepositionalEnvironmentSimulator(
                     deModel,
@@ -160,6 +204,22 @@ class FSSimulator:
                 )
             )
             self.depositionalEnvironmentSimulator.prepare()
+
+        # Extract initial bathymetries
+        self.initial_bathymetries = np.array(
+            [
+                realizationData.initialBathymetry
+                for realizationData in self.realizationDataList
+            ],
+            dtype=np.float64,
+        )
+
+        # extract exact time step from markers
+        self.markerAges = {
+            marker.age
+            for rd in self.realizationDataList
+            for marker in rd.well._markers
+        }
 
         # Reset state tracking
         self.times = []
@@ -176,17 +236,21 @@ class FSSimulator:
         self.environments = []
         self.dts = []
 
+        # mark as ready for running
+        self._ready = True
+
     def getStartAge(self: Self, markerStart: Optional[Marker] = None) -> float:
         """Get the start age of the simulation.
 
         :return float: start age.
         """
-        return min(
-            fsSimulator.getFirstMarkerAge()
-            for fsSimulator in self.fsSimulators
-        )
+        if markerStart is None:
+            return min(
+                rd.well.oldestMarkerAge for rd in self.realizationDataList
+            )
+        return markerStart.age
 
-    def getAgeEnd(self: Self, markerEnd: Optional[Marker]) -> float:
+    def getAgeEnd(self: Self, markerEnd: Optional[Marker] = None) -> float:
         """Get the end age of the simulation.
 
         :return float: end age.
@@ -194,21 +258,34 @@ class FSSimulator:
         if markerEnd is None:
             # Get the maximum age across all realizations
             return max(
-                fsSimulator.getLastMarkerAge()
-                for fsSimulator in self.fsSimulators
+                rd.well.youngestMarkerAge for rd in self.realizationDataList
             )
         return markerEnd.age
 
-    def run(self: Self, markerEnd: Optional[Marker] = None) -> None:
+    def run(
+        self: Self,
+        markerEnd: Optional[Marker] = None,
+        exactAges: Optional[set[float]] = None,
+    ) -> None:
         """Run the FS simulator until a given marker or to the top.
 
         Time decreases from start to stop (e.g., from 100 Myr to 0 Myr).
 
         :param Optional[Marker] markerEnd: marker until which to run the
             simulation. If None, the simulation runs to the top of wells.
+        :param Optional[set[float]] exactAges: set of exact ages to include in
+            the simulation. These ages will be included in the set of ages at
+            which the simulator state is recorded. If None, only marker ages
+            are included. Default is None.
         """
-        if not self.fsSimulators:
+        if not self._ready:
             raise RuntimeError("Must call prepare() before run()")
+
+        # combine exact ages from markers and user input
+        if exactAges is None:
+            exactAges = self.markerAges
+        else:
+            exactAges = exactAges.union(self.markerAges)
 
         # Determine start and stop times
         # absolute geological age (in Myr) at start of simulation
@@ -223,12 +300,8 @@ class FSSimulator:
             raise RuntimeError("initial_bathymetries not set")
         bathy_t = self.initial_bathymetries.copy()
 
-        # Initialize depositional environment state if needed
-        depEnv_t: Optional[list[DepositionalEnvironment | None]] = None
-        if self.depositionalEnvironmentSimulator is not None:
-            depEnv_t = [
-                real.initialEnvironment for real in self.realizationDataList
-            ]
+        # Initialize depositional environment state
+        depEnv_t = self._initializeDepositionalEnvironments(bathy_t)
 
         # set initial sea level and subsidence values
         sea_level_t = 0.0
@@ -242,61 +315,58 @@ class FSSimulator:
 
             print(f"Running time step at age {t:.4f} over {stop:.4f} Myr...")
 
-            # Get environment conditions from depositional environments
-            env_list = self._computeEnvironmentalConditions(bathy_t, depEnv_t)
-
-            # Compute deposition rates for each realization
-            accumulationRates = np.array(
-                [
-                    self.fsSimulators[i].getTotalAccumulationRate(env_list[i])
-                    for i in range(self.n_real)
-                ],
-                dtype=np.float64,
-            )
-            print(f"  Accumulation rates: {accumulationRates}")
-
-            # Choose adaptive time step
-            remaining = t - stop
-
-            dt = self._adaptTimeStep(t, accumulationRates, remaining=remaining)
-
-            t2 = t - dt
-
             # Record state at time t (step-start)
             self.times.append(t)
-            # Record time step
-            self.dts.append(dt)
+
+            # **** 1. CONDITIONS AND ACCUMULATION RATES AT STEP t ****
 
             # Record bathymetry for this step
             self.bathymetries.append(bathy_t.copy())
 
-            # Record depositional environment for this step if needed
-            if depEnv_t is not None:
-                self.environments.append(
-                    np.array(
-                        [
-                            env.name if env is not None else "none"
-                            for env in depEnv_t
-                        ],
-                        dtype=str,
-                    )
-                )
+            # Get environment conditions from depositional environments
+            env_list = self._computeEnvironmentalConditions(
+                bathy_t, depEnv_t, t
+            )
 
-            # Record deposition rates for this step
+            # Record depositional environment for this step if needed
+            self.environments.append(
+                np.array(
+                    [
+                        env.name if env is not None else "none"
+                        for env in depEnv_t
+                    ],
+                    dtype=str,
+                )
+            )
+
+            # Compute and record deposition rates for this step
+            accumulationRates = self._computeAccumulationRates(env_list, t)
             self.depo_rate_totals.append(accumulationRates)
 
             # element accumulation rates for this step
             accu_rates_step: list[dict[str, float]] = [
                 {} for _ in range(self.n_real)
             ]
-            for i in range(self.n_real):
-                for name in self.scenario.accumulationModel.elements:
-                    accuRate = self.fsSimulators[i].getElementAccumulationRate(
-                        env_list[i], name
-                    )
-                    accu_rates_step[i][name] = accuRate
+            for name in self.scenario.accumulationModel.elements:
+                accuRate = self._computeElementAccumulationRates(
+                    name, env_list, t
+                )
+                for i in range(self.n_real):
+                    accu_rates_step[i][name] = accuRate[i]
             self.depo_rate_elements.append(accu_rates_step)
 
+            # **** 2. DURATION OF STEP t ****
+            # Choose adaptive time step (step duration)
+            remaining = t - stop
+            dt = self._adaptTimeStep(
+                t, accumulationRates, remaining, exactAges
+            )
+            t2 = self._getNewTime(t, dt)
+
+            # Record time step duration for this step
+            self.dts.append(dt)
+
+            # **** 3. DEPOSITED THICKNESS AND ACCOMODATION AT STEP t ****
             # Compute and record deposited thickness for this step
             thickness_step = self._getAccumulatedThickness(
                 accumulationRates, dt
@@ -342,7 +412,7 @@ class FSSimulator:
             acco_t = cumul_subs_t + sea_level_t
             self.accommodations.append(acco_t)
 
-            # update state for next step
+            # **** 4. UPDATE WATER DEPTH AND DEP ENVIRONMENT FOR NEXT STEP ****
             # Update bathymetry for next step
             bathy_t = bathy_t + delta_bathy_array
 
@@ -368,7 +438,7 @@ class FSSimulator:
                 )
 
             # Advance time
-            t -= dt
+            t = t2
         else:
             raise RuntimeError("Reached max_steps without reaching stop")
 
@@ -379,8 +449,41 @@ class FSSimulator:
             + f"{len(self.times) - 1} steps."
         )
 
+        # mark as not ready for running again until prepare is called
+        self._ready = False
+
+    def _initializeDepositionalEnvironments(
+        self: Self, bathy: npt.NDArray[np.float64]
+    ) -> list[Optional[DepositionalEnvironment]]:
+        depEnv: list[Optional[DepositionalEnvironment]] = [
+            None for _ in self.realizationDataList
+        ]
+        deModel = self.environmentConditionSimulator.environmentModel
+        if deModel is not None:
+            for i in range(self.n_real):
+                envName = self.realizationDataList[i].initialEnvironmentName
+                env = None
+                if envName is not None:
+                    env = deModel.getEnvironmentByName(envName)
+
+                if (
+                    env is None
+                    and self.depositionalEnvironmentSimulator is not None
+                ):
+                    # simulate environment from the simulator
+                    _, env_i = self.depositionalEnvironmentSimulator.run(
+                        waterDepth_value=bathy[i],
+                        previous_environments=None,
+                    )
+                    depEnv[i] = env_i
+        return depEnv
+
     def _adaptTimeStep(
-        self: Self, t: float, rates: npt.NDArray[np.float64], remaining: float
+        self: Self,
+        t: float,
+        rates: npt.NDArray[np.float64],
+        remaining: float,
+        exactAges: set[float],
     ) -> float:
         """Choose an adaptive time step based on waterDepth change constraint.
 
@@ -391,8 +494,19 @@ class FSSimulator:
         :param npt.NDArray[np.float64] rates: deposition rates for each
             realization.
         :param float remaining: remaining time to stop.
+        :param set[float] exactAges: set of exact ages to include in the
+            simulation. These ages will be included in the set of ages at which
+            the simulator state is recorded.
         :return float: chosen time step.
         """
+        # get next exact age to include that is smaller than current time t
+        nextExactAges = sorted(
+            [age for age in exactAges if age < t], reverse=True
+        )
+        nextExactAge: Optional[float] = (
+            None if len(nextExactAges) == 0 else nextExactAges[0]
+        )
+
         # set dt max as the minimum of user-defined dt_max and the dt that
         # would cause max deposition (use max deposition rate as proxy)
         # TODO: to improve, better evaluate max deposition rate (need to
@@ -407,15 +521,45 @@ class FSSimulator:
         max_change = self.params.max_waterDepth_change_per_step
 
         # Check if constraint can be satisfied at dt_min
-        if self._computeMaxWaterDepthChange(t, rates, dt_lo) > max_change:
+        max_change_at_dt_min = self._computeMaxWaterDepthChange(
+            t, rates, dt_lo
+        )
+        if max_change_at_dt_min > max_change:
+            t2 = self._getNewTime(t, dt_lo)
+            delta_sea_level = self._getDeltaSeaLevel(t, t2)
+            delta_subsidences = self._getDeltaSubsidence(t, t2)
+            thicknesses_step = self._getAccumulatedThickness(rates, dt_lo)
+            max_delta_subs = float(np.max(np.abs(delta_subsidences)))
+            max_thickness = float(np.max(np.abs(thicknesses_step)))
             raise RuntimeError(
-                "Cannot satisfy waterDepth-change constraint at dt_min. "
-                "Increase dt_min, increase max_waterDepth_change_per_step, "
-                "or reduce forcing/rates."
+                "Cannot satisfy waterDepth-change constraint at dt_min.\n"
+                f"  - time: {t:.6f} Myr, dt_min: {dt_lo:.6g} Myr\n"
+                f"  - allowed max change: {max_change:.6g} m\n"
+                "  - computed max change at dt_min: "
+                + f"{max_change_at_dt_min:.6g} m\n"
+                f"  - sea-level change over dt_min: {delta_sea_level:.6g} m\n"
+                "  - max subsidence change over dt_min: "
+                + f"{max_delta_subs:.6g} m\n"
+                "  - max deposited thickness over dt_min: "
+                + f"{max_thickness:.6g} m\n"
+                "Possible causes:\n"
+                "  1. Discontinuous forcing curve (e.g., step/lower-bound "
+                + "interpolation causing jumps).\n"
+                "  2. Forcing or accumulation rates too strong for current "
+                + "constraints.\n"
+                "  3. Units mismatch between rates (m/Myr), curves, and "
+                + "timestep (Myr).\n"
+                "Try: decreasing dt_min, smoothing input curves "
+                + "(e.g., linear interpolation), increasing "
+                + "max_waterDepth_change_per_step, or reducing "
+                + "forcing/rates."
             )
 
         # Check if dt_max satisfies constraint
-        if self._computeMaxWaterDepthChange(t, rates, dt_hi) <= max_change:
+        max_change_at_dt_max = self._computeMaxWaterDepthChange(
+            t, rates, dt_hi
+        )
+        if max_change_at_dt_max <= max_change:
             dt = dt_hi
         else:
             # Binary search for optimal dt between dt_lo and dt_hi
@@ -425,6 +569,47 @@ class FSSimulator:
         dt = float(
             max(self.params.dt_min, min(dt * self.params.safety, dt_hi))
         )
+
+        # clamp dt to not overshoot next exact age
+        if nextExactAge is not None and dt > t - nextExactAge:
+            dt = t - nextExactAge
+
+        # Final safety check to ensure chosen dt still satisfies constraint.
+        max_change_at_selected_dt = self._computeMaxWaterDepthChange(
+            t, rates, dt
+        )
+        if max_change_at_selected_dt > max_change:
+            t2 = self._getNewTime(t, dt)
+            delta_sea_level = self._getDeltaSeaLevel(t, t2)
+            delta_subsidences = self._getDeltaSubsidence(t, t2)
+            thicknesses_step = self._getAccumulatedThickness(rates, dt)
+            max_delta_subs = float(np.max(np.abs(delta_subsidences)))
+            max_thickness = float(np.max(np.abs(thicknesses_step)))
+            raise RuntimeError(
+                "Chosen timestep still violates waterDepth-change "
+                "constraint.\n"
+                f"  - time: {t:.6f} Myr\n"
+                f"  - dt_min: {dt_lo:.6g} Myr, dt_max: {dt_hi:.6g} Myr\n"
+                f"  - selected dt: {dt:.6g} Myr\n"
+                f"  - allowed max change: {max_change:.6g} m\n"
+                f"  - change at dt_max: {max_change_at_dt_max:.6g} m\n"
+                "  - change at selected dt: "
+                + f"{max_change_at_selected_dt:.6g} m\n"
+                "  - sea-level change over selected dt: "
+                + f"{delta_sea_level:.6g} m\n"
+                "  - max subsidence change over selected dt: "
+                + f"{max_delta_subs:.6g} m\n"
+                "  - max deposited thickness over selected dt: "
+                + f"{max_thickness:.6g} m\n"
+                "Possible causes:\n"
+                "  1. Discontinuous forcing curve (e.g., step/lower-bound "
+                + "interpolation causing jumps).\n"
+                "  2. Constraint too strict for current forcing/rates.\n"
+                "  3. Numerical edge case near dt bounds or remaining time.\n"
+                "Try: smoothing input curves (e.g., linear interpolation), "
+                + "increasing max_waterDepth_change_per_step, reducing "
+                + "forcing/rates, or lowering dt_max."
+            )
         return dt
 
     def _getDeltaSeaLevel(self: Self, t1: float, t2: float) -> float:
@@ -449,17 +634,28 @@ class FSSimulator:
             t2 - subsidence at t1) for all realizations.
         """
         delta_subs = np.zeros((self.n_real,), dtype=np.float64)
-        for i, fsSimulator in enumerate(self.fsSimulators):
-            subs_t1 = fsSimulator.getSubsidenceAtAge(t1)
-            subsType = fsSimulator.getSubsidenceType()
+        for i, accommodationSimulator in enumerate(
+            self.accommodationSimulators
+        ):
+            subs_t1 = accommodationSimulator.getSubsidenceAt(t1)
+            subsType = accommodationSimulator.getSubsidenceType()
             if subsType == "cumulative":
-                subs_t2 = fsSimulator.getSubsidenceAtAge(t2)
+                subs_t2 = accommodationSimulator.getSubsidenceAt(t2)
                 delta_subs[i] = subs_t2 - subs_t1
             elif subsType == "rate":
                 delta_subs[i] = subs_t1 * (t1 - t2)
             else:
                 raise ValueError(f"Unknown subsidence type: {subsType}")
         return delta_subs
+
+    def _getNewTime(self: Self, t: float, dt: float) -> float:
+        """Get the new time after advancing by dt.
+
+        :param float t: current time.
+        :param float dt: time step duration.
+        :return float: new time (t - dt).
+        """
+        return t - dt
 
     def _computeMaxWaterDepthChange(
         self: Self, t1: float, rates: npt.NDArray[np.float64], dt: float
@@ -472,7 +668,7 @@ class FSSimulator:
         :param float dt: candidate time step.
         :return float: maximum absolute water depth change.
         """
-        t2 = float(t1 + dt)
+        t2 = self._getNewTime(t1, dt)
 
         # Get sea level variation between t1 and t2 (same for all realizations)
         delta_sea_level = self._getDeltaSeaLevel(t1, t2)
@@ -522,11 +718,63 @@ class FSSimulator:
                 hi = mid
         return lo
 
+    def _computeAccumulationRates(
+        self: Self,
+        env_list: list[dict[str, float]],
+        age: float,
+    ) -> npt.NDArray[np.float64]:
+        """Compute accumulation rates for all realizations from the model.
+
+        :param list[dict[str, float]] env_list: list of environment conditions
+            for each realization.
+        :param float age: age at the location (only needed if some conditions
+            depend on age).
+        :return npt.NDArray[np.float64]: accumulation rates for all
+            realizations.
+        """
+        accumulationRates = np.array(
+            [
+                self.accumulationSimulator.computeTotalAccumulationRate(
+                    env_list[i], age
+                )
+                for i in range(self.n_real)
+            ],
+            dtype=np.float64,
+        )
+        return accumulationRates
+
+    def _computeElementAccumulationRates(
+        self: Self,
+        elementName: str,
+        env_list: list[dict[str, float]],
+        age: float,
+    ) -> npt.NDArray[np.float64]:
+        """Compute accumulation rates for all realizations from the model.
+
+        :param str elementName: name of the accumulation element to compute.
+        :param list[dict[str, float]] env_list: list of environment conditions
+            for each realization.
+        :param float age: age at the location (only needed if some conditions
+            depend on age).
+        :return npt.NDArray[np.float64]: accumulation rates for all
+            realizations.
+        """
+        accumulationRates = np.array(
+            [
+                self.accumulationSimulator.computeElementAccumulationRate(
+                    elementName, env_list[i], age
+                )
+                for i in range(self.n_real)
+            ],
+            dtype=np.float64,
+        )
+        return accumulationRates
+
     def _computeDepositionalEnvironment(
         self: Self,
         bathy: npt.NDArray[np.float64],
         prev_env: list[list[str] | None],
-    ) -> Optional[list[DepositionalEnvironment | None]]:
+    ) -> list[DepositionalEnvironment | None]:
         """Compute depositional environment for each realization.
 
         :param npt.NDArray[np.float64] bathy: waterDepth value for each
@@ -535,7 +783,7 @@ class FSSimulator:
             environment names for each realization.
         """
         if self.depositionalEnvironmentSimulator is None:
-            return None
+            return [None] * self.n_real
 
         assert len(prev_env) == self.n_real, (
             "prev_env must have the same length as number of realizations"
@@ -555,149 +803,35 @@ class FSSimulator:
 
     def _computeEnvironmentalConditions(
         self: Self,
-        bathy: npt.NDArray[np.float64],
-        env: Optional[list[DepositionalEnvironment | None]] = None,
+        waterDepth: npt.NDArray[np.float64],
+        envs: list[DepositionalEnvironment | None],
+        age: float,
     ) -> list[dict[str, float]]:
-        """Compute environmental conditions based on DepostionalEnvironment.
+        """Compute environmental conditions based on DepositionalEnvironment.
 
-        :param npt.NDArray[np.float64] bathy: waterDepth value for each
+        :param npt.NDArray[np.float64] waterDepth: waterDepth value for each
             realization.
-        :param list[DepositionalEnvironment|None], optional env: list of
-            depositional environments for each realization. Defaults to None.
+        :param list[DepositionalEnvironment|None] envs: list of depositional
+            environments for each realization.
+        :param float age: age at the location (only needed if some conditions
+            depend on age).
 
         :return list[dict[str, float]]: list of dictionaries containing
             environmental conditions for each realization.
         """
         env_conds: list[dict[str, float]] = []
-        for i, bathy_i in enumerate(bathy):
-            env_conds_i: dict[str, float] = {"waterDepth": float(bathy_i)}
-            if (env is not None) and (env[i] is not None):
+        for i, waterDepth_i in enumerate(waterDepth):
+            env_conds_i: dict[str, float] = {"waterDepth": float(waterDepth_i)}
+            env_i = envs[i]
+            if env_i is not None:
                 env_conds_i.update(
-                    self._getAllConditionsForEnvironment(env[i], bathy_i)  # type: ignore[assignment]
+                    self.environmentConditionSimulator.computeEnvironmentalConditions(
+                        env_i.name,
+                        waterDepth_i,
+                        age,
+                    )
                 )
             env_conds.append(env_conds_i)
-        return env_conds
-
-    def _getAllConditionsForEnvironment(
-        self: Self, env: DepositionalEnvironment | None, bathy: float
-    ) -> dict[str, float]:
-        """Get all environment condition values from known waterDepth.
-
-        Resolution plan
-        ---------------
-        The objective is to compute every property value for ``env`` from a
-        known waterDepth ``bathy`` while respecting curve dependencies.
-
-        1. Build the property universe
-
-          - Start from ``env.other_property_ranges`` keys.
-          - Keep ``"waterDepth"`` as an already known
-            base variable with value ``bathy``.
-
-        2. Analyze dependency graph from curves
-
-          - For each curve in ``env.property_curves``, read the pair
-            ``x_axis -> y_axis`` from the curve axis names.
-          - Interpret this as: ``y_axis`` depends on ``x_axis``.
-          - Record, for every target property, its required
-            source property.
-
-        3. Initialize independent properties
-
-          - Independent property = no curve where this
-            property is a y-axis.
-          - Assign these values directly using their range midpoint via
-            ``env.getPropertyMid(property_name)``.
-
-        4. Resolve properties directly dependent on waterDepth
-
-          - For every unresolved property with dependency
-            ``x_axis == "waterDepth"``, compute value with:
-            ``env.getValueFromCurveAt(
-            "waterDepth", property_name, bathy)``.
-
-        5. Resolve remaining properties iteratively
-
-          - Repeatedly scan unresolved properties.
-          - If a property depends on ``x_axis`` that is already resolved,
-            compute it with
-            ``env.getValueFromCurveAt(
-            x_axis, property_name, value_of_x_axis)``.
-          - Continue until no new property can be resolved.
-
-        6. Validate and fail fast on invalid definitions
-
-          - If unresolved properties remain, raise ``ValueError``
-            describing missing prerequisites, missing curves,
-            or cyclic dependencies.
-          - If a curve references unknown properties,
-            raise ``ValueError``.
-
-        7. Return merged conditions
-
-          - Return a dict containing all resolved properties (excluding
-            ``"waterDepth"``).
-
-        Notes:
-        - This strategy is equivalent to a topological dependency resolution.
-        - It supports mixed configurations: some properties fixed by midpoint,
-          others constrained by curves.
-        - Deterministic ordering is recommended (e.g., sorted property names)
-          for reproducibility when multiple properties become
-          solvable at once.
-
-        :return dict[str, float]: environment condition dict.
-        """
-        if env is None:
-            return {}
-
-        properties: set[str] = set(env.other_property_ranges.keys())
-        dependencies: dict[str, str] = env.getCurveDependencies()
-
-        env_conds: dict[str, float] = {}
-        # resolve independent properties (no curve where this property is a
-        # y-axis)
-        for property_name in sorted(properties):
-            if property_name not in dependencies:
-                env_conds[property_name] = env.getPropertyMid(property_name)
-
-        # resolve properties with curve dependencies iteratively
-        unresolved: set[str] = set(properties) - set(env_conds.keys())
-        progress = (
-            True  # True as long as a curve is resolved at each iteration
-        )
-        while unresolved and progress:
-            progress = False
-            for property_name in sorted(unresolved):
-                x_axis = dependencies.get(property_name)
-                if x_axis is None:
-                    continue
-                # resolve properties directly dependent on water Depth
-                if x_axis == "WaterDepth":
-                    env_conds[property_name] = env.getValueFromCurveAt(
-                        "WaterDepth", property_name, bathy
-                    )
-                    progress = True
-                    continue
-                # resolve properties dependent on other properties
-                if x_axis in env_conds:
-                    env_conds[property_name] = env.getValueFromCurveAt(
-                        x_axis, property_name, env_conds[x_axis]
-                    )
-                    progress = True
-            unresolved = set(properties) - set(env_conds.keys())
-
-        if unresolved:
-            unresolved_with_sources = {
-                property_name: dependencies.get(property_name)
-                for property_name in sorted(unresolved)
-            }
-            raise ValueError(
-                "Could not resolve all environment properties for "
-                f"{env.name}. Unresolved dependencies: "
-                f"{unresolved_with_sources}."
-            )
-
         return env_conds
 
     def finalize(self: Self) -> None:
@@ -705,9 +839,7 @@ class FSSimulator:
         # create output xarray Dataset
         self.outputs = self._buildEnsembleDataset()
 
-        # create simulated wells
-        for fsSimulator in self.fsSimulators:
-            fsSimulator.finalize()
+        # TODO: create simulated wells
 
     def _buildEnsembleDataset(self: Self) -> xr.Dataset:
         """Build the ensemble dataset after running all realizations.
@@ -719,7 +851,7 @@ class FSSimulator:
                 "Must call run() before _buildEnsembleDataset()"
             )
 
-        n_real = len(self.fsSimulators)
+        n_real = len(self.realizationDataList)
 
         # Convert lists to arrays
         # Note: we stored state at each step-start; last `times` entry has
@@ -735,7 +867,7 @@ class FSSimulator:
         thickness_step_arr = np.stack(self.thickness_steps, axis=1)
         thickness_cumul_arr = np.stack(self.thickness_cumul, axis=1)
         bathy_arr = np.stack(self.bathymetries, axis=1)
-        delta_bathy_arr = np.stack(self.delta_bathymetries, axis=1)
+        delta_waterDepth_arr = np.stack(self.delta_bathymetries, axis=1)
 
         # Build realization IDs
         realization_ids = np.arange(n_real, dtype=np.int64)
@@ -761,7 +893,10 @@ class FSSimulator:
                 thickness_cumul_arr,
             ),
             "bathymetry": (("realization", "time"), bathy_arr),
-            "delta_waterDepth": (("realization", "time"), delta_bathy_arr),
+            "delta_waterDepth": (
+                ("realization", "time"),
+                delta_waterDepth_arr,
+            ),
         }
         for elementName in self.scenario.accumulationModel.elements:
             element_arr = np.array(

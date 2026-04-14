@@ -18,13 +18,16 @@ from pywellsfm.model.Curve import (
     UncertaintyCurve,
 )
 from pywellsfm.utils import PolynomialInterpolator
-from pywellsfm.utils.helpers import LowerBoundInterpolator, UpperBoundInterpolator
+from pywellsfm.utils.helpers import (
+    LowerBoundInterpolator,
+    UpperBoundInterpolator,
+)
 
 
 def _curve_interpolation_method(curve: Curve) -> str | dict[str, Any]:
     """Best-effort extraction of the interpolation method from a Curve."""
     interp_func = getattr(curve, "_interpFunc", None)
-    kind = getattr(interp_func, "kind", None)
+    kind = getattr(interp_func, "_kind", None)
     if isinstance(kind, str) and kind.strip() != "":
         return kind
 
@@ -32,9 +35,11 @@ def _curve_interpolation_method(curve: Curve) -> str | dict[str, Any]:
         degree = getattr(interp_func, "deg", None)
         nb_points = getattr(interp_func, "nbPts", None)
         if isinstance(degree, int) and isinstance(nb_points, int):
-            return {"name": interp_func.name,
-                    "degree": int(degree),
-                    "nbPoints": int(nb_points)}
+            return {
+                "name": interp_func.name,
+                "degree": int(degree),
+                "nbPoints": int(nb_points),
+            }
 
     if isinstance(interp_func, LowerBoundInterpolator):
         return interp_func.name

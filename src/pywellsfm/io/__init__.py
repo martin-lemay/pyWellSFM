@@ -35,6 +35,12 @@ from .depositional_environment_simulation_io import (
     loadDepositionalEnvironmentSimulationFromJsonObj,
     saveDepositionalEnvironmentSimulation,
 )
+from .environment_condition_model_io import (
+    environmentConditionsModelToJsonObj,
+    loadEnvironmentConditionsModel,
+    loadEnvironmentConditionsModelFromJsonObj,
+    saveEnvironmentConditionsModel,
+)
 from .facies_model_io import (
     loadFaciesModel,
     saveFaciesModel,
@@ -50,6 +56,8 @@ from .fssimulation_io import (
 from .json_schema_validation import (
     validate_json_file_against_schema,
     validateAccumulationModelJsonFile,
+    validateEnvironmentConditionModelJsonFile,
+    validateEnvironmentConditionsModelJsonFile,
     validateFaciesModelJsonFile,
     validateScenarioJsonFile,
     validateTabulatedFunctionJsonFile,
@@ -79,6 +87,8 @@ __all__ = [
     "loadFSSimulation",
     "loadTabulatedFunctionFromFile",
     "loadUncertaintyCurveFromFile",
+    "loadEnvironmentConditionsModel",
+    "loadEnvironmentConditionsModelFromJsonObj",
     "loadWell",
     "saveAccumulationModel",
     "saveAccumulationModelEnvironmentOptimumToJson",
@@ -89,6 +99,7 @@ __all__ = [
     "saveCurveToJson",
     "saveDepositionalEnvironmentModel",
     "saveDepositionalEnvironmentSimulation",
+    "saveEnvironmentConditionsModel",
     "saveFaciesModel",
     "saveRealizationData",
     "saveScenario",
@@ -97,10 +108,13 @@ __all__ = [
     "saveTabulatedFunctionToJson",
     "saveWell",
     "validateAccumulationModelJsonFile",
+    "validateEnvironmentConditionModelJsonFile",
+    "validateEnvironmentConditionsModelJsonFile",
     "validateFaciesModelJsonFile",
     "validateScenarioJsonFile",
     "validateTabulatedFunctionJsonFile",
     "validate_json_file_against_schema",
     "depositionalEnvironmentModelToJsonObj",
     "depositionalEnvironmentSimulationToJsonObj",
+    "environmentConditionsModelToJsonObj",
 ]

@@ -14,9 +14,9 @@ This page is built from the following Python modules:
 * ``__init__.py`` (``pywellsfm.simulator``)
 * ``AccommodationSimulator.py`` (``pywellsfm.simulator.AccommodationSimulator``)
 * ``AccumulationSimulator.py`` (``pywellsfm.simulator.AccumulationSimulator``)
-* ``Realization.py`` (``pywellsfm.simulator.Realization``)
 * ``FSSimulator.py`` (``pywellsfm.simulator.FSSimulator``)
 * ``DepositionalEnvironmentSimulator.py`` (``pywellsfm.simulator.DepositionalEnvironmentSimulator``)
+* ``EnvironmentConditionSimulator.py`` (``pywellsfm.simulator.EnvironmentConditionSimulator``)
 
 API reference
 -------------
@@ -39,19 +39,19 @@ API reference
    :show-inheritance:
    :no-index:
 
-.. automodule:: pywellsfm.simulator.Realization
+.. automodule:: pywellsfm.simulator.DepositionalEnvironmentSimulator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. automodule:: pywellsfm.simulator.EnvironmentConditionSimulator
    :members:
    :undoc-members:
    :show-inheritance:
    :no-index:
 
 .. automodule:: pywellsfm.simulator.FSSimulator
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :no-index:
-
-.. automodule:: pywellsfm.simulator.DepositionalEnvironmentSimulator
    :members:
    :undoc-members:
    :show-inheritance:

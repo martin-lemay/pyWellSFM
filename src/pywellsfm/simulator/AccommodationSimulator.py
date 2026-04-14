@@ -60,12 +60,17 @@ class AccommodationSimulator:
         #: initial topography value at the start of the simulation
         self.topographyStart: float = 0.0
 
-    def setSubsidenceCurve(self: Self, subsidenceCurve: Curve | None) -> None:
+    def setSubsidenceCurve(
+        self: Self, subsidenceCurve: Curve | None, type: SubsidenceType
+    ) -> None:
         """Set the subsidence curve used by the simulator.
 
         :param Curve | None subsidenceCurve: subsidence curve to set.
+        :param SubsidenceType type: type of subsidence (cumulative or rate).
         """
         self.subsidenceCurve = subsidenceCurve
+        if subsidenceCurve is not None:
+            self.subsidenceType = type
 
     def setEustaticCurve(self: Self, eustaticCurve: Curve) -> None:
         """Set the eustatic curve used by the simulator.
@@ -82,6 +87,13 @@ class AccommodationSimulator:
         # considers that sea level at start is 0, so topography is -bathymetry
         self.topographyStart = -1.0 * bathymetry
 
+    def initialEustacy(self: Self, age: float) -> None:
+        """Set the initial eustacy used by the simulator.
+
+        :param float age: age to set the initial eustacy for.
+        """
+        self.eustatismStart = self.getEustatismAt(age)
+
     def prepare(self: Self) -> None:
         """Prepare the simulator for computations."""
         if self.subsidenceCurve is None:
@@ -90,15 +102,13 @@ class AccommodationSimulator:
                 "Time", "Subsidence", np.array([0, 1]), np.array([0.0, 0.0])
             )
             print("Subsidence curve not set. There is no subsidence.")
-
         if self.eustaticCurve is None:
             # if no eustatic curve, consider no variations
             self.eustaticCurve = Curve(
                 "Time", "Eustacy", np.array([0, 1]), np.array([0.0, 0.0])
             )
             print("Eustatic curve not set. There is no sea level variation.")
-
-        self.eustatismStart = self.eustaticCurve(0.0)
+        self.eustatismStart = self.getEustatismAt(0.0)
 
     def getEustatismAt(self: Self, age: float) -> float:
         """Get the eustatism value at a given age.
@@ -108,7 +118,7 @@ class AccommodationSimulator:
         """
         if self.eustaticCurve is None:
             raise ValueError("Eustatic curve is not set.")
-        return self.eustaticCurve(age)
+        return self.eustaticCurve.getValueAt(age)
 
     def getSubsidenceAt(self: Self, age: float) -> float:
         """Get the subsidence value at a given age.
@@ -118,7 +128,7 @@ class AccommodationSimulator:
         """
         if self.subsidenceCurve is None:
             raise ValueError("Subsidence curve is not set.")
-        return self.subsidenceCurve(age)
+        return self.subsidenceCurve.getValueAt(age)
 
     def getSubsidenceType(self: Self) -> SubsidenceType:
         """Get the subsidence type used by the simulator.
@@ -135,7 +145,7 @@ class AccommodationSimulator:
         """
         if self.eustaticCurve is None:
             raise ValueError("Eustatic curve is not set.")
-        return self.eustaticCurve(age) - self.eustatismStart
+        return self.getEustatismAt(age) - self.eustatismStart
 
     def getBasementElevationAt(self: Self, age: float) -> float:
         """Get the basement elevation at a given age.
@@ -145,7 +155,7 @@ class AccommodationSimulator:
         """
         if self.subsidenceCurve is None:
             raise ValueError("Subsidence curve is not set.")
-        subsidence = self.subsidenceCurve(age)
+        subsidence = self.getSubsidenceAt(age)
         return self.topographyStart - subsidence
 
     def getAccommodationAt(self: Self, age: float) -> float:
@@ -159,7 +169,7 @@ class AccommodationSimulator:
         if self.eustaticCurve is None:
             raise ValueError("Eustatic curve is not set.")
 
-        subsidence = self.subsidenceCurve(age)
+        subsidence = self.getSubsidenceAt(age)
         seaLevel = self.getSeaLevelAt(age)
         accommodation = seaLevel + subsidence
         return accommodation

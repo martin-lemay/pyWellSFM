@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
-# ruff: noqa: E402 # disable Module level import not at top of file
+# ruff: noqa: E402 # disable module-import position and import-order checks
 
 from __future__ import annotations
 
@@ -29,24 +29,43 @@ from pywellsfm.model.DepositionalEnvironment import (
     DepositionalEnvironment,
     DepositionalEnvironmentModel,
 )
+from pywellsfm.model.EnvironmentConditionModel import (
+    EnvironmentConditionModelUniform,
+)
 from pywellsfm.simulator.DepositionalEnvironmentSimulator import (
     DepositionalEnvironmentSimulator,
     DESimulatorParameters,
 )
 from pywellsfm.utils import IntervalDistanceMethod
 
+
 # ======================================================================
 # Fixtures
 # ======================================================================
+def _make_environment(
+    name: str,
+    min_depth: float,
+    max_depth: float,
+    distality: float | None = None,
+) -> DepositionalEnvironment:
+    return DepositionalEnvironment(
+        name=name,
+        waterDepthModel=EnvironmentConditionModelUniform(
+            "waterDepth",
+            min_depth,
+            max_depth,
+        ),
+        distality=distality,
+    )
 
 
 @pytest.fixture()
 def simple_envs() -> DepositionalEnvironmentModel:
     """Three non-overlapping environments for basic tests."""
     envs = [
-        DepositionalEnvironment("shallow", waterDepth_range=(0.0, 10.0)),
-        DepositionalEnvironment("mid", waterDepth_range=(10.0, 50.0)),
-        DepositionalEnvironment("deep", waterDepth_range=(50.0, 200.0)),
+        _make_environment("shallow", 0.0, 10.0),
+        _make_environment("mid", 10.0, 50.0),
+        _make_environment("deep", 50.0, 200.0),
     ]
     return DepositionalEnvironmentModel("simple3", envs)
 
@@ -55,11 +74,11 @@ def simple_envs() -> DepositionalEnvironmentModel:
 def simple_envs2() -> DepositionalEnvironmentModel:
     """Five non-overlapping environments for more detailed tests."""
     envs = [
-        DepositionalEnvironment("shallow1", waterDepth_range=(0.0, 5.0)),
-        DepositionalEnvironment("shallow2", waterDepth_range=(5.0, 10.0)),
-        DepositionalEnvironment("mid", waterDepth_range=(10.0, 50.0)),
-        DepositionalEnvironment("deep1", waterDepth_range=(50.0, 200.0)),
-        DepositionalEnvironment("deep2", waterDepth_range=(200.0, 1000.0)),
+        _make_environment("shallow1", 0.0, 5.0),
+        _make_environment("shallow2", 5.0, 10.0),
+        _make_environment("mid", 10.0, 50.0),
+        _make_environment("deep1", 50.0, 200.0),
+        _make_environment("deep2", 200.0, 1000.0),
     ]
     return DepositionalEnvironmentModel("simple5", envs)
 
@@ -157,8 +176,8 @@ class TestPrior:
     def test_non_uniform_weights(self: Self) -> None:
         """Test non-uniform weights produce weighted prior."""
         envs = [
-            DepositionalEnvironment("a", waterDepth_range=(0.0, 10.0)),
-            DepositionalEnvironment("b", waterDepth_range=(10.0, 50.0)),
+            _make_environment("a", 0.0, 10.0),
+            _make_environment("b", 10.0, 50.0),
         ]
         weights = {"a": 3.0, "b": 1.0}
         sim = DepositionalEnvironmentSimulator(
@@ -203,8 +222,8 @@ class TestWaterDepthLikelihood:
     def test_value_inside_environment(self: Self) -> None:
         """Test that nearest environment has higher likelihood."""
         envs = [
-            DepositionalEnvironment("A", waterDepth_range=(0.0, 10.0)),
-            DepositionalEnvironment("B", waterDepth_range=(100.0, 200.0)),
+            _make_environment("A", 0.0, 10.0),
+            _make_environment("B", 100.0, 200.0),
         ]
         sim = DepositionalEnvironmentSimulator(
             DepositionalEnvironmentModel("AB", envs)
@@ -215,7 +234,7 @@ class TestWaterDepthLikelihood:
 
     def test_value_matching_env_range(self: Self) -> None:
         """Test expected likelihood for a known endpoint distance."""
-        envs = [DepositionalEnvironment("X", waterDepth_range=(0.5, 10.0))]
+        envs = [_make_environment("X", 0.5, 10.0)]
         sim = DepositionalEnvironmentSimulator(
             DepositionalEnvironmentModel("X", envs),
             params=DESimulatorParameters(waterDepth_sigma=100.0),
@@ -228,8 +247,8 @@ class TestWaterDepthLikelihood:
     def test_range_constraint(self: Self) -> None:
         """Test range-based waterDepth likelihood computation."""
         envs = [
-            DepositionalEnvironment("A", waterDepth_range=(0.0, 10.0)),
-            DepositionalEnvironment("B", waterDepth_range=(0.0, 100.0)),
+            _make_environment("A", 0.0, 10.0),
+            _make_environment("B", 0.0, 100.0),
         ]
         sim = DepositionalEnvironmentSimulator(
             DepositionalEnvironmentModel("AB", envs),
@@ -427,7 +446,7 @@ class TestDistalityTrendLikelihood:
             simple_envs2 (DepositionalEnvironmentModel): Environments fixture.
         """
         envs_copy = [
-            DepositionalEnvironment(e.name, e.waterDepth_range)
+            _make_environment(e.name, e.waterDepth_min, e.waterDepth_max)
             for e in simple_envs2.environments
         ]
         envs_copy[0].distality = 4.0
@@ -499,9 +518,9 @@ class TestPosterior:
     def test_combined_constraints(self: Self) -> None:
         """Test waterDepth and transition jointly affect posterior."""
         envs = [
-            DepositionalEnvironment("A", waterDepth_range=(0.0, 10.0)),
-            DepositionalEnvironment("B", waterDepth_range=(10.0, 30.0)),
-            DepositionalEnvironment("C", waterDepth_range=(30.0, 100.0)),
+            _make_environment("A", 0.0, 10.0),
+            _make_environment("B", 10.0, 30.0),
+            _make_environment("C", 30.0, 100.0),
         ]
         sim = DepositionalEnvironmentSimulator(
             DepositionalEnvironmentModel("ABC", envs),
@@ -521,8 +540,8 @@ class TestPosterior:
     def test_fallback_returns_valid_posterior(self: Self) -> None:
         """Test underflow fallback still returns a normalized posterior."""
         envs = [
-            DepositionalEnvironment("A", waterDepth_range=(0.0, 1.0)),
-            DepositionalEnvironment("B", waterDepth_range=(1000.0, 2000.0)),
+            _make_environment("A", 0.0, 1.0),
+            _make_environment("B", 1000.0, 2000.0),
         ]
         # Very tight sigma → posteriors may underflow
         sim = DepositionalEnvironmentSimulator(
@@ -673,8 +692,8 @@ class TestSampling:
     def test_degenerate_posterior(self: Self) -> None:
         """Test deterministic outcome for degenerate posterior."""
         envs = [
-            DepositionalEnvironment("only", waterDepth_range=(0.0, 10.0)),
-            DepositionalEnvironment("other", waterDepth_range=(10.0, 20.0)),
+            _make_environment("only", 0.0, 10.0),
+            _make_environment("other", 10.0, 20.0),
         ]
         sim = DepositionalEnvironmentSimulator(
             DepositionalEnvironmentModel("AB", envs)

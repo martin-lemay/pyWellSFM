@@ -57,7 +57,7 @@ def wellToJsonObj(well: Well) -> dict[str, Any]:
                                 return str(comp[key]).strip()
                     else:
                         try:
-                            val = comp.get("lithology")  # type: ignore[attr-defined]
+                            val = comp.get("lithology")
                             if val is not None and str(val).strip() != "":
                                 return str(val).strip()
                         except Exception:
@@ -239,7 +239,6 @@ def _load_striplog_from_csv(path: Path, delimiter: str = ",") -> Striplog:
         raise ValueError(
             "Striplog CSV must contain 'top', 'base', and 'lithology' columns."
         )
-
     intervals: list[Interval] = []
     for _, row in df.iterrows():
         top = float(row["top"])
@@ -247,12 +246,11 @@ def _load_striplog_from_csv(path: Path, delimiter: str = ",") -> Striplog:
         comp_dict = {
             str(key): row[key]
             for key in row.index
-            if str(key).lower() not in ("top", "base", "lithology")
+            if str(key).lower() not in ("top", "base")
         }
         intervals.append(
             Interval(top, base, components=[Component(comp_dict)])
         )
-
     return Striplog(intervals)
 
 
@@ -403,7 +401,7 @@ def loadWellFromJsonObj(
                 )
             )
         if marker_set:
-            well.addMarkers(marker_set)
+            well.addMarkers(list(marker_set))
 
     # Optional striplogs
     striplogs_raw = well_obj.get("striplogs")
@@ -607,7 +605,7 @@ def loadWellFromLasFile(filepath: str) -> Well:
         if null_value is not None:
             nv = _to_float(null_value)
             if nv is not None and np.isfinite(nv):
-                y = np.where(y == nv, np.nan, y)  # type: ignore[arg-type]
+                y = np.where(y == nv, np.nan, y)
 
         mask = np.isfinite(x) & np.isfinite(y)
         x = x[mask]

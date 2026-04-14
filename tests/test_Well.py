@@ -18,6 +18,7 @@ from striplog import Component, Interval, Striplog
 
 from pywellsfm.io.json_schema_validation import validateWellJsonFile
 from pywellsfm.io.well_io import (
+    _load_striplog_from_csv,
     loadWellFromJsonObj,
     loadWellFromLasFile,
     saveWellToJson,
@@ -28,12 +29,12 @@ m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
 
-from pywellsfm.io import loadWell  # noqa: E402
-from pywellsfm.model.Marker import (  # noqa: E402
+from pywellsfm.io import loadWell
+from pywellsfm.model.Marker import (
     Marker,
     StratigraphicSurfaceType,
 )
-from pywellsfm.model.Well import Well  # noqa: E402
+from pywellsfm.model.Well import Well
 
 
 def _write_json(tmp_path: Path, payload: dict[str, Any], filename: str) -> str:
@@ -160,6 +161,26 @@ def test_loadWell_rejects_bad_format(tmp_path: Path) -> None:
     path = _write_json(tmp_path, payload, "well_bad.json")
     with pytest.raises(ValueError):
         _ = loadWell(path)
+
+
+def test_loadStriplog_from_csv(tmp_path: Path) -> None:
+    """Load a striplog from a CSV file."""
+    csv_text = """top,base,lithology
+0,15,sandstone
+15,30,shale
+"""
+    csv_path = tmp_path / "striplog.csv"
+    csv_path.write_text(csv_text, encoding="utf-8")
+
+    striplog = _load_striplog_from_csv(csv_path)
+    assert isinstance(striplog, Striplog)
+    assert len(striplog) == 2
+    assert striplog[0].top.middle == 0.0
+    assert striplog[0].base.middle == 15.0
+    assert striplog[1].top.middle == 15.0
+    assert striplog[1].base.middle == 30.0
+    assert striplog[0].components[0]["lithology"] == "sandstone"
+    assert striplog[1].components[0]["lithology"] == "shale"
 
 
 def test_loadWellFromLasFile_minimal(tmp_path: Path) -> None:

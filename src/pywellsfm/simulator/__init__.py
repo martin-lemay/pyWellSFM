@@ -15,8 +15,8 @@ from .DepositionalEnvironmentSimulator import (
     DepositionalEnvironmentSimulator,
     DESimulatorParameters,
 )
+from .EnvironmentConditionSimulator import EnvironmentConditionSimulator
 from .FSSimulator import FSSimulator, FSSimulatorParameters
-from .Realization import Realization
 
 __all__ = [
     "AccommodationSimulator",
@@ -24,7 +24,7 @@ __all__ = [
     "AccumulationSimulator",
     "DepositionalEnvironmentSimulator",
     "DESimulatorParameters",
-    "Realization",
+    "EnvironmentConditionSimulator",
     "FSSimulator",
     "FSSimulatorParameters",
 ]

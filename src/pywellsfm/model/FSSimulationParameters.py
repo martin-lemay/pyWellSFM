@@ -7,7 +7,6 @@ from typing import Optional
 from .AccumulationModel import AccumulationModel
 from .Curve import Curve
 from .DepositionalEnvironment import (
-    DepositionalEnvironment,
     DepositionalEnvironmentModel,
 )
 from .enums import SubsidenceType
@@ -27,6 +26,10 @@ class Scenario:
         the scenario. It defines the list of elements and their default
         accumulation rates.
     :param Curve | None eustaticCurve: Eustatic curve, defaults to None
+    :param DepositionalEnvironmentModel depositionalEnvironmentModel:
+        depositional environment model used in the scenario. It defines the
+        list of depositional environments and their corresponding environmental
+        conditions.
     :param FaciesModel | None faciesModel: facies model used in the scenario.
         It defines the list of facies and their default proportions.
     """
@@ -49,11 +52,14 @@ class RealizationData:
 
     :param Well well: well object
     :param float initialBathymetry: initial bathymetry for the realization.
-    :param Curve subsidenceCurve: subsidence curve for the realization.
+    :param Curve | None subsidenceCurve: subsidence curve for the realization.
+    :param SubsidenceType subsidenceType: subsidence type for the realization.
+    :param DepositionalEnvironment | None initialEnvironment: initial
+        depositional environment for the realization.
     """
 
     well: Well
     initialBathymetry: float
+    initialEnvironmentName: Optional[str]
     subsidenceCurve: Optional[Curve]
     subsidenceType: SubsidenceType
-    initialEnvironment: Optional[DepositionalEnvironment] = None

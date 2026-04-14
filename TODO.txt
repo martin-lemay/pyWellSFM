@@ -1,12 +1,8 @@
 Short-term:
-- add environment condition vs time Curve
-- add env cond vs water depth for general case (without de simulator: OR using
-  other de model. Same schema as AccumulationSimulator and Accumulation models)
 - fix problem of none environment in the middle of the simu
 - add environment dependent weights to favor some likelihood (ex: buildup favor transition with itself)
-- adapt time step calculation to match input marker ages
 - add unit tests for simulators
-- create missing unit tests for save methods
+- create missing unit tests for io methods
 - create export methods to save data objects (simulation, realization, scenario, etc.) where needed (+tests)
 - add logger
 
@@ -24,3 +20,4 @@ Long-term:
 - implement parameter optimisation
 - add (de-)compaction law to restore wells at deposition thicknesses
 - create dedicated python package for accommodation calculation
+- add possibility to run simulation above end age

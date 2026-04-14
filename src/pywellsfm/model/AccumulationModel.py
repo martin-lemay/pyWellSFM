@@ -72,6 +72,7 @@ class AccumulationModelCombination(AccumulationModelElementBase):
         accumulation rates of the individual models.
 
         The combination is performed by:
+
         - computing the accumulation rate of each model
         - compute the ratio of accumulation rate of each model to the reference
           accumulation rate
@@ -82,9 +83,8 @@ class AccumulationModelCombination(AccumulationModelElementBase):
         element is the average of the reference accumulation rates of the
         models.
 
-        :param str elementName: name of the element the model applies to
-        :param float accumulationRate: reference accumulation rate of the
-            element (m/My)
+        :param list[AccumulationModelElementBase] models: list of accumulation
+            models to combine
         """
         self.models: list[AccumulationModelElementBase] = models
         self.checkModelsConsistency()

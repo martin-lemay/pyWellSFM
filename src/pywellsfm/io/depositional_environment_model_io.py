@@ -10,39 +10,24 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from pywellsfm.io._common import (
-    load_inline_or_url,
-    reject_extra_keys,
-)
-from pywellsfm.io.curve_io import (
-    curveToJsonObj,
-    loadCurveFromJsonObj,
-    loadCurvesFromFile,
+from pywellsfm.io._common import reject_extra_keys
+from pywellsfm.io.environment_condition_model_io import (
+    environmentConditionModelToJsonObj,
+    environmentConditionsModelToJsonObj,
+    loadEnvironmentConditionModelFromJsonObj,
+    loadEnvironmentConditionsModelFromJsonObj,
 )
 from pywellsfm.io.json_schema_validation import expect_format_version
-from pywellsfm.model.Curve import Curve
 from pywellsfm.model.DepositionalEnvironment import (
     DepositionalEnvironment,
     DepositionalEnvironmentModel,
 )
-
-
-def _loadPropertyRangeFromJsonObj(
-    value: Any,  # noqa: ANN401
-    *,
-    ctx: str,
-) -> tuple[float, float]:
-    """Parse a [min, max] numeric range encoded as a 2-item array."""
-    if not isinstance(value, list) or len(value) != 2:
-        raise ValueError(f"{ctx} must be an array of two numbers [min, max].")
-    min_raw, max_raw = value[0], value[1]
-    if not isinstance(min_raw, (int, float)) or not isinstance(
-        max_raw, (int, float)
-    ):
-        raise ValueError(f"{ctx} must contain only numbers.")
-    return (float(min_raw), float(max_raw))
+from pywellsfm.model.EnvironmentConditionModel import (
+    EnvironmentConditionModelStats,
+    EnvironmentConditionsModel,
+)
 
 
 def _loadDepositionalEnvironmentFromJsonObj(
@@ -59,10 +44,9 @@ def _loadDepositionalEnvironmentFromJsonObj(
         allowed_keys={
             "name",
             "description",
-            "waterDepth_range",
+            "waterDepthModel",
             "distality",
-            "other_property_ranges",
-            "property_curves",
+            "environmentConditionsModel",
         },
         ctx=ctx,
     )
@@ -71,10 +55,23 @@ def _loadDepositionalEnvironmentFromJsonObj(
     if not isinstance(name, str) or name.strip() == "":
         raise ValueError(f"{ctx}.name must be a non-empty string.")
 
-    waterDepth_range = _loadPropertyRangeFromJsonObj(
-        obj.get("waterDepth_range"),
-        ctx=f"{ctx}.waterDepth_range",
+    waterDepthModelObj = obj.get("waterDepthModel")
+    if not isinstance(waterDepthModelObj, dict):
+        raise ValueError(f"{ctx}.waterDepthModel must be an object.")
+    waterDepthModel = cast(
+        EnvironmentConditionModelStats,
+        loadEnvironmentConditionModelFromJsonObj(
+            waterDepthModelObj,
+            condition_name="waterDepth",
+            base_dir=base_dir,
+            ctx=f"{ctx}.waterDepthModel",
+        ),
     )
+    if not isinstance(waterDepthModel, EnvironmentConditionModelStats):
+        raise ValueError(
+            f"{ctx}.waterDepthModel must resolve to a statistical "
+            + "environment condition model."
+        )
 
     distality_raw = obj.get("distality")
     distality: float | None
@@ -85,70 +82,23 @@ def _loadDepositionalEnvironmentFromJsonObj(
     else:
         raise ValueError(f"{ctx}.distality must be a number when provided.")
 
-    other_property_ranges_obj = obj.get("other_property_ranges")
-    other_property_ranges: dict[str, tuple[float, float]] = {}
-    if other_property_ranges_obj is not None:
-        if not isinstance(other_property_ranges_obj, dict):
-            raise ValueError(f"{ctx}.other_property_ranges must be an object.")
-        for prop_name, range_obj in other_property_ranges_obj.items():
-            if not isinstance(prop_name, str) or prop_name.strip() == "":
-                raise ValueError(
-                    f"{ctx}.other_property_ranges keys must be non-empty "
-                    + "strings."
-                )
-            other_property_ranges[prop_name] = _loadPropertyRangeFromJsonObj(
-                range_obj,
-                ctx=f"{ctx}.other_property_ranges['{prop_name}']",
+    environmentConditionsModelObj = obj.get("environmentConditionsModel")
+    environmentConditionsModel: EnvironmentConditionsModel | None = None
+    if environmentConditionsModelObj is not None:
+        if not isinstance(environmentConditionsModelObj, dict):
+            raise ValueError(
+                f"{ctx}.environmentConditionsModel must be an object."
             )
+        environmentConditionsModel = loadEnvironmentConditionsModelFromJsonObj(
+            environmentConditionsModelObj, base_dir=base_dir
+        )
 
     environment = DepositionalEnvironment(
         name=name,
-        waterDepth_range=waterDepth_range,
-        other_property_ranges=other_property_ranges,
+        waterDepthModel=waterDepthModel,
+        envConditionsModel=environmentConditionsModel,
         distality=distality,
     )
-
-    property_curves_obj = obj.get("property_curves")
-    if property_curves_obj is not None:
-        if not isinstance(property_curves_obj, dict):
-            raise ValueError(f"{ctx}.property_curves must be an object.")
-
-        for curve_name, curve_raw in property_curves_obj.items():
-            curve_ctx = f"{ctx}.property_curves['{curve_name}']"
-
-            def _load_inline_curve(
-                curve_json: dict[str, Any],
-                curve_ctx: str = curve_ctx,
-            ) -> Curve:
-                if curve_json.get("format") != "pyWellSFM.CurveData":
-                    raise ValueError(
-                        f"{curve_ctx} must be either an inline CurveSchema "
-                        "object (format='pyWellSFM.CurveData') or a "
-                        + "{'url': ...} reference."
-                    )
-                return loadCurveFromJsonObj(curve_json)
-
-            def _load_curve_file(
-                path: Path,
-                curve_ctx: str = curve_ctx,
-            ) -> Curve:
-                curves = loadCurvesFromFile(path)
-                if len(curves) != 1:
-                    raise ValueError(
-                        f"{curve_ctx}.url must point to a file containing "
-                        "exactly one curve."
-                    )
-                return curves[0]
-
-            curve = load_inline_or_url(
-                curve_raw,
-                base_dir=base_dir,
-                ctx=curve_ctx,
-                load_inline=_load_inline_curve,
-                load_file=_load_curve_file,
-            )
-            environment.setPropertyCurve(curve)
-
     return environment
 
 
@@ -241,32 +191,21 @@ def _depositionalEnvironmentToJsonObj(
     """Serialize one DepositionalEnvironment to JSON object."""
     env_obj: dict[str, Any] = {
         "name": str(environment.name),
-        "waterDepth_range": [
-            float(environment.waterDepth_range[0]),
-            float(environment.waterDepth_range[1]),
-        ],
+        "waterDepthModel": environmentConditionModelToJsonObj(
+            environment.waterDepthModel
+        ),
     }
 
     if environment.distality is not None:
         env_obj["distality"] = float(environment.distality)
 
-    if len(environment.other_property_ranges) > 0:
-        env_obj["other_property_ranges"] = {
-            str(prop_name): [float(prop_range[0]), float(prop_range[1])]
-            for prop_name, prop_range in sorted(
-                environment.other_property_ranges.items(),
-                key=lambda kv: kv[0],
-            )
-        }
-
-    if len(environment.property_curves) > 0:
-        env_obj["property_curves"] = {
-            str(curve_name): curveToJsonObj(curve)
-            for curve_name, curve in sorted(
-                environment.property_curves.items(),
-                key=lambda kv: kv[0],
-            )
-        }
+    if (
+        environment.envConditionsModel is not None
+        and len(environment.envConditionsModel.environmentConditionNames) > 0
+    ):
+        env_obj["environmentConditionsModel"] = (
+            environmentConditionsModelToJsonObj(environment.envConditionsModel)
+        )
 
     return env_obj
 

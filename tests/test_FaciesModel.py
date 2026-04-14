@@ -18,8 +18,8 @@ m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
 
-from pywellsfm.io import loadFaciesModel, saveFaciesModel  # noqa: E402
-from pywellsfm.model import (  # noqa: E402
+from pywellsfm.io import loadFaciesModel, saveFaciesModel
+from pywellsfm.model import (
     EnvironmentalFacies,
     Facies,
     FaciesCriteria,
