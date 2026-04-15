@@ -511,7 +511,7 @@ class DepositionalEnvironmentSimulator:
         if waterDepth_value is not None:
             obs_min = obs_max = waterDepth_value
         else:
-            obs_min, obs_max = waterDepth_range # type: ignore[assignment]
+            obs_min, obs_max = waterDepth_range  # type: ignore[assignment]
 
         result: dict[str, float] = {}
         for env in self._environments.values():
@@ -523,10 +523,10 @@ class DepositionalEnvironmentSimulator:
                 method=self._params.interval_distance_method,
             )
             # split purely onshore from purely offshore facies
-            if (obs_min > 0 and env.waterDepth_max <= 0):
+            if obs_min > 0 and env.waterDepth_max <= 0:
                 # set delta to inf for environments with max waterDepth <= 0
                 delta = float("inf")
-            elif (obs_max < 0 and env.waterDepth_min >= 0):
+            elif obs_max < 0 and env.waterDepth_min >= 0:
                 # set delta to inf for environments with min waterDepth >= 0
                 delta = float("inf")
             res = self._gaussian_kernel(delta, sigma)
@@ -598,9 +598,11 @@ class DepositionalEnvironmentSimulator:
 
             # add distality term
             distalityDelta = 0.0
-            if (self._distality_by_environment is not None and
-                prev.name in self._distality_by_environment and
-                env.name in self._distality_by_environment):
+            if (
+                self._distality_by_environment is not None
+                and prev.name in self._distality_by_environment
+                and env.name in self._distality_by_environment
+            ):
                 distalityDelta = abs(
                     self._distality_by_environment[prev.name]
                     - self._distality_by_environment[env.name]
@@ -645,7 +647,7 @@ class DepositionalEnvironmentSimulator:
             return dict.fromkeys(self._names, 1.0)
 
         # _distality_by_environment is None
-        if self._distality_by_environment is None:
+        if len(self._distality_by_environment) == 0:
             print(
                 "Warning: distality distances were not computed, "
                 + "distality influence is disregarded."
@@ -1033,11 +1035,11 @@ class DepositionalEnvironmentSimulator:
             if waterDepth_value is not None:
                 obs_min = obs_max = waterDepth_value
             else:
-                obs_min, obs_max = waterDepth_range # type: ignore[assignment]
-            if (obs_min < min(env.waterDepth_min
-                            for env in self._environments.values())
-                or obs_max > max(env.waterDepth_max
-                                for env in self._environments.values())
+                obs_min, obs_max = waterDepth_range  # type: ignore[assignment]
+            if obs_min < min(
+                env.waterDepth_min for env in self._environments.values()
+            ) or obs_max > max(
+                env.waterDepth_max for env in self._environments.values()
             ):
                 return dict.fromkeys(self._names, 0.0), None
 

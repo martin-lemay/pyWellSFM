@@ -567,7 +567,8 @@ class FSSimulator:
         else:
             # Binary search for optimal dt between dt_lo and dt_hi
             dt = self._binarySearchForOptimalDt(
-                t, curWaterDepths, rates, dt_lo, dt_hi)
+                t, curWaterDepths, rates, dt_lo, dt_hi
+            )
 
         # Apply safety factor
         dt = float(
@@ -724,9 +725,7 @@ class FSSimulator:
             changeWaterDepthSign = np.all(
                 np.sign(newWds) == np.sign(curWaterDepths)
             )
-            if (deltaWD <= max_change
-                and changeWaterDepthSign
-            ):
+            if deltaWD <= max_change and changeWaterDepthSign:
                 lo = mid
             else:
                 hi = mid

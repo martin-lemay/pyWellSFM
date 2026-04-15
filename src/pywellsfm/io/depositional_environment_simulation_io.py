@@ -72,7 +72,7 @@ def loadSimulatorParametersFromJsonObj(
             if not isinstance(val, (int, float)):
                 raise ValueError(
                     f"DESimulation.params.{key} must be a number."
-            )
+                )
             kwargs[key] = float(val)
 
     interval_method_raw = obj.get("interval_distance_method")
@@ -94,6 +94,7 @@ def loadSimulatorParametersFromJsonObj(
             ) from exc
 
     return DESimulatorParameters(**kwargs)
+
 
 def simulatorParametersToJsonObj(
     params: DESimulatorParameters,

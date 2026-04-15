@@ -933,11 +933,7 @@ class TestCarbonatePlatformIntegration:
         order = np.argsort(counts.counts)[::-1]
         sorted_values = counts.values[order]
         print(sorted_values)
-        assert sorted_values.tolist() == [
-            "ForeReef",
-            "Lagoon",
-            "Buildup"
-        ]
+        assert sorted_values.tolist() == ["ForeReef", "Lagoon", "Buildup"]
 
     def test_trend_in_carbonate_platform(
         self: Self, carbonate_envs: DepositionalEnvironmentModel
@@ -972,5 +968,5 @@ class TestCarbonatePlatformIntegration:
             "ReefCrest",
             "ForeReef",
             "BackReef",
-            "Buildup"
+            "Buildup",
         ]
