@@ -65,6 +65,11 @@ class EnvironmentConditionModelStats(EnvironmentConditionModelBase):
         self.maxValue = maxValue
 
     @property
+    def range(self: Self) -> tuple[float, float]:
+        """Range of the environmental condition."""
+        return self.minValue, self.maxValue
+
+    @property
     def rangeWidth(self: Self) -> float:
         """Width of the range."""
         return self.maxValue - self.minValue

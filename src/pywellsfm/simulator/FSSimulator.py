@@ -126,11 +126,11 @@ class FSSimulator:
         self.depo_rate_elements: list[list[dict[str, float]]] = []
         self.thickness_steps: list[npt.NDArray[np.float64]] = []
         self.thickness_cumul: list[npt.NDArray[np.float64]] = []
-        self.bathymetries: list[npt.NDArray[np.float64]] = []
-        self.delta_bathymetries: list[npt.NDArray[np.float64]] = []
+        self.waterDepths: list[npt.NDArray[np.float64]] = []
+        self.delta_waterDepths: list[npt.NDArray[np.float64]] = []
         self.environments: list[npt.NDArray[np.str_]] = []
         self.dts: list[float] = []
-        self.initial_bathymetries: Optional[npt.NDArray[np.float64]] = None
+        self.initial_waterDepths: Optional[npt.NDArray[np.float64]] = None
 
         self.outputs: Optional[xr.Dataset] = None
 
@@ -205,8 +205,8 @@ class FSSimulator:
             )
             self.depositionalEnvironmentSimulator.prepare()
 
-        # Extract initial bathymetries
-        self.initial_bathymetries = np.array(
+        # Extract initial waterDepths
+        self.initial_waterDepths = np.array(
             [
                 realizationData.initialBathymetry
                 for realizationData in self.realizationDataList
@@ -231,8 +231,8 @@ class FSSimulator:
         self.depo_rate_elements = []
         self.thickness_steps = []
         self.thickness_cumul = []
-        self.bathymetries = []
-        self.delta_bathymetries = []
+        self.waterDepths = []
+        self.delta_waterDepths = []
         self.environments = []
         self.dts = []
 
@@ -295,13 +295,13 @@ class FSSimulator:
         if stop >= start:
             raise ValueError("stop must be < start")
 
-        # Initialize bathymetry state
-        if self.initial_bathymetries is None:
-            raise RuntimeError("initial_bathymetries not set")
-        bathy_t = self.initial_bathymetries.copy()
+        # Initialize water depth state
+        if self.initial_waterDepths is None:
+            raise RuntimeError("initial_waterDepths not set")
+        waterDepth_t = self.initial_waterDepths.copy()
 
         # Initialize depositional environment state
-        depEnv_t = self._initializeDepositionalEnvironments(bathy_t)
+        depEnv_t = self._initializeDepositionalEnvironments(waterDepth_t)
 
         # set initial sea level and subsidence values
         sea_level_t = 0.0
@@ -320,12 +320,12 @@ class FSSimulator:
 
             # **** 1. CONDITIONS AND ACCUMULATION RATES AT STEP t ****
 
-            # Record bathymetry for this step
-            self.bathymetries.append(bathy_t.copy())
+            # Record water depth for this step
+            self.waterDepths.append(waterDepth_t.copy())
 
             # Get environment conditions from depositional environments
             env_list = self._computeEnvironmentalConditions(
-                bathy_t, depEnv_t, t
+                waterDepth_t, depEnv_t, t
             )
 
             # Record depositional environment for this step if needed
@@ -391,21 +391,21 @@ class FSSimulator:
             self.subsidences.append(cumul_subs_t.copy())
 
             # Compute waterDepth change for this step
-            delta_bathy = self._getWaterDepthVariation(
+            delta_waterDepth = self._getWaterDepthVariation(
                 delta_sea_level_t, delta_subs_t, thickness_step
             )
-            delta_bathy_array: npt.NDArray[np.float64]
-            if isinstance(delta_bathy, np.ndarray):
-                delta_bathy_array = delta_bathy.copy()
+            delta_waterDepth_array: npt.NDArray[np.float64]
+            if isinstance(delta_waterDepth, np.ndarray):
+                delta_waterDepth_array = delta_waterDepth.copy()
             else:
-                delta_bathy_array = np.full(
-                    (self.n_real,), delta_bathy, dtype=np.float64
+                delta_waterDepth_array = np.full(
+                    (self.n_real,), delta_waterDepth, dtype=np.float64
                 )
-            self.delta_bathymetries.append(delta_bathy_array)
+            self.delta_waterDepths.append(delta_waterDepth_array)
 
             # compute and record basement elevation
             # (positive subsidence means sinking)
-            basement_t = (-self.initial_bathymetries) - cumul_subs_t
+            basement_t = (-self.initial_waterDepths) - cumul_subs_t
             self.basements.append(basement_t)
 
             # compute and record accommodation
@@ -413,8 +413,8 @@ class FSSimulator:
             self.accommodations.append(acco_t)
 
             # **** 4. UPDATE WATER DEPTH AND DEP ENVIRONMENT FOR NEXT STEP ****
-            # Update bathymetry for next step
-            bathy_t = bathy_t + delta_bathy_array
+            # Update waterDepthmetry for next step
+            waterDepth_t = waterDepth_t + delta_waterDepth_array
 
             # update depositional environment for next step if needed
             if self.depositionalEnvironmentSimulator is not None:
@@ -434,7 +434,7 @@ class FSSimulator:
                             for k in range(1, window + 1)
                         ][::-1]
                 depEnv_t = self._computeDepositionalEnvironment(
-                    bathy_t, prev_env
+                    waterDepth_t, prev_env
                 )
 
             # Advance time
@@ -453,7 +453,7 @@ class FSSimulator:
         self._ready = False
 
     def _initializeDepositionalEnvironments(
-        self: Self, bathy: npt.NDArray[np.float64]
+        self: Self, waterDepth: npt.NDArray[np.float64]
     ) -> list[Optional[DepositionalEnvironment]]:
         depEnv: list[Optional[DepositionalEnvironment]] = [
             None for _ in self.realizationDataList
@@ -472,7 +472,7 @@ class FSSimulator:
                 ):
                     # simulate environment from the simulator
                     _, env_i = self.depositionalEnvironmentSimulator.run(
-                        waterDepth_value=bathy[i],
+                        waterDepth_value=waterDepth[i],
                         previous_environments=None,
                     )
                     depEnv[i] = env_i
@@ -772,12 +772,12 @@ class FSSimulator:
 
     def _computeDepositionalEnvironment(
         self: Self,
-        bathy: npt.NDArray[np.float64],
+        waterDepth: npt.NDArray[np.float64],
         prev_env: list[list[str] | None],
     ) -> list[DepositionalEnvironment | None]:
         """Compute depositional environment for each realization.
 
-        :param npt.NDArray[np.float64] bathy: waterDepth value for each
+        :param npt.NDArray[np.float64] waterDepth: waterDepth value for each
             realization.
         :return list[list[str] | None]: list of previous depositional
             environment names for each realization.
@@ -788,14 +788,14 @@ class FSSimulator:
         assert len(prev_env) == self.n_real, (
             "prev_env must have the same length as number of realizations"
         )
-        assert len(bathy) == self.n_real, (
-            "bathy must have the same length as number of realizations"
+        assert len(waterDepth) == self.n_real, (
+            "waterDepth must have the same length as number of realizations"
         )
 
         env: list[DepositionalEnvironment | None] = []
         for i in range(self.n_real):
             _, env_i = self.depositionalEnvironmentSimulator.run(
-                waterDepth_value=bathy[i],
+                waterDepth_value=waterDepth[i],
                 previous_environments=prev_env[i],
             )
             env.append(env_i)
@@ -866,8 +866,8 @@ class FSSimulator:
         depo_arr = np.stack(self.depo_rate_totals, axis=1)
         thickness_step_arr = np.stack(self.thickness_steps, axis=1)
         thickness_cumul_arr = np.stack(self.thickness_cumul, axis=1)
-        bathy_arr = np.stack(self.bathymetries, axis=1)
-        delta_waterDepth_arr = np.stack(self.delta_bathymetries, axis=1)
+        waterDepth_arr = np.stack(self.waterDepths, axis=1)
+        delta_waterDepth_arr = np.stack(self.delta_waterDepths, axis=1)
 
         # Build realization IDs
         realization_ids = np.arange(n_real, dtype=np.int64)
@@ -876,9 +876,9 @@ class FSSimulator:
         data_vars = {
             "sea_level": (("time",), sea_level_arr[0, :]),
             "dt": (("time",), dt_axis),
-            "initial_bathymetry": (
+            "initial_waterDepth": (
                 ("realization",),
-                self.initial_bathymetries,
+                self.initial_waterDepths,
             ),
             "subsidence": (("realization", "time"), subs_arr),
             "basement": (("realization", "time"), basement_arr),
@@ -892,7 +892,7 @@ class FSSimulator:
                 ("realization", "time"),
                 thickness_cumul_arr,
             ),
-            "bathymetry": (("realization", "time"), bathy_arr),
+            "waterDepth": (("realization", "time"), waterDepth_arr),
             "delta_waterDepth": (
                 ("realization", "time"),
                 delta_waterDepth_arr,

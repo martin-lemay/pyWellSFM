@@ -73,8 +73,8 @@ class AccommodationSpaceWellCalculator:
 
         :return float: initial waterDepth value.
         """
-        bathyRange: tuple[float, float] = self._getInitialwaterDepthRange()
-        return 0.5 * (bathyRange[0] + bathyRange[1])
+        wdRange: tuple[float, float] = self._getInitialwaterDepthRange()
+        return 0.5 * (wdRange[0] + wdRange[1])
 
     # Helper functions
     def _getInitialwaterDepthRange(self: Self) -> tuple[float, float]:
@@ -102,12 +102,12 @@ class AccommodationSpaceWellCalculator:
 
         interval: Interval = cast(Interval, faciesLog[-1])
         faciesName: str = interval.primary["lithology"]  # type: ignore
-        bathyRange = self._getWaterDepthRangeFromFaciesName(faciesName)
-        if bathyRange is None:
+        waterDepthRange = self._getWaterDepthRangeFromFaciesName(faciesName)
+        if waterDepthRange is None:
             raise ValueError(
                 f"waterDepth condition not found for facies {faciesName}."
             )
-        return bathyRange
+        return waterDepthRange
 
     def computeAccommodationCurve(
         self: Self,
@@ -201,17 +201,17 @@ class AccommodationSpaceWellCalculator:
 
         # get waterDepth at the base and computation depth
         depthBase: float = baseDepth
-        bathyAtBase: tuple[float, float] = (0.0, 0.0)
+        waterDepthAtBase: tuple[float, float] = (0.0, 0.0)
         lastIndex: int = len(faciesLog)
         for row in self._waterDepthStepCurve[::-1]:  # type: ignore
             if row[0] > baseDepth:
                 lastIndex -= 1
                 continue
-            bathyAtBase = row[2:]
+            waterDepthAtBase = row[2:]
             depthBase = row[0]
             break
 
-        assert np.isfinite(bathyAtBase[0]), (
+        assert np.isfinite(waterDepthAtBase[0]), (
             "waterDepth at the base is undefined."
         )
 
@@ -227,16 +227,18 @@ class AccommodationSpaceWellCalculator:
             if interval.base.z > depthBase:
                 continue
             # waterDepth of the interval
-            bathyInterval = self._waterDepthStepCurve[i, 2:]  # type: ignore
+            waterDepthInterval = self._waterDepthStepCurve[i, 2:]  # type: ignore
             # compute accommodation at top
             thickness: float
             if i == 0:
                 thickness = depthBase - interval.top.z
                 # waterDepth of the interval
-                bathyInterval = self._waterDepthStepCurve[i, 2:]  # type: ignore
-                # compute accommodation from bathy of the interval
+                waterDepthInterval = self._waterDepthStepCurve[i, 2:]  # type: ignore
+                # compute accommodation from water depth of the interval
                 acco0: tuple[float, float] = self._computeAccommodationValue(
-                    thickness, bathyAtBase, tuple(bathyInterval.tolist())
+                    thickness,
+                    waterDepthAtBase,
+                    tuple(waterDepthInterval.tolist()),
                 )
                 # store the results
                 accoArray[i, 0] = interval.top.z
@@ -250,18 +252,20 @@ class AccommodationSpaceWellCalculator:
             thickness = depthBase - interval.base.z
 
             # waterDepth of above interval
-            bathyAboveInterval = bathyInterval
+            waterDepthAboveInterval = waterDepthInterval
             if (i < len(faciesLog) - 1) and (i < lastIndex):
-                bathyAboveInterval = self._waterDepthStepCurve[i + 1, 2:]  # type: ignore
+                waterDepthAboveInterval = self._waterDepthStepCurve[i + 1, 2:]  # type: ignore
 
             # compute accommodation
-            # computed from bathy of the interval
+            # computed from waterDepth of the interval
             acco1: tuple[float, float] = self._computeAccommodationValue(
-                thickness, bathyAtBase, tuple(bathyInterval.tolist())
+                thickness, waterDepthAtBase, tuple(waterDepthInterval.tolist())
             )
-            # computed from the bathy of the facies above
+            # computed from the waterDepth of the facies above
             acco2: tuple[float, float] = self._computeAccommodationValue(
-                thickness, bathyAtBase, tuple(bathyAboveInterval.tolist())
+                thickness,
+                waterDepthAtBase,
+                tuple(waterDepthAboveInterval.tolist()),
             )
 
             # store the results
@@ -281,26 +285,26 @@ class AccommodationSpaceWellCalculator:
     def _computeAccommodationValue(
         self: Self,
         thickness: float,
-        bathyBase: tuple[float, float],
-        bathyTop: tuple[float, float],
+        waterDepthBase: tuple[float, float],
+        waterDepthTop: tuple[float, float],
     ) -> tuple[float, float]:
         """Compute the accommodation according to thickness and waterDepth.
 
         :param float thickness: interval thickness
-        :param tuple[float, float] bathyBase: waterDepth at the base of the
-            interval
-        :param tuple[float, float] bathyTop: waterDepth at the top of the
+        :param tuple[float, float] waterDepthBase: waterDepth at the base of
+            the interval
+        :param tuple[float, float] waterDepthTop: waterDepth at the top of the
             interval
         :return tuple[float, float]: accommodation variation from base to top
         """
-        # minimum waterDepth variation: consider bathy is max at base marker
-        # and min at top marker
-        deltaBathyMin: float = bathyTop[0] - bathyBase[1]
-        # maximum waterDepth variation: consider bathy is min at base marker
-        # and max at top marker
-        deltaBathyMax: float = bathyTop[1] - bathyBase[0]
-        accoMin: float = thickness + deltaBathyMin
-        accoMax: float = thickness + deltaBathyMax
+        # minimum waterDepth variation: consider waterDepth is max at base
+        # marker and min at top marker
+        deltaWaterDepthMin: float = waterDepthTop[0] - waterDepthBase[1]
+        # maximum waterDepth variation: consider waterDepth is min at base
+        # marker and max at top marker
+        deltaWaterDepthMax: float = waterDepthTop[1] - waterDepthBase[0]
+        accoMin: float = thickness + deltaWaterDepthMin
+        accoMax: float = thickness + deltaWaterDepthMax
         if accoMin > accoMax:
             accoMin, accoMax = accoMax, accoMin
         return accoMin, accoMax
@@ -416,13 +420,15 @@ class AccommodationSpaceWellCalculator:
                 f"Facies {faciesName} is not in the facies list. "
                 + "waterDepth curve cannot be computed."
             )
-        bathyRange: Optional[FaciesCriteria] = facies.getCriteria("waterDepth")
-        if bathyRange is None:
+        waterDepthRange: Optional[FaciesCriteria] = facies.getCriteria(
+            "waterDepth"
+        )
+        if waterDepthRange is None:
             raise ValueError(
                 f"waterDepth is undefined for the facies {faciesName}. "
                 + "waterDepth curve cannot be computed."
             )
-        return (bathyRange.minRange, bathyRange.maxRange)
+        return (waterDepthRange.minRange, waterDepthRange.maxRange)
 
     def _computeWaterDepthStepCurve(
         self: Self,
@@ -466,20 +472,20 @@ class AccommodationSpaceWellCalculator:
         interval: Interval
         for i, interval in enumerate(faciesLog):
             # waterDepth at the top of the interval
-            (bathyMinEnd, bathyMaxEnd) = self._waterDepthStepCurve[i, 2:]  # type: ignore
+            (wdMinEnd, wdMaxEnd) = self._waterDepthStepCurve[i, 2:]  # type: ignore
             # waterDepth at the top of the interval (=base of above interval,
             # except for the last interval where we assume no variations)
-            bathyMinStart, bathyMaxStart = bathyMinEnd, bathyMaxEnd
+            wdMinStart, wdMaxStart = wdMinEnd, wdMaxEnd
             if i > 0:  # self._waterDepthStepCurve.shape[0] - 1:
-                (bathyMinStart, bathyMaxStart) = self._waterDepthStepCurve[  # type: ignore
+                (wdMinStart, wdMaxStart) = self._waterDepthStepCurve[  # type: ignore
                     i - 1, 2:
                 ]
-            # minimum waterDepth variation: consider bathy is max at bottom
-            # interval and min at current interval
-            deltaBathyMin: float = bathyMinEnd - bathyMaxStart
-            # minimum waterDepth variation: consider bathy is min at bottom
-            # interval and max at current interval
-            deltaBathyMax: float = bathyMaxEnd - bathyMinStart
+            # minimum waterDepth variation: consider water Depth is max at
+            # bottom interval and min at current interval
+            deltaBathyMin: float = wdMinEnd - wdMaxStart
+            # minimum waterDepth variation: consider water Depth is min at
+            # bottom interval and max at current interval
+            deltaBathyMax: float = wdMaxEnd - wdMinStart
             accoMin: float = interval.thickness + deltaBathyMin
             accoMax: float = interval.thickness + deltaBathyMax
             if accoMin > accoMax:

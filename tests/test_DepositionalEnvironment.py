@@ -323,11 +323,11 @@ def test_carbonate_open_ramp_default_environments() -> None:
 
     assert model.name == "Carbonate Open Ramp"
     assert model.getEnvironmentCount() == 7
-    assert model.environmentExists("Sabkha")
+    assert model.environmentExists("SupraTidal")
     assert model.environmentExists("InnerRampUpperShoreface")
     assert model.environmentExists("Basin")
 
-    sabkha = model.getEnvironmentByName("Sabkha")
+    sabkha = model.getEnvironmentByName("SupraTidal")
     basin = model.getEnvironmentByName("Basin")
     assert sabkha is not None
     assert basin is not None

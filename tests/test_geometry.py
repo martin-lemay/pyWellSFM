@@ -107,14 +107,17 @@ class TestGapOverlappingWidthDistance:
     ) -> None:
         """Return normalized non-zero value for partial overlap."""
         d = gap_overlapping_width_distance(0.0, 10.0, 5.0, 20.0)
-        assert math.isclose(d, 0.5)  # overlap=5, width1=10
+        print("output for partial overlap:", d)
+        # overlap=5, width=15: 1 - 5/15 = 0.666667
+        assert math.isclose(d, 0.666667, rel_tol=1e-6)
 
     def test_gap_overlapping_width_distance_second_inside_first(
         self: Self,
     ) -> None:
         """Return reduced value when second interval lies inside first."""
         d = gap_overlapping_width_distance(0.0, 10.0, 2.0, 8.0)
-        assert math.isclose(d, 0.4)  # overlap=6, width1=10: 1-0.6=0.4
+        # overlap=6, width=10: 1-0.6=0.4
+        assert math.isclose(d, 0.4, rel_tol=1e-6)
 
     def test_gap_overlapping_width_distance_symmetric(self: Self) -> None:
         """Be symmetric when swapping interval order."""

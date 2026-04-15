@@ -512,7 +512,7 @@ class TestPosterior:
         """
         simple_sim.prepare()
         post = simple_sim.compute_posterior(waterDepth_value=5.0)
-        # shallow [0,10] should dominate for bathy=5
+        # shallow [0,10] should dominate for waterDepth=5
         assert post["shallow"] > post["deep"]
 
     def test_combined_constraints(self: Self) -> None:
@@ -534,7 +534,7 @@ class TestPosterior:
             waterDepth_value=15.0, previous_environments=["A"]
         )
         assert math.isclose(sum(post.values()), 1.0)
-        # B [10,30] is best for bathy=15, and adjacent to A
+        # B [10,30] is best for waterDepth=15, and adjacent to A
         assert post["B"] > post["C"]
 
     def test_fallback_returns_valid_posterior(self: Self) -> None:
@@ -902,7 +902,7 @@ class TestCarbonatePlatformIntegration:
         # Basin [200, 1000] should dominate
         shallow_total = sum(
             post[n]
-            for n in ["Sabkha", "Shore", "Lagoon", "BackReef", "ReefCrest"]
+            for n in ["SupraTidal", "Shore", "Lagoon", "BackReef", "ReefCrest"]
         )
         assert sum((post["ShelfSlope"], post["Basin"])) > shallow_total
 
@@ -953,7 +953,7 @@ class TestCarbonatePlatformIntegration:
             "ReefCrest",
             "Shore",
             "OuterRamp",
-            "Sabkha",
+            "SupraTidal",
         ]
 
     def test_trend_in_carbonate_platform(
@@ -991,5 +991,5 @@ class TestCarbonatePlatformIntegration:
             "ForeReef",
             "Lagoon",
             "Shore",
-            "Sabkha",
+            "SupraTidal",
         ]

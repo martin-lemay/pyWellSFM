@@ -57,7 +57,9 @@ def gap_overlapping_width_distance(
 
     # if min==max for one of the intervals,
     # then we consider a distance of 0 if gap is 0.
-    if (max1 - min1 == 0.0 or max2 - min2 == 0.0) and d_gap == 0.0:
+    intervalWidth1 = max1 - min1
+    intervalWidth2 = max2 - min2
+    if (intervalWidth1 == 0.0 or intervalWidth2 == 0.0) and d_gap == 0.0:
         return 0.0
 
     # otherwise, get overlapping fraction
@@ -66,12 +68,8 @@ def gap_overlapping_width_distance(
     overlap_width = max(0.0, overlap_max - overlap_min)
     if overlap_width == 0.0:
         return 1.0  # just touching
-    # by default, first interval is the reference
-    den = max1 - min1
-    # but if one interval is fully contained in the other, use the width of the
-    # containing interval as reference
-    if min2 <= min1 and max2 >= max1:
-        den = max2 - min2
+    # use the wider interval as the reference
+    den = max(intervalWidth1, intervalWidth2)
     if den == 0.0:
         den = 1.0
     return 1.0 - overlap_width / den

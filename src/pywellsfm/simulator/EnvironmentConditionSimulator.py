@@ -56,9 +56,7 @@ class EnvironmentConditionSimulator:
             raise ValueError("Environment model is not set in the simulator.")
 
         env: DepositionalEnvironment | None = (
-            self.environmentModel.getEnvironmentByName(
-                environmentName
-            )
+            self.environmentModel.getEnvironmentByName(environmentName)
         )
         env_conds: dict[str, float] = {"waterDepth": float(waterDepth)}
         if env is not None:

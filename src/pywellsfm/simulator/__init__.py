@@ -14,6 +14,7 @@ from .AccumulationSimulator import AccumulationSimulator
 from .DepositionalEnvironmentSimulator import (
     DepositionalEnvironmentSimulator,
     DESimulatorParameters,
+    IntervalDistanceMethod,
 )
 from .EnvironmentConditionSimulator import EnvironmentConditionSimulator
 from .FSSimulator import FSSimulator, FSSimulatorParameters
@@ -27,4 +28,5 @@ __all__ = [
     "EnvironmentConditionSimulator",
     "FSSimulator",
     "FSSimulatorParameters",
+    "IntervalDistanceMethod",
 ]

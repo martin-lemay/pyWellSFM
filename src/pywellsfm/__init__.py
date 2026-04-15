@@ -36,6 +36,7 @@ from .simulator import (
     EnvironmentConditionSimulator,
     FSSimulator,
     FSSimulatorParameters,
+    IntervalDistanceMethod,
 )
 
 __version__ = "0.0.1"
@@ -63,6 +64,7 @@ __all__ = [
     "FaciesModel",
     "FSSimulator",
     "FSSimulatorParameters",
+    "IntervalDistanceMethod",
     "Marker",
     "PetrophysicalFacies",
     "RealizationData",

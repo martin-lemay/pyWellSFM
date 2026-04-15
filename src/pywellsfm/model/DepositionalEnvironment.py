@@ -3,6 +3,8 @@
 
 from typing import Any, Optional, Self
 
+import numpy as np
+
 from .EnvironmentConditionModel import (
     EnvironmentConditionModelStats,
     EnvironmentConditionModelUniform,
@@ -200,7 +202,10 @@ class DepositionalEnvironmentModel:
         :param str environmentName: name of the environment to check
         :return bool: True if the environment exists in the collection
         """
-        return any(env.name == environmentName for env in self.environments)
+        return any(
+            env.name.lower() == environmentName.lower()
+            for env in self.environments
+        )
 
     def removeEnvironment(
         self: Self, environmentNames: str | set[str]
@@ -212,7 +217,7 @@ class DepositionalEnvironmentModel:
         """
         if isinstance(environmentNames, str):
             for env in self.environments:
-                if env.name == environmentNames:
+                if env.name.lower() == environmentNames.lower():
                     self.environments.remove(env)
                     break
         elif isinstance(environmentNames, set):
@@ -231,7 +236,7 @@ class DepositionalEnvironmentModel:
             name, or None if not found
         """
         for env in self.environments:
-            if env.name == environmentName:
+            if env.name.lower() == environmentName.lower():
                 return env
         return None
 
@@ -277,15 +282,17 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
         ranges are parameterized based on input parameters.
         The list of pre-defined environmnets includes:
 
-        - Sabkha: supratidal zone where carbonate/salt precipitation may occur.
+        - Continent: terrestrial environment, above tidal limit.
+        - SupraTidal: supratidal zone where carbonate/salt precipitation may
+          occur.
         - Inner Ramp Upper Shoreface: 0 to fairweather wave-breaking depth,
-            where energy is high
+          where energy is high
         - Inner Ramp Lower Shoreface: fairweather wave-breaking depth to
-            fairweather wave-base where energy is lower than the shoreface zone
+          fairweather wave-base where energy is lower than the shoreface zone
         - Buildup: patch reefs and other buildups creating locally low
-            waterDepth () and high energy () environment.
+          waterDepth () and high energy () environment.
         - Outer Ramp: fairweather wave-base to storm wave-base (offshore zone),
-            where energy is low
+          where energy is low
         - Shelf Slope: Continental slope
         - Basin: Deep basin (intra-shelf or open ocean)
 
@@ -307,7 +314,14 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
         name = "Carbonate Open Ramp"
         environments = [
             DepositionalEnvironment(
-                name="Sabkha",
+                name="Continent",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", -np.inf, -tidal_range
+                ),
+                distality=-2.0,
+            ),
+            DepositionalEnvironment(
+                name="SupraTidal",
                 waterDepthModel=EnvironmentConditionModelUniform(
                     "waterDepth", -tidal_range, 0.0
                 ),
@@ -358,7 +372,7 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
                         ),
                     ]
                 ),
-                distality=0.0,
+                distality=0.1,  # on inner ramp but more distal than shoreline
             ),
             DepositionalEnvironment(
                 name="OuterRamp",
@@ -432,15 +446,17 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
         are parameterized based on input parameters.
         The list of pre-defined environmnets includes:
 
-        - Sabkha: supratidal zone where carbonate/salt precipitation may occur.
+        - Continent: terrestrial environment, above tidal limit.
+        - SupraTidal: supratidal zone where carbonate/salt precipitation may
+          occur.
         - Inner Ramp Upper Shoreface: 0 to fairweather wave-breaking depth,
-            where energy is high
+          where energy is high
         - Inner Ramp Lower Shoreface: fairweather wave-breaking depth to
-            fairweather wave-base where energy is lower than the shoreface zone
+          fairweather wave-base where energy is lower than the shoreface zone
         - Buildup: patch reefs and other buildups creating locally low
-            waterDepth () and high energy () environment.
+          waterDepth () and high energy () environment.
         - Outer Ramp: fairweather wave-base to storm wave-base (offshore zone),
-            where energy is low
+          where energy is low
         - Shelf Slope: Continental slope
         - Basin: Deep basin (intra-shelf or open ocean)
 
@@ -460,7 +476,14 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
         name = "Carbonate Protected Ramp"
         environments = [
             DepositionalEnvironment(
-                name="Sabkha",
+                name="Continent",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", -10000, -tidal_range
+                ),
+                distality=-2.0,
+            ),
+            DepositionalEnvironment(
+                name="SupraTidal",
                 waterDepthModel=EnvironmentConditionModelUniform(
                     "waterDepth", -tidal_range, 0.0
                 ),
@@ -517,7 +540,7 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
                         ),
                     ]
                 ),
-                distality=0.0,
+                distality=0.01,
             ),
             DepositionalEnvironment(
                 name="BackReef",
