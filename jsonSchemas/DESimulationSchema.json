@@ -57,10 +57,20 @@
                     "type": "number",
                     "exclusiveMinimum": 0
                 },
+                "waterDepth_weight": {
+                    "description": "Weight for the water depth likelihood (must be >= 0).",
+                    "type": "number",
+                    "minimum": 0
+                },
                 "transition_sigma": {
                     "description": "Standard deviation for transition likelihood (must be > 0).",
                     "type": "number",
                     "exclusiveMinimum": 0
+                },
+                "transition_weight": {
+                    "description": "Weight for the transition likelihood (must be >= 0).",
+                    "type": "number",
+                    "minimum": 0
                 },
                 "trend_sigma": {
                     "description": "Standard deviation for distality trend likelihood (must be > 0).",
@@ -72,13 +82,10 @@
                     "type": "integer",
                     "minimum": 2
                 },
-                "transition_mode": {
-                    "description": "Transition likelihood mode.",
-                    "type": "string",
-                    "enum": [
-                        "none",
-                        "adjacency"
-                    ]
+                "trend_weight": {
+                    "description": "Weight for the distality trend likelihood (must be >= 0).",
+                    "type": "number",
+                    "minimum": 0
                 },
                 "interval_distance_method": {
                     "description": "Method used to compute distance between waterDepth intervals.",

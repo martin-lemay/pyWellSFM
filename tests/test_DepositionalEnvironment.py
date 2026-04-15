@@ -322,16 +322,16 @@ def test_carbonate_open_ramp_default_environments() -> None:
     model = CarbonateOpenRampDepositionalEnvironmentModel()
 
     assert model.name == "Carbonate Open Ramp"
-    assert model.getEnvironmentCount() == 7
+    assert model.getEnvironmentCount() == 8
     assert model.environmentExists("SupraTidal")
     assert model.environmentExists("InnerRampUpperShoreface")
     assert model.environmentExists("Basin")
 
-    sabkha = model.getEnvironmentByName("SupraTidal")
+    supraTidal = model.getEnvironmentByName("SupraTidal")
     basin = model.getEnvironmentByName("Basin")
-    assert sabkha is not None
+    assert supraTidal is not None
     assert basin is not None
-    assert sabkha.waterDepth_range == (-2.0, 0.0)
+    assert supraTidal.waterDepth_range == (-2.0, 0.0)
     assert basin.waterDepth_range == (1000.0, 10000.0)
 
 
@@ -339,7 +339,7 @@ def test_carbonate_protected_ramp_default_environments() -> None:
     model = CarbonateProtectedRampDepositionalEnvironmentModel()
 
     assert model.name == "Carbonate Protected Ramp"
-    assert model.getEnvironmentCount() == 10
+    assert model.getEnvironmentCount() == 11
     assert model.environmentExists("Lagoon")
     assert model.environmentExists("ReefCrest")
     assert model.environmentExists("Basin")

@@ -359,7 +359,7 @@ class FSSimulator:
             # Choose adaptive time step (step duration)
             remaining = t - stop
             dt = self._adaptTimeStep(
-                t, accumulationRates, remaining, exactAges
+                t, waterDepth_t, accumulationRates, remaining, exactAges
             )
             t2 = self._getNewTime(t, dt)
 
@@ -481,6 +481,7 @@ class FSSimulator:
     def _adaptTimeStep(
         self: Self,
         t: float,
+        curWaterDepths: npt.NDArray[np.float64],
         rates: npt.NDArray[np.float64],
         remaining: float,
         exactAges: set[float],
@@ -491,6 +492,8 @@ class FSSimulator:
         and waterDepth change allowed.
 
         :param float t: current time.
+        :param npt.NDArray[np.float64] curWaterDepths: current water depth for
+            each realization.
         :param npt.NDArray[np.float64] rates: deposition rates for each
             realization.
         :param float remaining: remaining time to stop.
@@ -563,7 +566,8 @@ class FSSimulator:
             dt = dt_hi
         else:
             # Binary search for optimal dt between dt_lo and dt_hi
-            dt = self._binarySearchForOptimalDt(t, rates, dt_lo, dt_hi)
+            dt = self._binarySearchForOptimalDt(
+                t, curWaterDepths, rates, dt_lo, dt_hi)
 
         # Apply safety factor
         dt = float(
@@ -695,6 +699,7 @@ class FSSimulator:
     def _binarySearchForOptimalDt(
         self: Self,
         t: float,
+        curWaterDepths: npt.NDArray[np.float64],
         rates: npt.NDArray[np.float64],
         dt_lo: float,
         dt_hi: float,
@@ -702,6 +707,8 @@ class FSSimulator:
         """Binary search for optimal time step between dt_lo and dt_hi.
 
         :param float t: current time.
+        : param npt.NDArray[np.float64] curWaterDepths: current water depth for
+            each realization.
         :param npt.NDArray[np.float64] rates: deposition rates at time t.
         :param float dt_lo: lower bound for time step.
         :param float dt_hi: upper bound for time step.
@@ -712,7 +719,14 @@ class FSSimulator:
         hi = dt_hi
         for _ in range(40):
             mid = 0.5 * (lo + hi)
-            if self._computeMaxWaterDepthChange(t, rates, mid) <= max_change:
+            deltaWD = self._computeMaxWaterDepthChange(t, rates, mid)
+            newWds = curWaterDepths + deltaWD
+            changeWaterDepthSign = np.all(
+                np.sign(newWds) == np.sign(curWaterDepths)
+            )
+            if (deltaWD <= max_change
+                and changeWaterDepthSign
+            ):
                 lo = mid
             else:
                 hi = mid

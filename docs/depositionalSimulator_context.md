@@ -288,7 +288,6 @@ class EnvironmentDefinition:
 @dataclass(frozen=True)
 class SimulatorParameters:
   waterDepth_sigma: float = 1.0
-  transition_mode: Literal["none", "adjacency"] = "adjacency"
   ordered_environments: tuple[str, ...] | None = None
   trend_window: int = 5
   trend_sigma: float = 1.0
@@ -347,7 +346,6 @@ Data model
 
 - `DESimulatorParameters`
   - `waterDepth_sigma: float` (controls strength/tolerance of the waterDepth likelihood)
-  - `transition_mode: Literal["none","adjacency"]`
   - `transition_sigma: float` (controls strength/tolerance of the transition likelihood)
   - `trend_window: int` (history window length used to estimate distality slope)
   - `trend_sigma: float` (controls strength/tolerance of the trend likelihood)

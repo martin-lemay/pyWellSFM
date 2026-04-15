@@ -506,11 +506,12 @@ class DepositionalEnvironmentSimulator:
         # waterDepth range.
         sigma = self._params.waterDepth_sigma
 
+        obs_min: float = 0.0
+        obs_max: float = 0.0
         if waterDepth_value is not None:
             obs_min = obs_max = waterDepth_value
         else:
-            assert waterDepth_range is not None
-            obs_min, obs_max = waterDepth_range
+            obs_min, obs_max = waterDepth_range # type: ignore[assignment]
 
         result: dict[str, float] = {}
         for env in self._environments.values():
@@ -522,18 +523,10 @@ class DepositionalEnvironmentSimulator:
                 method=self._params.interval_distance_method,
             )
             # split purely onshore from purely offshore facies
-            if (
-                waterDepth_value is not None
-                and waterDepth_value > 0
-                and env.waterDepth_max <= 0
-            ):
+            if (obs_min > 0 and env.waterDepth_max <= 0):
                 # set delta to inf for environments with max waterDepth <= 0
                 delta = float("inf")
-            elif (
-                waterDepth_value is not None
-                and waterDepth_value < 0
-                and env.waterDepth_min >= 0
-            ):
+            elif (obs_max < 0 and env.waterDepth_min >= 0):
                 # set delta to inf for environments with min waterDepth >= 0
                 delta = float("inf")
             res = self._gaussian_kernel(delta, sigma)
@@ -552,8 +545,7 @@ class DepositionalEnvironmentSimulator:
     ) -> dict[str, float]:
         """Compute transition (adjacency) likelihood.
 
-        When *previous_environment* is ``None`` or
-        :attr:`params.transition_mode` is ``"none"``, all likelihoods
+        When *previous_environment* is ``None`` all likelihoods
         are 1 (unconstrained).
 
         The likelihood is a Gaussian kernel on the combined distance of
@@ -606,7 +598,9 @@ class DepositionalEnvironmentSimulator:
 
             # add distality term
             distalityDelta = 0.0
-            if self._distality_by_environment is not None:
+            if (self._distality_by_environment is not None and
+                prev.name in self._distality_by_environment and
+                env.name in self._distality_by_environment):
                 distalityDelta = abs(
                     self._distality_by_environment[prev.name]
                     - self._distality_by_environment[env.name]
@@ -1031,39 +1025,21 @@ class DepositionalEnvironmentSimulator:
             sampling.
         :returns: ``(posterior, sampled_environment)``.
         """
-        # water depth not in the range of any environment, return None
-        if waterDepth_value is not None and (
-            waterDepth_value
-            < min(env.waterDepth_min for env in self._environments.values())
-            or waterDepth_value
-            > max(env.waterDepth_max for env in self._environments.values())
-        ):
-            return dict.fromkeys(self._names, 0.0), None
-
-        # water depth much lower than max range of shallower environment,
-        # return shallower environment
-        sortedEnvsMaxWD = sorted(
-            self._environments.values(), key=lambda e: e.waterDepth_max
-        )
-        threshold = 0.5 * self._params.waterDepth_sigma
-        if (
-            waterDepth_value is not None
-            and waterDepth_value
-            < sortedEnvsMaxWD[0].waterDepth_max - threshold
-        ):
-            return dict.fromkeys(self._names, 0.0), sortedEnvsMaxWD[0]
-
-        # water depth much higher than min range of deeper environment,
-        # return deeper environment
-        sortedEnvsMinWD = sorted(
-            self._environments.values(), key=lambda e: e.waterDepth_min
-        )
-        if (
-            waterDepth_value is not None
-            and waterDepth_value
-            > sortedEnvsMinWD[-1].waterDepth_min + threshold
-        ):
-            return dict.fromkeys(self._names, 0.0), sortedEnvsMinWD[-1]
+        # water depth not in the range of any environment, return None for
+        # constrained case
+        if waterDepth_value is not None or waterDepth_range is not None:
+            obs_min: float = 0.0
+            obs_max: float = 0.0
+            if waterDepth_value is not None:
+                obs_min = obs_max = waterDepth_value
+            else:
+                obs_min, obs_max = waterDepth_range # type: ignore[assignment]
+            if (obs_min < min(env.waterDepth_min
+                            for env in self._environments.values())
+                or obs_max > max(env.waterDepth_max
+                                for env in self._environments.values())
+            ):
+                return dict.fromkeys(self._names, 0.0), None
 
         posterior = self.compute_posterior(
             waterDepth_value=waterDepth_value,

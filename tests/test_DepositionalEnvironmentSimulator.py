@@ -290,22 +290,6 @@ class TestTransitionLikelihood:
         for v in lik.values():
             assert v == 1.0
 
-    def test_mode_none(
-        self: Self, simple_envs: DepositionalEnvironmentModel
-    ) -> None:
-        """Test transition mode `none` disables transition weighting.
-
-        Args:
-            simple_envs (DepositionalEnvironmentModel): Environments fixture.
-        """
-        sim = DepositionalEnvironmentSimulator(
-            simple_envs,
-            params=DESimulatorParameters(transition_mode="none"),
-        )
-        lik = sim.compute_transition_likelihood("shallow")
-        for v in lik.values():
-            assert v == 1.0
-
     def test_same_env_highest(
         self: Self, simple_sim: DepositionalEnvironmentSimulator
     ) -> None:
@@ -404,7 +388,7 @@ class TestDistalityTrendLikelihood:
         sim = DepositionalEnvironmentSimulator(
             simple_envs2,
             params=DESimulatorParameters(
-                transition_mode="none",
+                transition_weight=0.0,  # disable transition influence
                 trend_sigma=0.2,
                 trend_window=5,
             ),
@@ -426,7 +410,7 @@ class TestDistalityTrendLikelihood:
         sim = DepositionalEnvironmentSimulator(
             simple_envs2,
             params=DESimulatorParameters(
-                transition_mode="none",
+                transition_weight=0.0,  # disable transition influence
                 trend_sigma=0.2,
                 trend_window=2,
             ),
@@ -457,7 +441,7 @@ class TestDistalityTrendLikelihood:
         sim = DepositionalEnvironmentSimulator(
             DepositionalEnvironmentModel("simple5_copy", envs_copy),
             params=DESimulatorParameters(
-                transition_mode="none",
+                transition_weight=0.0,  # disable transition influence
                 trend_sigma=0.2,
                 trend_window=2,
             ),
@@ -568,7 +552,7 @@ class TestPosterior:
         sim = DepositionalEnvironmentSimulator(
             simple_envs2,
             params=DESimulatorParameters(
-                transition_mode="none",
+                transition_weight=0.0,  # disable transition influence
                 trend_sigma=0.5,
                 trend_window=5,
             ),
@@ -734,7 +718,10 @@ class TestRun:
         )
 
         for name in simple_sim.environment_names:
-            assert math.isclose(posterior[name], manual_posterior[name])
+            assert math.isclose(posterior[name], manual_posterior[name]), (
+                f"Posterior mismatch for environment '{name}'"
+            )
+        assert result is not None
         assert result.name == manual_result
 
     def test_run_is_deterministic_with_seed(
@@ -761,7 +748,7 @@ class TestRun:
         sim = DepositionalEnvironmentSimulator(
             simple_envs2,
             params=DESimulatorParameters(
-                transition_mode="none",
+                transition_weight=0.0,  # disable transition influence
                 trend_sigma=0.2,
                 trend_window=2,
             ),
@@ -772,6 +759,7 @@ class TestRun:
             seed=123,
         )
         assert math.isclose(sum(posterior.values()), 1.0)
+        assert result is not None
         assert result.name in sim.environment_names
 
 
@@ -793,7 +781,6 @@ class TestSimulationIO:
                 transition_sigma=9.0,
                 trend_sigma=0.5,
                 trend_window=4,
-                transition_mode="adjacency",
                 interval_distance_method=IntervalDistanceMethod.CENTER,
             ),
         )
@@ -806,7 +793,6 @@ class TestSimulationIO:
         assert loaded.params.transition_sigma == 9.0
         assert loaded.params.trend_sigma == 0.5
         assert loaded.params.trend_window == 4
-        assert loaded.params.transition_mode == "adjacency"
         assert (
             loaded.params.interval_distance_method
             == IntervalDistanceMethod.CENTER
@@ -921,6 +907,7 @@ class TestCarbonatePlatformIntegration:
             seed=42,
         )
         assert math.isclose(sum(posterior.values()), 1.0)
+        assert result is not None
         assert result.name in sim.environment_names
 
     def test_main_env_in_carbonate_platform(
@@ -939,6 +926,7 @@ class TestCarbonatePlatformIntegration:
                 previous_environments=["ReefCrest"],
                 seed=i,
             )
+            assert result is not None
             results_all.append(result.name)
         counts = np.unique_counts(results_all)
 
@@ -947,13 +935,8 @@ class TestCarbonatePlatformIntegration:
         print(sorted_values)
         assert sorted_values.tolist() == [
             "ForeReef",
-            "Buildup",
             "Lagoon",
-            "BackReef",
-            "ReefCrest",
-            "Shore",
-            "OuterRamp",
-            "SupraTidal",
+            "Buildup"
         ]
 
     def test_trend_in_carbonate_platform(
@@ -978,6 +961,7 @@ class TestCarbonatePlatformIntegration:
                 ],
                 seed=i,
             )
+            assert result is not None
             results_all.append(result.name)
         counts = np.unique_counts(results_all)
 
@@ -986,10 +970,7 @@ class TestCarbonatePlatformIntegration:
         print(sorted_values)
         assert sorted_values.tolist() == [
             "ReefCrest",
-            "BackReef",
-            "Buildup",
             "ForeReef",
-            "Lagoon",
-            "Shore",
-            "SupraTidal",
+            "BackReef",
+            "Buildup"
         ]

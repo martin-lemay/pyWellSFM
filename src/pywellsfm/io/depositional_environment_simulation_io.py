@@ -36,10 +36,12 @@ def loadSimulatorParametersFromJsonObj(
         obj=obj,
         allowed_keys={
             "waterDepth_sigma",
+            "waterDepth_weight",
             "transition_sigma",
+            "transition_weight",
             "trend_sigma",
             "trend_window",
-            "transition_mode",
+            "trend_weight",
             "interval_distance_method",
         },
         ctx="DESimulation.params",
@@ -64,14 +66,14 @@ def loadSimulatorParametersFromJsonObj(
             )
         kwargs["trend_window"] = trend_window_raw
 
-    transition_mode_raw = obj.get("transition_mode")
-    if transition_mode_raw is not None:
-        if transition_mode_raw not in {"none", "adjacency"}:
-            raise ValueError(
-                "DESimulation.params.transition_mode must be one of: "
-                "'none', 'adjacency'."
+    for key in ["waterDepth_weight", "transition_weight", "trend_weight"]:
+        val = obj.get(key)
+        if val is not None:
+            if not isinstance(val, (int, float)):
+                raise ValueError(
+                    f"DESimulation.params.{key} must be a number."
             )
-        kwargs["transition_mode"] = transition_mode_raw
+            kwargs[key] = float(val)
 
     interval_method_raw = obj.get("interval_distance_method")
     if interval_method_raw is not None:
@@ -93,31 +95,18 @@ def loadSimulatorParametersFromJsonObj(
 
     return DESimulatorParameters(**kwargs)
 
-
-def simulatorWeightsToJsonObj(
-    params: DESimulatorParameters,
-) -> dict[str, Any]:
-    """Serialize simulator weights to JSON object."""
-    return {
-        "waterDepth_sigma": float(params.waterDepth_sigma),
-        "transition_sigma": float(params.transition_sigma),
-        "trend_sigma": float(params.trend_sigma),
-        "trend_window": int(params.trend_window),
-        "transition_mode": str(params.transition_mode),
-        "interval_distance_method": str(params.interval_distance_method),
-    }
-
-
 def simulatorParametersToJsonObj(
     params: DESimulatorParameters,
 ) -> dict[str, Any]:
     """Serialize simulator parameters to JSON object."""
     return {
         "waterDepth_sigma": float(params.waterDepth_sigma),
+        "waterDepth_weight": float(params.waterDepth_weight),
         "transition_sigma": float(params.transition_sigma),
+        "transition_weight": float(params.transition_weight),
         "trend_sigma": float(params.trend_sigma),
         "trend_window": int(params.trend_window),
-        "transition_mode": str(params.transition_mode),
+        "trend_weight": float(params.trend_weight),
         "interval_distance_method": str(params.interval_distance_method),
     }
 

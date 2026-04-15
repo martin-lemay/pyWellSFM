@@ -461,7 +461,6 @@ def test_loadFSSimulation_from_json_with_desimulator(tmp_path: Path) -> None:
             "transition_sigma": 9.0,
             "trend_sigma": 0.5,
             "trend_window": 4,
-            "transition_mode": "adjacency",
             "interval_distance_method": "center",
         },
     }
