@@ -5,15 +5,8 @@ version: 2
 
 build:
   os: ubuntu-24.04
-  apt_packages:
-  - npm
   tools:
-    nodejs: "16"
     python: "3.13"
-  jobs:
-    post_install:
-    - npm install -g npm@9.8.1
-    - npm install -g @mermaid-js/mermaid-cli@10.3.1
 
 # Set requirements to build the docs
 python:
