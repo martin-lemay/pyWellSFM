@@ -15,12 +15,15 @@ This page is built from the following Python modules:
 * ``AccommodationSpaceWellCalculator.py`` (``pywellsfm.model.AccommodationSpaceWellCalculator``)
 * ``AccumulationModel.py`` (``pywellsfm.model.AccumulationModel``)
 * ``Curve.py`` (``pywellsfm.model.Curve``)
+* ``DepositionalEnvironment.py`` (``pywellsfm.model.DepositionalEnvironment``)
 * ``DepthAgeModel.py`` (``pywellsfm.model.DepthAgeModel``)
 * ``Element.py`` (``pywellsfm.model.Element``)
+* ``EnvironmentConditionModel.py`` (``pywellsfm.model.EnvironmentConditionModel``)
 * ``Facies.py`` (``pywellsfm.model.Facies``)
 * ``Marker.py`` (``pywellsfm.model.Marker``)
-* ``FSSimulatorParameters.py`` (``pywellsfm.model.FSSimulatorParameters``)
+* ``FSSimulationParameters.py`` (``pywellsfm.model.FSSimulationParameters``)
 * ``Well.py`` (``pywellsfm.model.Well``)
+* ``enums.py`` (``pywellsfm.model.enums``)
 
 API reference
 -------------
@@ -67,6 +70,12 @@ API reference
    :show-inheritance:
    :no-index:
 
+.. automodule:: pywellsfm.model.EnvironmentConditionModel
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
 .. automodule:: pywellsfm.model.Facies
    :members:
    :undoc-members:
@@ -80,6 +89,12 @@ API reference
    :no-index:
 
 .. automodule:: pywellsfm.model.FSSimulationParameters
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. automodule:: pywellsfm.model.enums
    :members:
    :undoc-members:
    :show-inheritance:

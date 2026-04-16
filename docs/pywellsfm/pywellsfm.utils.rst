@@ -10,13 +10,13 @@ Files documented
 
 This page is built from the following Python modules:
 
-* ``__init__.py`` (``pywellsfm.utils``)
+* ``geometry.py`` (``pywellsfm.utils.geometry``)
 * ``helpers.py`` (``pywellsfm.utils.helpers``)
 
 API reference
 -------------
 
-.. automodule:: pywellsfm.utils
+.. automodule:: pywellsfm.utils.geometry
    :members:
    :undoc-members:
    :show-inheritance:

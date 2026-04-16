@@ -708,7 +708,7 @@ class FSSimulator:
         """Binary search for optimal time step between dt_lo and dt_hi.
 
         :param float t: current time.
-        : param npt.NDArray[np.float64] curWaterDepths: current water depth for
+        :param npt.NDArray[np.float64] curWaterDepths: current water depth for
             each realization.
         :param npt.NDArray[np.float64] rates: deposition rates at time t.
         :param float dt_lo: lower bound for time step.

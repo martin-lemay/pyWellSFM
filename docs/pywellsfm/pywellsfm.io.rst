@@ -14,6 +14,9 @@ This page is built from the following Python modules:
 * ``_common.py`` (``pywellsfm.io._common``)
 * ``accumulation_model_io.py`` (``pywellsfm.io.accumulation_model_io``)
 * ``curve_io.py`` (``pywellsfm.io.curve_io``)
+* ``depositional_environment_model_io.py`` (``pywellsfm.io.depositional_environment_model_io``)
+* ``depositional_environment_simulation_io.py`` (``pywellsfm.io.depositional_environment_simulation_io``)
+* ``environment_condition_model_io.py`` (``pywellsfm.io.environment_condition_model_io``)
 * ``facies_model_io.py`` (``pywellsfm.io.facies_model_io``)
 * ``json_schema_validation.py`` (``pywellsfm.io.json_schema_validation``)
 * ``fssimulation_io.py`` (``pywellsfm.io.fssimulation_io``)
@@ -40,6 +43,21 @@ API reference
    :show-inheritance:
 
 .. automodule:: pywellsfm.io.curve_io
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pywellsfm.io.depositional_environment_model_io
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pywellsfm.io.depositional_environment_simulation_io
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pywellsfm.io.environment_condition_model_io
    :members:
    :undoc-members:
    :show-inheritance:
