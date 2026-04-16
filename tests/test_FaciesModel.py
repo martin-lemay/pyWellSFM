@@ -14,6 +14,8 @@ from typing import Any
 
 import pytest
 
+from pywellsfm.utils.logging_utils import get_stored_logs
+
 m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
@@ -221,9 +223,7 @@ def test_FaciesCriteriaCollection_init_defaults() -> None:
     assert col.getCriteriaCount() == 0
 
 
-def test_FaciesCriteriaCollection_addCriteria_single_and_duplicate(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_FaciesCriteriaCollection_addCriteria_single_and_duplicate() -> None:
     """Test addCriteria with single and duplicate criteria.
 
     Objective:
@@ -238,7 +238,7 @@ def test_FaciesCriteriaCollection_addCriteria_single_and_duplicate(
     col = FaciesCriteriaCollection()
     col.addCriteria(FaciesCriteria(name="Porosity"))
     col.addCriteria(FaciesCriteria(name="Porosity"))
-    out = capsys.readouterr().out
+    out = get_stored_logs()[-1]["message"]
     assert col.getCriteriaCount() == 1
     assert "already exists" in out
 
@@ -303,9 +303,7 @@ def test_FaciesCriteriaCollection_criteriaIsAllowed_rules() -> None:
     assert not col.criteriaIsAllowed(env)
 
 
-def test_FaciesCriteriaCollection_addCriteria_disallowed_type_is_ignored(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_FCC_addCriteria_disallowed_type_is_ignored()->None:
     """Test addCriteria ignores disallowed criterion types.
 
     Objective:
@@ -326,7 +324,7 @@ def test_FaciesCriteriaCollection_addCriteria_disallowed_type_is_ignored(
             name="WaterDepth", type=FaciesCriteriaType.ENVIRONMENTAL
         )
     )
-    out = capsys.readouterr().out
+    out = get_stored_logs()[-1]["message"]
     assert col.getCriteriaCount() == 0
     assert "is not allowed" in out
 
@@ -575,9 +573,7 @@ def test_FaciesModel_getCriteriaRangeForFacies_happy_path() -> None:
     assert model.getCriteriaRangeForFacies("A", "Gamma") == (10.0, 20.0)
 
 
-def test_FM_getCriteriaRangeForFacies_missing_facies_prints_and_returns_none(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_FM_getCriteriaRangeForFacies_missing_facies_returns_none() -> None:
     """Test FaciesModel getCriteriaRangeForFacies when facies is missing.
 
     Objective:
@@ -591,13 +587,11 @@ def test_FM_getCriteriaRangeForFacies_missing_facies_prints_and_returns_none(
     """
     model = FaciesModel(faciesSet=set())
     assert model.getCriteriaRangeForFacies("Missing", "Gamma") is None
-    out = capsys.readouterr().out
+    out = get_stored_logs()[-1]["message"]
     assert "not found" in out
 
 
-def test_FM_getCriteriaRangeForFacies_missing_criteria_prints_and_returns_none(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_FM_getCriteriaRangeForFacies_missing_criteria_returns_none() -> None:
     """Test FaciesModel getCriteriaRangeForFacies when criterion is missing.
 
     Objective:
@@ -612,7 +606,7 @@ def test_FM_getCriteriaRangeForFacies_missing_criteria_prints_and_returns_none(
     f1 = Facies("A", FaciesCriteria("Other"))
     model = FaciesModel(faciesSet={f1})
     assert model.getCriteriaRangeForFacies("A", "Gamma") is None
-    out = capsys.readouterr().out
+    out = get_stored_logs()[-1]["message"]
     assert "Criteria with name" in out
 
 
