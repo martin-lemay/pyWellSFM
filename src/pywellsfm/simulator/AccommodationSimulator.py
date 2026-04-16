@@ -7,6 +7,9 @@ from typing import Self
 import numpy as np
 
 from pywellsfm.model import Curve, SubsidenceType
+from pywellsfm.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -101,13 +104,15 @@ class AccommodationSimulator:
             self.subsidenceCurve = Curve(
                 "Time", "Subsidence", np.array([0, 1]), np.array([0.0, 0.0])
             )
-            print("Subsidence curve not set. There is no subsidence.")
+            logger.info("Subsidence curve not set. There is no subsidence.")
         if self.eustaticCurve is None:
             # if no eustatic curve, consider no variations
             self.eustaticCurve = Curve(
                 "Time", "Eustacy", np.array([0, 1]), np.array([0.0, 0.0])
             )
-            print("Eustatic curve not set. There is no sea level variation.")
+            logger.info(
+                "Eustatic curve not set. There is no sea level variation."
+            )
         self.eustatismStart = self.getEustatismAt(0.0)
 
     def getEustatismAt(self: Self, age: float) -> float:

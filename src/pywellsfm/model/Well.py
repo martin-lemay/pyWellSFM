@@ -7,9 +7,13 @@ import numpy as np
 import numpy.typing as npt
 from striplog import Striplog
 
+from pywellsfm.utils import get_logger
+
 from .Curve import Curve
 from .DepthAgeModel import DepthAgeModel
 from .Marker import Marker
+
+logger = get_logger(__name__)
 
 
 class Well:
@@ -168,18 +172,17 @@ class Well:
         :param Curve | Striplog log: input log
         """
         if logName in self._logs:
-            print(
-                f"WARNING: log {logName} is already in the list of logs, the "
-                + "log will be erased."
+            logger.warning(
+                "Log %s is already in the list of logs; it will be erased.",
+                logName,
             )
         if isinstance(log, Striplog):
             self._addDiscreteLog(logName, log)
         elif isinstance(log, Curve):
             self._addContinuousLog(logName, log)
         else:
-            print(
-                "ERROR: Log type is not managed. Use either Curve or"
-                " Striplog types."
+            logger.error(
+                "Log type is not managed. Use either Curve or Striplog types."
             )
 
     def addAgeLog(self: Self, logName: str, log: Curve | Striplog) -> None:
@@ -192,9 +195,10 @@ class Well:
         :param Curve | Striplog log: input log
         """
         if logName in self._ageLogs:
-            print(
-                f"WARNING: age log {logName} is already in the list of age "
-                + "logs, the log will be erased."
+            logger.warning(
+                "Age log %s is already in the list of age logs; it will be "
+                "erased.",
+                logName,
             )
         self._ageLogs[logName] = log
 

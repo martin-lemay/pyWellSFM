@@ -22,6 +22,17 @@ from .helpers import (
     PolynomialInterpolator,
     UpperBoundInterpolator,
 )
+from .logging_utils import (
+    clear_stored_logs,
+    configure_logging,
+    export_stored_logs,
+    export_stored_logs_to_json_file,
+    export_stored_logs_to_text_file,
+    get_logger,
+    get_stored_log_messages,
+    get_stored_logs,
+    set_log_level,
+)
 
 __all__ = [
     "center_distance",
@@ -36,4 +47,13 @@ __all__ = [
     "PolynomialInterpolator",
     "UpperBoundInterpolator",
     "wasserstein2_distance",
+    "clear_stored_logs",
+    "configure_logging",
+    "export_stored_logs",
+    "export_stored_logs_to_json_file",
+    "export_stored_logs_to_text_file",
+    "get_logger",
+    "get_stored_log_messages",
+    "get_stored_logs",
+    "set_log_level",
 ]

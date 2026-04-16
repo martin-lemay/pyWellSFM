@@ -5,11 +5,15 @@ from typing import Any, Optional, Self
 
 import numpy as np
 
+from pywellsfm.utils import get_logger
+
 from .EnvironmentConditionModel import (
     EnvironmentConditionModelStats,
     EnvironmentConditionModelUniform,
     EnvironmentConditionsModel,
 )
+
+logger = get_logger(__name__)
 
 
 class DepositionalEnvironment:
@@ -181,9 +185,10 @@ class DepositionalEnvironmentModel:
         """
         if isinstance(environment, DepositionalEnvironment):
             if self.environmentExists(environment.name):
-                print(
-                    f"Environment with name '{environment.name}' already "
-                    f"exists, cannot add a duplicate."
+                logger.warning(
+                    "Environment with name '%s' already exists; cannot add "
+                    "a duplicate.",
+                    environment.name,
                 )
                 return
             self.environments.append(environment)

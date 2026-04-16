@@ -1,5 +1,7 @@
 """PyWellSFM public API."""
 
+import logging
+
 from .io import validate_json_file_against_schema
 from .model import (
     AccommodationSpaceWellCalculator,
@@ -38,6 +40,17 @@ from .simulator import (
     FSSimulatorParameters,
     IntervalDistanceMethod,
 )
+from .utils.logging_utils import (
+    clear_stored_logs,
+    configure_logging,
+    export_stored_logs,
+    export_stored_logs_to_json_file,
+    export_stored_logs_to_text_file,
+    get_logger,
+    get_stored_log_messages,
+    get_stored_logs,
+    set_log_level,
+)
 
 __version__ = "0.0.1"
 __all__ = [
@@ -74,5 +87,17 @@ __all__ = [
     "SubsidenceType",
     "UncertaintyCurve",
     "Well",
+    "clear_stored_logs",
+    "configure_logging",
+    "export_stored_logs",
+    "export_stored_logs_to_json_file",
+    "export_stored_logs_to_text_file",
+    "get_logger",
+    "get_stored_log_messages",
+    "get_stored_logs",
+    "set_log_level",
     "validate_json_file_against_schema",
 ]
+
+
+configure_logging(level=logging.INFO, enable_console=True)

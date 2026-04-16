@@ -51,6 +51,9 @@ from pywellsfm.simulator.DepositionalEnvironmentSimulator import (
     DESimulatorParameters,
 )
 from pywellsfm.simulator.FSSimulator import FSSimulator, FSSimulatorParameters
+from pywellsfm.utils.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def loadRealizationData(filepath: str) -> RealizationData:
@@ -170,7 +173,7 @@ def _loadRealizationDataFromJsonObj(
                 "RealizationData.subsidenceCurve.type must be either "
                 "'cumulative' or 'rate'."
             )
-        print(curve_obj)
+        logger.debug("RealizationData subsidence curve payload: %s", curve_obj)
         subsidence_curve = load_inline_or_url(
             curve_obj,
             base_dir=base_dir,

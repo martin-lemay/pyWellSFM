@@ -30,6 +30,9 @@ from pywellsfm.io.json_schema_validation import (
 from pywellsfm.model.Curve import Curve
 from pywellsfm.model.Marker import Marker, StratigraphicSurfaceType
 from pywellsfm.model.Well import Well
+from pywellsfm.utils.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def wellToJsonObj(well: Well) -> dict[str, Any]:
@@ -163,7 +166,6 @@ def wellToJsonObj(well: Well) -> dict[str, Any]:
 
 
 def _parse_stratigraphic_type(raw: Any) -> StratigraphicSurfaceType:  # noqa: ANN401
-    # print("Debug: Parsing stratigraphic type from raw value:", raw)
     if not isinstance(raw, str) or raw.strip() == "":
         return StratigraphicSurfaceType.UNKNOWN
 
@@ -173,9 +175,10 @@ def _parse_stratigraphic_type(raw: Any) -> StratigraphicSurfaceType:  # noqa: AN
         if member.value.lower() == value.lower():
             return member
 
-    print(
-        f"Warning: unknown StratigraphicSurfaceType value '{value}', "
-        "defaulting to 'Unknown'."
+    logger.warning(
+        "Unknown StratigraphicSurfaceType value '%s', defaulting to "
+        "'Unknown'.",
+        value,
     )
     return StratigraphicSurfaceType.UNKNOWN
 
@@ -462,9 +465,10 @@ def loadWellFromJsonObj(
             elif xaxisName.lower() == "age":
                 well.addAgeLog(str(log_name), curve)
             else:
-                print(
-                    f"Warning: Curve xAxisName '{xaxisName}' not recognized, "
-                    "adding as depth log."
+                logger.warning(
+                    "Curve xAxisName '%s' not recognized, adding as depth "
+                    "log.",
+                    xaxisName,
                 )
                 well.addLog(str(log_name), curve)
     return well

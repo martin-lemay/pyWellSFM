@@ -6,7 +6,11 @@ from typing import Self
 
 import numpy as np
 
+from pywellsfm.utils import get_logger
+
 from .Curve import AccumulationCurve
+
+logger = get_logger(__name__)
 
 
 class AccumulationModelElementBase(ABC):
@@ -100,26 +104,26 @@ class AccumulationModelCombination(AccumulationModelElementBase):
             reference accumulation rate), False otherwise.
         """
         if len(self.models) == 0:
-            print("Warning: no accumulation model in the combination.")
+            logger.warning("No accumulation model in the combination.")
             return False
 
         # check list of elementName in models is consistent
         elementNames = [model.elementName for model in self.models]
         if len(set(elementNames)) != 1:
-            print(
-                "Warning: the models in the combination have different "
-                f"element names: {set(elementNames)}. This may lead to a "
-                + "meaningless combination."
+            logger.warning(
+                "The models in the combination have different element "
+                "names: %s. This may lead to a meaningless combination.",
+                set(elementNames),
             )
         self.elementName = elementNames[0]
 
         # check reference accumulation rates are consistent
         accumulationRates = [model.accumulationRate for model in self.models]
         if len(set(accumulationRates)) != 1:
-            print(
-                "Warning: the models in the combination have different "
-                "reference accumulation rates. This may lead to a "
-                + "meaningless combination."
+            logger.warning(
+                "The models in the combination have different reference "
+                "accumulation rates. This may lead to a meaningless "
+                "combination."
             )
         self.accumulationRate = float(np.mean(accumulationRates))
         return True

@@ -6,7 +6,11 @@ from typing import Optional, Self
 
 import numpy as np
 
+from pywellsfm.utils import get_logger
+
 from .Curve import Curve
+
+logger = get_logger(__name__)
 
 
 class EnvironmentConditionModelBase(ABC):
@@ -398,19 +402,19 @@ class EnvironmentConditionModelCombination(EnvironmentConditionModelBase):
             (name and reference environment condition), False otherwise.
         """
         if len(self.models) == 0:
-            print(
-                "Warning: no environment condition model in the "
-                + " combination."
+            logger.warning(
+                "No environment condition model in the combination."
             )
             return False
 
         # check list of env condition name in models is consistent
         envCondNames = [model.envConditionName for model in self.models]
         if len(set(envCondNames)) != 1:
-            print(
-                "Warning: the models in the combination have different "
-                f"environment condition names: {set(envCondNames)}. "
-                + "This may lead to a meaningless combination."
+            logger.warning(
+                "The models in the combination have different environment "
+                "condition names: %s. This may lead to a meaningless "
+                "combination.",
+                set(envCondNames),
             )
         self.envConditionName = envCondNames[0]
 
@@ -424,24 +428,24 @@ class EnvironmentConditionModelCombination(EnvironmentConditionModelBase):
             model.getReferenceValue() for model in statModels
         ]
         if len(set(referenceEnvConditions)) != 1:
-            print(
-                "Warning: the stat models in the combination have different "
+            logger.warning(
+                "The stat models in the combination have different "
                 "reference environment conditions. This may lead to a "
-                + "meaningless combination."
+                "meaningless combination."
             )
         minValues = [model.minValue for model in statModels]
         if len(set(minValues)) != 1:
-            print(
-                "Warning: the stat models in the combination have different "
-                "minimum environment conditions. This may lead to a "
-                + "meaningless combination."
+            logger.warning(
+                "The stat models in the combination have different minimum "
+                "environment conditions. This may lead to a meaningless "
+                "combination."
             )
         maxValues = [model.maxValue for model in statModels]
         if len(set(maxValues)) != 1:
-            print(
-                "Warning: the stat models in the combination have different "
-                "maximum environment conditions. This may lead to a "
-                + "meaningless combination."
+            logger.warning(
+                "The stat models in the combination have different maximum "
+                "environment conditions. This may lead to a meaningless "
+                "combination."
             )
         self._referenceEnvCondition = float(np.mean(referenceEnvConditions))
         return True
@@ -524,10 +528,11 @@ class EnvironmentConditionsModel:
             to add.
         """
         if self.isEnvironmentConditionModelPresent(name):
-            print(
-                f"Environment condition model '{name}' is already present, "
-                + "it will be overwritten. You may use a composite model to "
-                + "combine multiple models for the same condition if needed."
+            logger.warning(
+                "Environment condition model '%s' is already present and "
+                "will be overwritten. You may use a composite model to "
+                "combine multiple models for the same condition if needed.",
+                name,
             )
         self.envConditionModels[name] = model
 

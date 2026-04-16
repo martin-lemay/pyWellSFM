@@ -22,6 +22,9 @@ from pywellsfm.utils.helpers import (
     LowerBoundInterpolator,
     UpperBoundInterpolator,
 )
+from pywellsfm.utils.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def _curve_interpolation_method(curve: Curve) -> str | dict[str, Any]:
@@ -202,10 +205,11 @@ def loadSubsidenceCurveFromJsonObj(obj: dict[str, Any]) -> Curve:
 def _updateSubsidenceCurveName(curve: Curve) -> Curve:
     """Normalize an already-loaded Curve to a subsidence curve."""
     if curve._yAxisName.lower() != "subsidence":
-        print(
-            f"Warning: Subsidence curve yAxisName is '{curve._yAxisName}', "
-            "expected 'Subsidence'. Curve was renamed 'Subsidence' but check "
-            "your input file if this is unexpected."
+        logger.warning(
+            "Subsidence curve yAxisName is '%s', expected 'Subsidence'. "
+            "Curve was renamed 'Subsidence' but check your input file if "
+            "this is unexpected.",
+            curve._yAxisName,
         )
     curve._yAxisName = "Subsidence"
     return curve
@@ -226,10 +230,11 @@ def loadEustaticCurveFromJsonObj(obj: dict[str, Any]) -> Curve:
 def _updateEustaticCurveName(curve: Curve) -> Curve:
     """Normalize an already-loaded Curve to an eustatic curve."""
     if curve._yAxisName.lower() != "eustatism":
-        print(
-            f"Warning: Eustatic curve yAxisName is '{curve._yAxisName}', "
-            "expected 'Eustatic'. Curve was renamed 'Eustatic' but check your "
-            "inputfile if this is unexpected."
+        logger.warning(
+            "Eustatic curve yAxisName is '%s', expected 'Eustatic'. "
+            "Curve was renamed 'Eustatic' but check your input file if this "
+            "is unexpected.",
+            curve._yAxisName,
         )
     curve._yAxisName = "Eustatism"
     return curve
@@ -296,7 +301,7 @@ def loadCurvesFromCsv(path: Path) -> list[Curve]:
         # Default interpolation: linear.
         curves.append(Curve(x_axis_name, y_axis_name, x, y, "linear"))
 
-    print("Interpolation method set to 'linear' by default")
+    logger.info("Interpolation method set to 'linear' by default")
     return curves
 
 
@@ -666,7 +671,7 @@ def loadUncertaintyCurveFromCsv(
     # alphabetic characters to detect presence of header.
     with path.open(encoding="utf-8") as f:
         first_line = f.readline()
-        print(first_line)
+        logger.debug("Uncertainty curve CSV first line: %s", first_line)
         if not any(ch.isalpha() for ch in first_line):
             raise ValueError(
                 "UncertaintyCurve CSV must have a header row defining"
@@ -769,7 +774,7 @@ def loadUncertaintyCurveFromCsv(
             "UncertaintyCurve CSV must have at least 2 unique x values."
         )
 
-    print("Interpolation method set to 'linear' by default")
+    logger.info("Interpolation method set to 'linear' by default")
     median_curve = Curve(x_axis_name, y_axis_name, x, y, "linear")
     ucurve = UncertaintyCurve(x_axis_name, median_curve)
 

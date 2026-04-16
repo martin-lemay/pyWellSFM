@@ -4,6 +4,10 @@
 from enum import StrEnum
 from typing import Any, Optional, Self
 
+from pywellsfm.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 class FaciesCriteriaType(StrEnum):
     """Criteria types.
@@ -131,16 +135,19 @@ class FaciesCriteriaCollection:
         """
         if isinstance(criteria, FaciesCriteria):
             if not self.criteriaIsAllowed(criteria):
-                print(
-                    f"Criteria with name '{criteria.name}' and type "
-                    f"'{criteria.type.value}' is not allowed in this "
-                    f"collection of {self.type.value} criteria."
+                logger.warning(
+                    "Criteria with name '%s' and type '%s' is not allowed "
+                    "in this collection of %s criteria.",
+                    criteria.name,
+                    criteria.type.value,
+                    self.type.value,
                 )
                 return
             if self.criteriaExists(criteria.name):
-                print(
-                    f"Criteria with name '{criteria.name}' already exists, "
-                    f"cannot add a duplicate."
+                logger.warning(
+                    "Criteria with name '%s' already exists; cannot add a "
+                    "duplicate.",
+                    criteria.name,
                 )
                 return
             self.criteria.add(criteria)
@@ -380,16 +387,17 @@ class FaciesModel:
         """
         facies = self.getFaciesByName(faciesName)
         if facies is None:
-            print(
-                f"Facies with name '{faciesName}' not found in the "
-                "facies model."
+            logger.warning(
+                "Facies with name '%s' not found in the facies model.",
+                faciesName,
             )
             return None
         criteria = facies.getCriteria(criteriaName)
         if criteria is None:
-            print(
-                f"Criteria with name '{criteriaName}' not found for the facies"
-                f" '{faciesName}'."
+            logger.warning(
+                "Criteria with name '%s' not found for facies '%s'.",
+                criteriaName,
+                faciesName,
             )
             return None
         return (criteria.minRange, criteria.maxRange)

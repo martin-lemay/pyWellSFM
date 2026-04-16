@@ -14,6 +14,7 @@ from pywellsfm.model.EnvironmentConditionModel import (
 )
 from pywellsfm.model.FSSimulationParameters import RealizationData, Scenario
 from pywellsfm.model.Marker import Marker
+from pywellsfm.utils import get_logger
 
 from .AccommodationSimulator import AccommodationSimulator
 from .AccumulationSimulator import AccumulationSimulator
@@ -23,6 +24,8 @@ from .DepositionalEnvironmentSimulator import (
     DESimulatorParameters,
 )
 from .EnvironmentConditionSimulator import EnvironmentConditionSimulator
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -313,7 +316,9 @@ class FSSimulator:
             if t <= stop:
                 break
 
-            print(f"Running time step at age {t:.4f} over {stop:.4f} Myr...")
+            logger.info(
+                "Running time step at age %.4f over %.4f Myr...", t, stop
+            )
 
             # Record state at time t (step-start)
             self.times.append(t)
@@ -444,9 +449,10 @@ class FSSimulator:
 
         # Record final state at time t (step-end)
         self.times.append(t)
-        print(
-            f"Finished simulation at age {t:.4f} Myr after "
-            + f"{len(self.times) - 1} steps."
+        logger.info(
+            "Finished simulation at age %.4f Myr after %d steps.",
+            t,
+            len(self.times) - 1,
         )
 
         # mark as not ready for running again until prepare is called

@@ -19,9 +19,12 @@ from pywellsfm.utils import (
     gap_distance,
     gap_overlapping_width_distance,
     gap_times_center_distance,
+    get_logger,
     hausdorff_distance,
     wasserstein2_distance,
 )
+
+logger = get_logger(__name__)
 
 __doc__ = """
 This module contains the DepositionalEnvironmentSimulator class, which
@@ -117,22 +120,22 @@ Posterior:
 where:
 
 - :math:`P(e)` is the prior probability of environment :math:`e`.
-- :math:`P(D \mid e)` is the water depth likelihood of environment
+- :math:`P(D \\mid e)` is the water depth likelihood of environment
   :math:`e` given waters depth evidence :math:`D`.
-  :math:`P(D \mid e) = w_{wd} P(D \mid e)_0 + (1 - w_{wd})`,
-  where :math:`P(D \mid e)_0` is the initial likelihood computed from
+  :math:`P(D \\mid e) = w_{wd} P(D \\mid e)_0 + (1 - w_{wd})`,
+  where :math:`P(D \\mid e)_0` is the initial likelihood computed from
   the water depth ranges, and :math:`w_{wd}` is the weight for the
   waterDepth likelihood.
-- :math:`P(S \mid e)` is the transition likelihood of environment
+- :math:`P(S \\mid e)` is the transition likelihood of environment
   :math:`e` given previous environment evidence :math:`S`.
-  :math:`P(S \mid e) = w_{trans} P(S \mid e)_0 + (1-w_{trans})`,
-  where :math:`P(S \mid e)_0` is the initial likelihood computed from
+  :math:`P(S \\mid e) = w_{trans} P(S \\mid e)_0 + (1-w_{trans})`,
+  where :math:`P(S \\mid e)_0` is the initial likelihood computed from
   the previous environment, and :math:`w_{trans}` is the weight for
   the transition likelihood.
-- :math:`P(T \mid e)` is the distality trend likelihood of environment
+- :math:`P(T \\mid e)` is the distality trend likelihood of environment
   :math:`e` given previous environment history evidence :math:`T`.
-  :math:`P(T \mid e) = w_{trend} P(T \mid e)_0 + (1-w_{trend})`,
-  where :math:`P(T \mid e)_0` is the initial likelihood computed from
+  :math:`P(T \\mid e) = w_{trend} P(T \\mid e)_0 + (1-w_{trend})`,
+  where :math:`P(T \\mid e)_0` is the initial likelihood computed from
   the previous environment history, and :math:`w_{trend}` is the
   weight for the distality trend likelihood.
 
@@ -648,9 +651,9 @@ class DepositionalEnvironmentSimulator:
 
         # _distality_by_environment is None
         if len(self._distality_by_environment) == 0:
-            print(
-                "Warning: distality distances were not computed, "
-                + "distality influence is disregarded."
+            logger.warning(
+                "Distality distances were not computed; distality "
+                "influence is disregarded."
             )
             return dict.fromkeys(self._names, 1.0)
 
@@ -824,7 +827,9 @@ class DepositionalEnvironmentSimulator:
             return posterior
 
         # ---- Fallback 1: relax distality trend σ × 10 or drop ------------
-        print("Posterior all-zero; fallback 1a - relaxing distality trend.")
+        logger.warning(
+            "Posterior all-zero; fallback 1a - relaxing distality trend."
+        )
         L_trend_relaxed = self.compute_distality_trend_likelihood(
             previous_environments,
             _sigma_override=self._params.trend_sigma * 10.0,
@@ -842,7 +847,9 @@ class DepositionalEnvironmentSimulator:
             return posterior
 
         # drop distality trend constraint entirely
-        print("Posterior still zero; fallback 1b - ignoring distality trend.")
+        logger.warning(
+            "Posterior still zero; fallback 1b - ignoring distality trend."
+        )
         posterior, total = self._compute_posterior(
             prior,
             L_bathy,
@@ -855,9 +862,9 @@ class DepositionalEnvironmentSimulator:
             return posterior
 
         # ---- Fallback 2: relax transition σ × 10 or drop ---------------
-        print(
+        logger.warning(
             "Posterior all-zero; fallback 2a - ignoring distality trend "
-            + "and relaxing transition sigma."
+            "and relaxing transition sigma."
         )
         L_trans_relaxed = self.compute_transition_likelihood(
             previous_environment,
@@ -875,21 +882,24 @@ class DepositionalEnvironmentSimulator:
             return posterior
 
         # drop transition constraint entirely
-        print(
+        logger.warning(
             "Posterior still zero; fallback 2b - ignoring distality trend "
-            + "and transition."
+            "and transition."
         )
         posterior, total = self._compute_posterior(prior, L_bathy, None, None)
         if total > 0:
             return posterior
 
         # ---- Fallback 3: prior only ----------------------------------
-        print(
+        logger.warning(
             "Posterior still zero; fallback 3 - returning prior. "
-            + "Likelihoods values were:\n"
-            + f"  waterDepth likelihood: {L_bathy}\n"
-            + f"  transition likelihood: {L_trans}\n"
-            + f"  distality trend likelihood: {L_trend}\n"
+            "Likelihood values were:\n"
+            "  waterDepth likelihood: %s\n"
+            "  transition likelihood: %s\n"
+            "  distality trend likelihood: %s\n",
+            L_bathy,
+            L_trans,
+            L_trend,
         )
         return prior
 
