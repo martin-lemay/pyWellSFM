@@ -117,24 +117,24 @@ Posterior:
 where:
 
 - :math:`P(e)` is the prior probability of environment :math:`e`.
-- :math:`P(D \\mid e)` is the water depth likelihood of environment :math:`e`
-    given waters depth evidence :math:`D`.
-    :math:`P(D \\mid e) = wdWeight P(D \\mid e)_0 + (1 - wdWeight)`,
-    where :math:`P(D \\mid e)_0` is the initial likelihood computed from the
-    water depth ranges, and :math:`wdWeight` is the weight for the waterDepth
-    likelihood.
-- :math:`P(S \\mid e)` is the transition likelihood of environment :math:`e`
-    given previous environment evidence :math:`S`.
-    :math:`P(S \\mid e) = transWeight P(S \\mid e)_0 + (1 - transWeight)`,
-    where :math:`P(S \\mid e)_0` is the initial likelihood computed from the
-    previous environment, and :math:`transWeight` is the weight for the
-    transition likelihood.
-- :math:`P(T \\mid e)` is the distality trend likelihood of environment
-    :math:`e` given previous environment history evidence :math:`T`.
-    :math:`P(T \\mid e) = trendWeight P(T \\mid e)_0 + (1 - trendWeight)`,
-    where :math:`P(T \\mid e)_0` is the initial likelihood computed from the
-    previous environment history, and :math:`trendWeight` is the weight for the
-    distality trend likelihood.
+- :math:`P(D \mid e)` is the water depth likelihood of environment
+  :math:`e` given waters depth evidence :math:`D`.
+  :math:`P(D \mid e) = w_{wd} P(D \mid e)_0 + (1 - w_{wd})`,
+  where :math:`P(D \mid e)_0` is the initial likelihood computed from
+  the water depth ranges, and :math:`w_{wd}` is the weight for the
+  waterDepth likelihood.
+- :math:`P(S \mid e)` is the transition likelihood of environment
+  :math:`e` given previous environment evidence :math:`S`.
+  :math:`P(S \mid e) = w_{trans} P(S \mid e)_0 + (1-w_{trans})`,
+  where :math:`P(S \mid e)_0` is the initial likelihood computed from
+  the previous environment, and :math:`w_{trans}` is the weight for
+  the transition likelihood.
+- :math:`P(T \mid e)` is the distality trend likelihood of environment
+  :math:`e` given previous environment history evidence :math:`T`.
+  :math:`P(T \mid e) = w_{trend} P(T \mid e)_0 + (1-w_{trend})`,
+  where :math:`P(T \mid e)_0` is the initial likelihood computed from
+  the previous environment history, and :math:`w_{trend}` is the
+  weight for the distality trend likelihood.
 
 
 """
@@ -752,23 +752,23 @@ class DepositionalEnvironmentSimulator:
         where:
 
         - :math:`P(e)` is the prior probability of environment :math:`e`.
-        - :math:`P(D \\mid e)` is the water depth likelihood of environment
+        - :math:`P(D \mid e)` is the water depth likelihood of environment
           :math:`e` given waters depth evidence :math:`D`.
-          :math:`P(D \\mid e) = wdWeight P(D \\mid e)_0 + (1 - wdWeight)`,
-          where :math:`P(D \\mid e)_0` is the initial likelihood computed from
-          the water depth ranges, and :math:`wdWeight` is the weight for the
+          :math:`P(D \mid e) = w_{wd} P(D \mid e)_0 + (1 - w_{wd})`,
+          where :math:`P(D \mid e)_0` is the initial likelihood computed from
+          the water depth ranges, and :math:`w_{wd}` is the weight for the
           waterDepth likelihood.
-        - :math:`P(S \\mid e)` is the transition likelihood of environment
+        - :math:`P(S \mid e)` is the transition likelihood of environment
           :math:`e` given previous environment evidence :math:`S`.
-          :math:`P(S \\mid e) = transWeight P(S \\mid e)_0 + (1-transWeight)`,
-          where :math:`P(S \\mid e)_0` is the initial likelihood computed from
-          the previous environment, and :math:`transWeight` is the weight for
+          :math:`P(S \mid e) = w_{trans} P(S \mid e)_0 + (1-w_{trans})`,
+          where :math:`P(S \mid e)_0` is the initial likelihood computed from
+          the previous environment, and :math:`w_{trans}` is the weight for
           the transition likelihood.
-        - :math:`P(T \\mid e)` is the distality trend likelihood of environment
+        - :math:`P(T \mid e)` is the distality trend likelihood of environment
           :math:`e` given previous environment history evidence :math:`T`.
-          :math:`P(T \\mid e) = trendWeight P(T \\mid e)_0 + (1-trendWeight)`,
-          where :math:`P(T \\mid e)_0` is the initial likelihood computed from
-          the previous environment history, and :math:`trendWeight` is the
+          :math:`P(T \mid e) = w_{trend} P(T \mid e)_0 + (1-w_{trend})`,
+          where :math:`P(T \mid e)_0` is the initial likelihood computed from
+          the previous environment history, and :math:`w_{trend}` is the
           weight for the distality trend likelihood.
 
         If the posterior is numerically zero everywhere, the method applies

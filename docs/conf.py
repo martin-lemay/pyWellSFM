@@ -50,7 +50,7 @@ extensions = [
     'sphinxcontrib.programoutput'
 ]
 
-#autodoc_mock_imports = [ "pybend", ]
+#autodoc_mock_imports = [ ]
 autoclass_content = 'both'
 autodoc_default_options = {
     'members': True,
