@@ -132,6 +132,10 @@ mypy .
 # Tests
 pytest
 
+# Coverage gate (configured in pyproject.toml)
+# Test run fails if total coverage is below 80%
+pytest --cov=pywellsfm --cov-fail-under=80
+
 # To mirror CI more closely (includes doctests)
 pytest ./ --doctest-modules
 ```
@@ -151,6 +155,7 @@ On each Pull Request, GitHub Actions runs:
 - `ruff check` (lint; currently non-blocking in CI)
 - `mypy` (static type checks)
 - `pytest` (tests + doctests) 
+- Coverage threshold: test run fails if total coverage is below 80%
 
 ## Credits
 pyWellSFM was written by [Martin Lemay](https://github.com/martin-lemay) <br>[![ORCID Badge](https://img.shields.io/badge/ORCID-A6CE39?logo=orcid&logoColor=fff&style=flat-square)](https://orcid.org/my-orcid?orcid=0000-0002-5538-7885)</br>

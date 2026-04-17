@@ -56,6 +56,7 @@ dev = [
 ]
 test = [
     "pytest",
+    "pytest-cov",
 ]
 
 [project.readme]
@@ -131,7 +132,7 @@ indent-style = "space"
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-addopts = "--import-mode=importlib"
+addopts = "--import-mode=importlib --cov=pywellsfm --cov-fail-under=80"
 console_output_style = "count"
 pythonpath = [".", "src"]
 python_classes = "Test"
@@ -139,11 +140,10 @@ python_files = "test*.py"
 python_functions = "test*"
 testpaths = ["tests"]
 norecursedirs = "bin"
-filterwarnings = ["ignore::DeprecationWarning:pybend.*", "ignore::DeprecationWarning:multiprocessing.*",]
 
 [tool.coverage.run]
 branch = true
-source = ["pybend"]
+source = ["pywellsfm"]
 
 [tool.mypy]
 # Specify the target platform details in config, so your developers are
