@@ -8,7 +8,7 @@ import numpy.typing as npt
 import pandas as pd
 import scipy.interpolate as interp
 
-from pywellsfm.utils.helpers import LowerBoundInterpolator
+from pywellsfm.utils.interpolation import LowerBoundInterpolator
 
 
 class Curve:
@@ -30,10 +30,11 @@ class Curve:
         :param str | "function" | None interpolationFunction: name of
             interpolation method according to scipy.interpolate.interp1d
             method, or a class inherited from
-            `pywellsfm.utils.helpers.Interpolator` to compute the
+            `pywellsfm.utils.interpolation.Interpolator` to compute the
             interpolation (see for instance
-            `pywellsfm.utils.helpers.PolynomialInterpolator`). By default, if
-            interpolationFunction is None, the LowerBoundInterpolator is used.
+            `pywellsfm.utils.interpolation.PolynomialInterpolator`).
+            By default, if interpolationFunction is None, the
+            LowerBoundInterpolator is used.
         """
         self._xAxisName: str = xAxisName
         self._yAxisName: str = yAxisName
@@ -210,13 +211,15 @@ class Curve:
         """
         fromX0 = fromX if np.isfinite(fromX) else self._minAbscissa
         toX0 = toX if np.isfinite(toX) else self._maxAbscissa
-        assert fromX0 < toX0, "Start abscissa must be lower than end abscissa."
+        if fromX0 >= toX0:
+            raise ValueError("Start abscissa must be lower than end abscissa.")
         nx = (
             int((toX0 - fromX0) / dx) + 1
             if np.isfinite(dx)
             else self._abscissa.size
         )
-        assert dx > 0, "Sampling step must be strictly positive."
+        if dx <= 0:
+            raise ValueError("Sampling step must be strictly positive.")
         lx = np.linspace(fromX0, toX0, nx)
         ly = [self.getValueAt(x) for x in lx]
         columnNames0 = list(columnNames)
@@ -263,9 +266,10 @@ class AccumulationCurve(Curve):
         :param npt.NDArray[np.float64] ordinate: ordinate values. Must be
             between 0 and 1.
         """
-        assert (np.min(ordinate) >= 0.0) and (np.max(ordinate) <= 1.0), (
-            "Accumulation curve ordinates must be between 0 and 1."
-        )
+        if not ((np.min(ordinate) >= 0.0) and (np.max(ordinate) <= 1.0)):
+            raise ValueError(
+                "Accumulation curve ordinates must be between 0 and 1."
+            )
         super().__init__(
             envFactorName, "ReductionCoeff", abscissa, ordinate, "linear"
         )
@@ -294,31 +298,35 @@ class UncertaintyCurve:
 
         :return npt.NDArray[np.float64]: abscissa array
         """
-        assert self._medianCurve is not None, "Median curve is undefined."
+        if self._medianCurve is None:
+            raise ValueError("Median curve is undefined.")
         return self._medianCurve._abscissa
 
     def getMedianValues(self: Self) -> npt.NDArray[np.float64]:
-        """Get abscissa values of the curves.
+        """Get median ordinate values of the curves.
 
-        :return npt.NDArray[np.float64]: abscissa array
+        :return npt.NDArray[np.float64]: median ordinate array
         """
-        assert self._medianCurve is not None, "Median curve is undefined."
+        if self._medianCurve is None:
+            raise ValueError("Median curve is undefined.")
         return self._medianCurve._ordinate
 
     def getMinValues(self: Self) -> npt.NDArray[np.float64]:
-        """Get abscissa values of the curves.
+        """Get minimum ordinate values of the curves.
 
-        :return npt.NDArray[np.float64]: abscissa array
+        :return npt.NDArray[np.float64]: minimum ordinate array
         """
-        assert self._minCurve is not None, "Median curve is undefined."
+        if self._minCurve is None:
+            raise ValueError("Min curve is undefined.")
         return self._minCurve._ordinate
 
     def getMaxValues(self: Self) -> npt.NDArray[np.float64]:
-        """Get abscissa values of the curves.
+        """Get maximum ordinate values of the curves.
 
-        :return npt.NDArray[np.float64]: abscissa array
+        :return npt.NDArray[np.float64]: maximum ordinate array
         """
-        assert self._maxCurve is not None, "Median curve is undefined."
+        if self._maxCurve is None:
+            raise ValueError("Max curve is undefined.")
         return self._maxCurve._ordinate
 
     def setCurve(
@@ -341,8 +349,10 @@ class UncertaintyCurve:
 
         :param npt.NDArray[np.float64] values: minimum values
         """
-        assert self._minCurve is not None, "Min curve is undefined."
-        assert values.size == self._minCurve._abscissa.size
+        if self._minCurve is None:
+            raise ValueError("Min curve is undefined.")
+        if values.size != self._minCurve._abscissa.size:
+            raise ValueError("Values size must match min curve abscissa size.")
         self._minCurve._ordinate = values
 
     def setMaxCurveValues(self: Self, values: npt.NDArray[np.float64]) -> None:
@@ -350,8 +360,10 @@ class UncertaintyCurve:
 
         :param npt.NDArray[np.float64] values: maximum values
         """
-        assert self._maxCurve is not None, "Max curve is undefined."
-        assert values.size == self._maxCurve._abscissa.size
+        if self._maxCurve is None:
+            raise ValueError("Max curve is undefined.")
+        if values.size != self._maxCurve._abscissa.size:
+            raise ValueError("Values size must match max curve abscissa size.")
         self._maxCurve._ordinate = values
 
     def setSampledPoints(

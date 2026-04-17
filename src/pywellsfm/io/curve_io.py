@@ -18,7 +18,7 @@ from pywellsfm.model.Curve import (
     UncertaintyCurve,
 )
 from pywellsfm.utils import PolynomialInterpolator
-from pywellsfm.utils.helpers import (
+from pywellsfm.utils.interpolation import (
     LowerBoundInterpolator,
     UpperBoundInterpolator,
 )

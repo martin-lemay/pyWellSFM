@@ -11,12 +11,16 @@ class Interpolator(Protocol):
     x: npt.NDArray[np.float64]
     y: npt.NDArray[np.float64]
     name: str = ""
+    _x_min: float
+    _x_max: float
 
     def __init__(self: Self) -> None:
         """Interpolator parent class for a 1D increasing function."""
         self.name = ""
         self.x = np.empty((0,), dtype=float)
         self.y = np.empty((0,), dtype=float)
+        self._x_min = 0.0
+        self._x_max = 0.0
 
     def initialize(
         self: Self, x: npt.NDArray[np.float64], y: npt.NDArray[np.float64]
@@ -33,6 +37,8 @@ class Interpolator(Protocol):
         indices = np.argsort(x)
         self.x = x[indices]
         self.y = y[indices]
+        self._x_min: float = float(self.x[0])
+        self._x_max: float = float(self.x[-1])
 
     def setAdditionalArgs(self: Self, **args: Any) -> None:
         """Add any additional parameters the interpolator would require.
@@ -56,6 +62,8 @@ class LowerBoundInterpolator(Interpolator):
         self.name = "LowerBound"
         self.x = np.empty((0,), dtype=float)
         self.y = np.empty((0,), dtype=float)
+        self._x_min = 0.0
+        self._x_max = 0.0
 
     def __str__(self: Self) -> str:
         """Overload of __str__ method.
@@ -73,7 +81,7 @@ class LowerBoundInterpolator(Interpolator):
         :param float xx: input coordinate
         :return float: output value
         """
-        if xx <= np.min(self.x):
+        if xx <= self._x_min:
             return self.y[0]
         idx = np.searchsorted(self.x, xx) - 1
         return self.y[idx]
@@ -85,6 +93,8 @@ class UpperBoundInterpolator(Interpolator):
         self.name = "UpperBound"
         self.x = np.empty((0,), dtype=float)
         self.y = np.empty((0,), dtype=float)
+        self._x_min = 0.0
+        self._x_max = 0.0
 
     def __str__(self: Self) -> str:
         """Overload of __str__ method.
@@ -102,7 +112,7 @@ class UpperBoundInterpolator(Interpolator):
         :param float xx: input coordinate
         :return float: output value
         """
-        if xx >= np.max(self.x):
+        if xx >= self._x_max:
             return self.y[-1]
         idx = np.searchsorted(self.x, xx)
         return self.y[idx]
@@ -114,6 +124,8 @@ class LinearInterpolator(Interpolator):
         self.name = "LinearInterpolator"
         self.x = np.empty((0,), dtype=float)
         self.y = np.empty((0,), dtype=float)
+        self._x_min = 0.0
+        self._x_max = 0.0
 
     def __str__(self: Self) -> str:
         """Overload of __str__ method.
@@ -131,9 +143,9 @@ class LinearInterpolator(Interpolator):
         :param float xx: input coordinate
         :return float: output value
         """
-        if xx <= np.min(self.x):
+        if xx <= self._x_min:
             return self.y[0]
-        if xx >= np.max(self.x):
+        if xx >= self._x_max:
             return self.y[-1]
 
         # find the interval
@@ -153,6 +165,8 @@ class PolynomialInterpolator(Interpolator):
         self.name = "PolynomialInterpolator"
         self.x = np.empty((0,), dtype=float)
         self.y = np.empty((0,), dtype=float)
+        self._x_min = 0.0
+        self._x_max = 0.0
         self.deg: int = 0
         self.nbPts: int = 0
 
@@ -172,11 +186,15 @@ class PolynomialInterpolator(Interpolator):
             compute the polynom fit. 2*nbPts must be strictly greater than the
             polynom degree. Defaults to 1.
         """
-        assert x.size > 1, "x array must contains at least 2 elements."
-        assert x.size == y.size, "x and y arrays must have the same size."
+        if x.size <= 1:
+            raise ValueError("x array must contains at least 2 elements.")
+        if x.size != y.size:
+            raise ValueError("x and y arrays must have the same size.")
         indices = np.argsort(x)
         self.x = x[indices]
         self.y = y[indices]
+        self._x_min = float(self.x[0])
+        self._x_max = float(self.x[-1])
 
     def setAdditionalArgs(self: Self, **args: Any) -> None:
         """Set additional inputs for the Interpolator.
@@ -206,9 +224,9 @@ class PolynomialInterpolator(Interpolator):
         :param float xx: input coordinate
         :return float: output value
         """
-        if xx < np.min(self.x):
+        if xx < self._x_min:
             return self.y[0]
-        if xx > np.max(self.x):
+        if xx > self._x_max:
             return self.y[-1]
         # get the indexes
         indices = np.argsort(np.abs(self.x - xx))

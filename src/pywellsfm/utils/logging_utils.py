@@ -11,6 +11,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Self
 
+# Internal module state for handlers and package logger name
+ERROR = logging.ERROR
+WARNING = logging.WARNING
+INFO = logging.INFO
+DEBUG = logging.DEBUG
+
 
 class StoredLogsHandler(logging.Handler):
     def __init__(self: Self) -> None:
@@ -89,7 +95,7 @@ def _ensure_handlers(level: int, enable_console: bool) -> logging.Logger:
 
 
 def configure_logging(
-    *, level: int = logging.INFO, enable_console: bool = True
+    *, level: int = INFO, enable_console: bool = True
 ) -> logging.Logger:
     """Configure package logging and return the package logger."""
     return _ensure_handlers(level=level, enable_console=enable_console)

@@ -44,13 +44,14 @@ from pywellsfm.model.DepositionalEnvironment import (
 from pywellsfm.model.enums import SubsidenceType
 from pywellsfm.model.Facies import FaciesModel
 from pywellsfm.model.FSSimulationParameters import (
+    FSSimulatorParameters,
     RealizationData,
     Scenario,
 )
 from pywellsfm.simulator.DepositionalEnvironmentSimulator import (
     DESimulatorParameters,
 )
-from pywellsfm.simulator.FSSimulator import FSSimulator, FSSimulatorParameters
+from pywellsfm.simulator.FSSimulator import FSSimulator
 from pywellsfm.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)

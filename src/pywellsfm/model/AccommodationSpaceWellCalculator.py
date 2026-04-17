@@ -130,10 +130,11 @@ class AccommodationSpaceWellCalculator:
             Defaults to 0.
         :return UncertaintyCurve: accommodation curve
         """
-        assert isinstance(self._well.getDepthLog(faciesLogName), Striplog), (
-            f"The discrete log {faciesLogName} does not exist in the well "
-            + f"{self._well.name}."
-        )
+        if not isinstance(self._well.getDepthLog(faciesLogName), Striplog):
+            raise ValueError(
+                f"The discrete log {faciesLogName} does not exist in the well "
+                + f"{self._well.name}."
+            )
         faciesLog: Striplog = cast(
             Striplog, self._well.getDepthLog(faciesLogName)
         )
@@ -211,9 +212,8 @@ class AccommodationSpaceWellCalculator:
             depthBase = row[0]
             break
 
-        assert np.isfinite(waterDepthAtBase[0]), (
-            "waterDepth at the base is undefined."
-        )
+        if not np.isfinite(waterDepthAtBase[0]):
+            raise ValueError("waterDepth at the base is undefined.")
 
         # accommodation array: depth, acco min 1, acco min 2, acco max 1,
         # acco max 2
@@ -327,10 +327,11 @@ class AccommodationSpaceWellCalculator:
             Defaults to None.
         :return UncertaintyCurve: accommodation curve
         """
-        assert isinstance(self._well.getDepthLog(faciesLogName), Striplog), (
-            f"The discrete log {faciesLogName} does not exist in the well "
-            + f"{self._well.name}."
-        )
+        if not isinstance(self._well.getDepthLog(faciesLogName), Striplog):
+            raise ValueError(
+                f"The discrete log {faciesLogName} does not exist in the well "
+                + f"{self._well.name}."
+            )
         faciesLog: Striplog = cast(
             Striplog, self._well.getDepthLog(faciesLogName)
         )
@@ -378,10 +379,11 @@ class AccommodationSpaceWellCalculator:
             Defaults to None.
         :return UncertaintyCurve: waterDepth curve
         """
-        assert isinstance(self._well.getDepthLog(faciesLogName), Striplog), (
-            f"The discrete log {faciesLogName} does not exist in the well "
-            + f"{self._well.name}."
-        )
+        if not isinstance(self._well.getDepthLog(faciesLogName), Striplog):
+            raise ValueError(
+                f"The discrete log {faciesLogName} does not exist in the well "
+                + f"{self._well.name}."
+            )
         faciesLog: Striplog = cast(
             Striplog, self._well.getDepthLog(faciesLogName)
         )
@@ -393,9 +395,8 @@ class AccommodationSpaceWellCalculator:
         )
         self._computeWaterDepthStepCurve(faciesLog, baseDepth, topDepth)
 
-        assert self._waterDepthStepCurve is not None, (
-            "waterDepth step curve is not computed."
-        )
+        if self._waterDepthStepCurve is None:
+            raise ValueError("waterDepth step curve is not computed.")
         self._convertIntervalCurve2UncertaintyCurve(
             self._waterDepthStepCurve, self.waterDepthCurve
         )
@@ -447,9 +448,8 @@ class AccommodationSpaceWellCalculator:
             # ..WARNING:: assume that interval coordinates are in MD
             if not computedInterval.completely_contains(interval):
                 continue
-            assert interval.primary is not None, (
-                "Interval primary attribute is None."
-            )
+            if interval.primary is None:
+                raise ValueError("Interval primary attribute is None.")
             faciesName: str = interval.primary["lithology"]
             bathRange = self._getWaterDepthRangeFromFaciesName(faciesName)
             self._waterDepthStepCurve[i, 0] = interval.base.z

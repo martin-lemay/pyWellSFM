@@ -375,10 +375,11 @@ def _loadElementAccumulationModelFromJsonObj(
                             "AccumulationCurve ordinate values must be "
                             + "between 0 and 1."
                         ) from exc
-                assert len(out) == 1, (
-                    "No or multiple curves loaded from "
-                    + "file; expected exactly one."
-                )
+                if len(out) != 1:
+                    raise ValueError(
+                        "No or multiple curves loaded from "
+                        + "file; expected exactly one."
+                    )
                 return out
 
             loaded_curves = load_inline_or_url(
