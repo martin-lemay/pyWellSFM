@@ -30,7 +30,7 @@ def test_Marker_equality_and_hash() -> None:
     assert m1 == m2
     assert hash(m1) == hash(m2)
     assert m1 != m3
-    assert not (m1 == "not-a-marker")  # type: ignore[comparison-overlap]
+    assert m1 != "not-a-marker"
 
 
 def test_Marker_collocation_and_synchrone_checks() -> None:

@@ -1,10 +1,5 @@
 Short-term:
-- fix problem of none environment in the middle of the simu
-- add environment dependent weights to favor some likelihood (ex: buildup favor transition with itself)
-- add unit tests for simulators
-- create missing unit tests for io methods
 - create export methods to save data objects (simulation, realization, scenario, etc.) where needed (+tests)
-- add logger
 
 Display:
 - create simulated well from output xarray

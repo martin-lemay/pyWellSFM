@@ -16,6 +16,7 @@ from striplog import Legend, Striplog
 from pywellsfm.model import (
     FaciesCriteria,
     FaciesCriteriaType,
+    Marker,
     SedimentaryFacies,
     UncertaintyCurve,
     Well,
@@ -591,6 +592,268 @@ def test_computeAccommodationCurve2() -> None:
     assert array_equal(accoCurve.getMaxValues(), expArray[:, 3], eps), (
         "Ordinate values of max accommodation curve are wrong."
     )
+
+
+def _make_facies(
+    name: str,
+    min_depth: float,
+    max_depth: float,
+    crit_name: str = "WaterDepth",
+) -> SedimentaryFacies:
+    """Build one facies with a single criterion."""
+    criterion = FaciesCriteria(
+        crit_name,
+        min_depth,
+        max_depth,
+        FaciesCriteriaType.SEDIMENTOLOGICAL,
+    )
+    return SedimentaryFacies(name, {criterion})
+
+
+def _make_well(log_text: str, name: str = "W") -> tuple[Well, Striplog]:
+    """Build a well and attach a lithology striplog."""
+    coords = np.array((0.0, 0.0, 0.0))
+    well = Well(name, coords, 120.0)
+    log = Striplog.from_csv(text=log_text)
+    well.addLog("lithology", log)
+    return well, log
+
+
+def test_get_initial_water_depth_midpoint() -> None:
+    """Return midpoint from initial facies water depth range."""
+    txt = "top,base,comp lithology\n0.0,20.0,sandstone\n"
+    well, _ = _make_well(txt)
+    facies = [_make_facies("sandstone", 10.0, 30.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    assert calc.getInitialwaterDepth() == 20.0
+
+
+def test_get_initial_water_depth_range_no_discrete_log() -> None:
+    """Raise when no discrete log exists in the well."""
+    coords = np.array((0.0, 0.0, 0.0))
+    well = Well("NoLog", coords, 100.0)
+    facies = [_make_facies("sandstone", 0.0, 10.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    with pytest.raises(ValueError, match="No discrete log"):
+        calc._getInitialwaterDepthRange()
+
+
+def test_get_initial_water_depth_range_missing_log_object(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Raise when the facies log name exists but log object is None."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n"
+    well, _ = _make_well(txt)
+    facies = [_make_facies("sandstone", 2.0, 8.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    monkeypatch.setattr(well, "getDepthLog", lambda _name: None)
+
+    with pytest.raises(ValueError, match="Facies log not found"):
+        calc._getInitialwaterDepthRange()
+
+
+def test_get_initial_water_depth_range_none_from_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Raise if facies lookup helper returns no depth range."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n"
+    well, _ = _make_well(txt)
+    facies = [_make_facies("sandstone", 1.0, 2.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    monkeypatch.setattr(
+        calc,
+        "_getWaterDepthRangeFromFaciesName",
+        lambda _name: None,
+    )
+
+    with pytest.raises(ValueError, match="condition not found"):
+        calc._getInitialwaterDepthRange()
+
+
+def test_get_water_depth_range_unknown_facies() -> None:
+    """Raise when facies name is not available."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n"
+    well, _ = _make_well(txt)
+    facies = [_make_facies("sandstone", 0.0, 20.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    with pytest.raises(ValueError, match="not in the facies list"):
+        calc._getWaterDepthRangeFromFaciesName("missing")
+
+
+def test_get_water_depth_range_missing_water_depth_criteria() -> None:
+    """Raise when facies has no waterDepth criterion."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n"
+    well, _ = _make_well(txt)
+    facies = [_make_facies("sandstone", 0.0, 1.0, crit_name="GrainSize")]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    with pytest.raises(ValueError, match="waterDepth is undefined"):
+        calc._getWaterDepthRangeFromFaciesName("sandstone")
+
+
+def test_compute_water_depth_step_curve_skips_outside_interval() -> None:
+    """Leave rows as NaN when intervals are outside marker bounds."""
+    txt = (
+        "top,base,comp lithology\n"
+        "0.0,10.0,sandstone\n"
+        "10.0,20.0,sandstone\n"
+        "20.0,30.0,sandstone\n"
+    )
+    well, log = _make_well(txt)
+    facies = [_make_facies("sandstone", 5.0, 15.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    arr = calc._computeWaterDepthStepCurve(log, baseDepth=30.0, topDepth=10.0)
+
+    assert np.isnan(arr[0, 0])
+    assert np.allclose(arr[1, 2:], np.array((5.0, 15.0)))
+
+
+def test_compute_accommodation_value_swaps_inverted_bounds() -> None:
+    """Swap min and max when computed values are inverted."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n"
+    well, _ = _make_well(txt)
+    facies = [_make_facies("sandstone", 0.0, 10.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    acco_min, acco_max = calc._computeAccommodationValue(
+        thickness=0.0,
+        waterDepthBase=(10.0, 0.0),
+        waterDepthTop=(0.0, -10.0),
+    )
+
+    assert acco_min <= acco_max
+    assert (acco_min, acco_max) == (-20.0, 0.0)
+
+
+def test_compute_accommodation_array_handles_partial_base_depth() -> None:
+    """Skip deeper strata when base depth is inside the log."""
+    txt = (
+        "top,base,comp lithology\n"
+        "0.0,10.0,sandstone\n"
+        "10.0,20.0,sandstone\n"
+        "20.0,30.0,sandstone\n"
+    )
+    well, log = _make_well(txt)
+    facies = [_make_facies("sandstone", 2.0, 4.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    calc._computeWaterDepthStepCurve(log, baseDepth=30.0, topDepth=0.0)
+
+    arr = calc._computeAccommodationArray(
+        log,
+        baseDepth=25.0,
+        topDepth=0.0,
+        accommodationAtBase=1.5,
+    )
+
+    assert arr.shape == (4, 5)
+    assert np.isfinite(arr[0, 1])
+    assert np.isnan(arr[3, 0])
+    assert np.allclose(arr[-1, 1:], np.array((1.5, 1.5, 1.5, 1.5)))
+
+
+def test_compute_accommodation_step_curve_auto_builds_water_depth() -> None:
+    """Build water depth first when missing before step computation."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n10.0,20.0,siltstone\n"
+    well, log = _make_well(txt)
+    facies = [
+        _make_facies("sandstone", 5.0, 6.0),
+        _make_facies("siltstone", 1.0, 2.0),
+    ]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    arr = calc._computeAccommodationStepCurve(
+        log,
+        baseDepth=20.0,
+        topDepth=0.0,
+    )
+
+    assert calc._waterDepthStepCurve is not None
+    assert arr.shape == (2, 4)
+    assert arr[0, 2] <= arr[0, 3]
+    assert arr[1, 2] <= arr[1, 3]
+
+
+def test_compute_accommodation_step_curve_swap_branch() -> None:
+    """Execute swap path in step curve min max ordering."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n10.0,20.0,siltstone\n"
+    well, log = _make_well(txt)
+    facies = [
+        _make_facies("sandstone", 0.0, 1.0),
+        _make_facies("siltstone", 0.0, 1.0),
+    ]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+    calc._waterDepthStepCurve = np.array(
+        [
+            [10.0, 0.0, 5.0, 1.0],
+            [20.0, 10.0, 0.0, -2.0],
+        ]
+    )
+
+    arr = calc._computeAccommodationStepCurve(
+        log,
+        baseDepth=20.0,
+        topDepth=0.0,
+    )
+
+    assert arr[1, 2] <= arr[1, 3]
+
+
+def test_compute_accommodation_curve0_with_markers() -> None:
+    """Run legacy curve method with explicit top and base markers."""
+    txt = (
+        "top,base,comp lithology\n"
+        "0.0,10.0,sandstone\n"
+        "10.0,20.0,siltstone\n"
+        "20.0,30.0,shale\n"
+    )
+    well, _ = _make_well(txt)
+    facies = [
+        _make_facies("sandstone", 0.0, 5.0),
+        _make_facies("siltstone", 5.0, 15.0),
+        _make_facies("shale", 15.0, 30.0),
+    ]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    curve = calc.computeAccommodationCurve0(
+        "lithology",
+        fromMarker=Marker("base", 30.0),
+        toMarker=Marker("top", 0.0),
+    )
+
+    assert curve is calc.accommodationCurve
+    assert len(curve.getAbscissa()) > 0
+
+
+def test_compute_accommodation_curve0_missing_log_assertion() -> None:
+    """Raise assertion for unknown facies log name."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n"
+    well, _ = _make_well(txt)
+    facies = [_make_facies("sandstone", 0.0, 20.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+
+    with pytest.raises(ValueError, match="does not exist"):
+        calc.computeAccommodationCurve0("unknown_log")
+
+
+def test_compute_accommodation_curve0_uses_cached_step_curve() -> None:
+    """Use cached accommodation step curve when already available."""
+    txt = "top,base,comp lithology\n0.0,10.0,sandstone\n"
+    well, _ = _make_well(txt)
+    facies = [_make_facies("sandstone", 0.0, 20.0)]
+    calc = AccommodationSpaceWellCalculator(well, facies)
+    calc._accommodationStepCurve = np.array([[10.0, 0.0, 1.0, 2.0]])
+
+    curve = calc.computeAccommodationCurve0("lithology")
+
+    assert curve is calc.accommodationCurve
+    assert len(calc.accommodationChangeCurve.getAbscissa()) > 0
 
 
 def array_equal(array1: np.ndarray, array2: np.ndarray, tol: float) -> bool:

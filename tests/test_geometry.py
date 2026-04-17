@@ -3,17 +3,19 @@
 # ruff: noqa: E402 # disable Module level import not at top of file
 
 import math
-import os
 import sys
+from pathlib import Path
 from typing import Self
 
-m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
-if m_path not in sys.path:
-    sys.path.insert(0, m_path)
+SRC_PATH = Path(__file__).resolve().parents[1] / "src"
+if str(SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(SRC_PATH))
 
 import pytest
 
+import pywellsfm.utils.geometry as geometry_module
 from pywellsfm.utils.geometry import (
+    IntervalDistanceMethod,
     center_distance,
     gap_distance,
     gap_overlapping_width_distance,
@@ -24,6 +26,20 @@ from pywellsfm.utils.geometry import (
 
 
 class TestGapDistance:
+    def test_interval_distance_method_values(self: Self) -> None:
+        """Expose stable enum string values."""
+        assert IntervalDistanceMethod.GAP.value == "gap"
+        assert IntervalDistanceMethod.CENTER.value == "center"
+        assert IntervalDistanceMethod.HAUSDORFF.value == "hausdorff"
+        assert IntervalDistanceMethod.WASSERSTEIN2.value == "wasserstein2"
+        assert (
+            IntervalDistanceMethod.GAP_TIMES_CENTER.value == "gap_times_center"
+        )
+        assert (
+            IntervalDistanceMethod.GAP_OVERLAPPING_WIDTH.value
+            == "gap_overlapping_width"
+        )
+
     def test_gap_distance_overlap_is_zero(self: Self) -> None:
         """Return zero when two intervals overlap."""
         d = gap_distance(0.0, 10.0, 5.0, 20.0)
@@ -124,6 +140,23 @@ class TestGapOverlappingWidthDistance:
         d1 = gap_overlapping_width_distance(0.0, 10.0, 2.0, 8.0)
         d2 = gap_overlapping_width_distance(2.0, 8.0, 0.0, 10.0)
         assert d1 == d2
+
+    def test_gap_overlapping_width_distance_defensive_den_branch(
+        self: Self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Cover defensive den==0 fallback branch."""
+        calls = {"n": 0}
+        outputs = [0.0, 1.0, 1.0, 0.0]
+
+        def fake_max(*args: float) -> float:
+            out = outputs[calls["n"]]
+            calls["n"] += 1
+            return out
+
+        monkeypatch.setattr(geometry_module, "max", fake_max, raising=False)
+        d = gap_overlapping_width_distance(0.0, 2.0, 1.0, 3.0)
+        assert d == 0.0
+        assert calls["n"] == 4
 
     @pytest.mark.parametrize(
         "min1, max1, min2, max2",

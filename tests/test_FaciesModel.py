@@ -303,7 +303,7 @@ def test_FaciesCriteriaCollection_criteriaIsAllowed_rules() -> None:
     assert not col.criteriaIsAllowed(env)
 
 
-def test_FCC_addCriteria_disallowed_type_is_ignored()->None:
+def test_FCC_addCriteria_disallowed_type_is_ignored() -> None:
     """Test addCriteria ignores disallowed criterion types.
 
     Objective:

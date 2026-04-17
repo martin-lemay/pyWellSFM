@@ -40,7 +40,11 @@ from .Facies import (
     PetrophysicalFacies,
     SedimentaryFacies,
 )
-from .FSSimulationParameters import RealizationData, Scenario
+from .FSSimulationParameters import (
+    FSSimulatorParameters,
+    RealizationData,
+    Scenario,
+)
 from .Marker import Marker, StratigraphicSurfaceType
 from .Well import Well
 
@@ -69,6 +73,7 @@ __all__ = [
     "FaciesCriteriaCollection",
     "FaciesCriteriaType",
     "FaciesModel",
+    "FSSimulatorParameters",
     "Marker",
     "PetrophysicalFacies",
     "RealizationData",

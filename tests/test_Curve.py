@@ -4,11 +4,9 @@
 
 import os
 import sys
-from pathlib import Path
 
-from pywellsfm.utils.helpers import (
+from pywellsfm.utils.interpolation import (
     LowerBoundInterpolator,
-    UpperBoundInterpolator,
 )
 
 m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
@@ -23,15 +21,7 @@ import numpy as np
 import pytest
 from scipy.interpolate import interp1d
 
-from pywellsfm.io.curve_io import (
-    loadCurveFromJsonObj,
-    loadCurvesFromCsv,
-    loadCurvesFromFile,
-    loadUncertaintyCurveFromCsv,
-    loadUncertaintyCurveFromFile,
-    loadUncertaintyCurveFromJsonObj,
-)
-from pywellsfm.model import AccumulationCurve, Curve
+from pywellsfm.model import AccumulationCurve, Curve, UncertaintyCurve
 from pywellsfm.utils import PolynomialInterpolator
 
 # Test data
@@ -282,521 +272,241 @@ def test_Curve_compute4(xx: float, yy: float) -> None:
     assert abs(curve(xx) - yy) < eps
 
 
-# Test of Curve IO functions
-def test_loadCurvesFromCsv_reads_header_and_sorts(tmp_path: Path) -> None:
-    """Test loadCurvesFromCsv function with 1 curve.
-
-    :param Path tmp_path: path to temporary folder
-    """
-    csv_path = tmp_path / "my_curve.csv"
-    csv_path.write_text(
-        "Depth,Value\n2,20\n1,10\n3,30\n",
-        encoding="utf-8",
-    )
-
-    curves = loadCurvesFromCsv(csv_path)
-    assert len(curves) == 1
-    curve = curves[0]
-
-    assert curve._xAxisName == "Depth"
-    assert curve._yAxisName == "Value"
-    assert np.array_equal(curve._abscissa, np.array([1.0, 2.0, 3.0]))
-    assert np.array_equal(curve._ordinate, np.array([10.0, 20.0, 30.0]))
-    assert isinstance(curve._interpFunc, interp1d)
-    assert curve._interpFunc._kind == "linear"
-
-
-def test_loadCurvesFromCsv_reads_multiple_curves(tmp_path: Path) -> None:
-    """Test loadCurvesFromCsv function with multiple curves.
-
-    :param Path tmp_path: path to temporary folder
-    """
-    csv_path = tmp_path / "my_curve.csv"
-    depth = [1, 2, 3]
-    curve1 = [20, 100, 300]
-    curve2 = [10, 50, 500]
-    curve3 = [30, 150, 450]
-    curvesAll = [curve1, curve2, curve3]
-    csv_path.write_text(
-        "Depth,Curve1,Curve2,Curve3\n"
-        + f"{depth[0]},{curve1[0]},{curve2[0]},{curve3[0]}\n"
-        + f"{depth[1]},{curve1[1]},{curve2[1]},{curve3[1]}\n"
-        + f"{depth[2]},{curve1[2]},{curve2[2]},{curve3[2]}\n",
-        encoding="utf-8",
-    )
-
-    curves = loadCurvesFromCsv(csv_path)
-    assert len(curves) == 3
-
-    for u, curve in enumerate(curves):
-        assert curve._xAxisName == "Depth"
-        assert curve._yAxisName == f"Curve{u + 1}"
-        expected_ordinate = np.array(curvesAll[u])
-        assert np.array_equal(curve._abscissa, np.array(depth))
-        assert np.array_equal(curve._ordinate, expected_ordinate)
-        assert isinstance(curve._interpFunc, interp1d)
-        assert curve._interpFunc._kind == "linear"
-
-
-def test_loadCurvesFromCsv_drops_non_numeric_rows(tmp_path: Path) -> None:
-    """Test loadCurvesFromCsv function.
-
-    :param Path tmp_path: path to temporary folder
-    """
-    csv_path = tmp_path / "bad_rows.csv"
-    csv_path.write_text(
-        "X,Y\n0,0\noops,2\n2,4\n",
-        encoding="utf-8",
-    )
-
-    curves = loadCurvesFromCsv(csv_path)
-    assert len(curves) == 1
-    curve = curves[0]
-    assert np.array_equal(curve._abscissa, np.array([0.0, 2.0]))
-    assert np.array_equal(curve._ordinate, np.array([0.0, 4.0]))
-
-
-def test_loadCurvesFromCsv_requires_two_columns(tmp_path: Path) -> None:
-    """Test loadCurvesFromCsv function.
-
-    :param Path tmp_path: path to temporary folder
-    """
-    csv_path = tmp_path / "one_col.csv"
-    csv_path.write_text("X\n1\n2\n", encoding="utf-8")
-
-    with pytest.raises(ValueError, match="at least 2 columns"):
-        loadCurvesFromCsv(csv_path)
-
-
-def test_loadCurveFromJsonObj_linear() -> None:
-    """Load a Curve from a CurveSchema.json-compatible object (linear)."""
-    obj = {
-        "format": "pyWellSFM.CurveData",
-        "version": "1.0",
-        "curve": {
-            "xAxisName": "Depth",
-            "yAxisName": "Value",
-            "interpolationMethod": "linear",
-            "data": [
-                {"x": 2, "y": 20},
-                {"x": 1, "y": 10},
-                {"x": 3, "y": 30},
-            ],
-        },
-    }
-
-    curve = loadCurveFromJsonObj(obj)
-    assert curve._xAxisName == "Depth"
-    assert curve._yAxisName == "Value"
-    assert np.array_equal(curve._abscissa, np.array([1.0, 2.0, 3.0]))
-    assert np.array_equal(curve._ordinate, np.array([10.0, 20.0, 30.0]))
-    assert isinstance(curve._interpFunc, interp1d)
-    assert curve._interpFunc._kind == "linear"
-
-
-def test_loadCurveFromJsonObj_polynomial() -> None:
-    """Load a Curve from a CurveSchema.json-compatible object (polynomial)."""
-    obj = {
-        "format": "pyWellSFM.CurveData",
-        "version": "1.0",
-        "curve": {
-            "xAxisName": "Depth",
-            "yAxisName": "Value",
-            "interpolationMethod": {
-                "name": "PolynomialInterpolator",
-                "degree": 3,
-                "nbPoints": 5,
-            },
-            "data": [
-                {"x": 0.0, "y": 0.0},
-                {"x": 1.0, "y": 1.0},
-                {"x": 2.0, "y": 4.0},
-                {"x": 3.0, "y": 9.0},
-                {"x": 4.0, "y": 16.0},
-            ],
-        },
-    }
-
-    curve = loadCurveFromJsonObj(obj)
-    assert curve._xAxisName == "Depth"
-    assert curve._yAxisName == "Value"
-    assert isinstance(curve._interpFunc, PolynomialInterpolator)
-    assert curve._interpFunc.deg == 3
-    assert curve._interpFunc.nbPts >= 5
-
-
-def test_loadCurveFromJsonObj_lowerBound() -> None:
-    """Load a Curve from a CurveSchema.json-compatible object (lowerBound)."""
-    obj = {
-        "format": "pyWellSFM.CurveData",
-        "version": "1.0",
-        "curve": {
-            "xAxisName": "Depth",
-            "yAxisName": "Value",
-            "interpolationMethod": "LowerBound",
-            "data": [
-                {"x": 2, "y": 20},
-                {"x": 1, "y": 10},
-                {"x": 3, "y": 30},
-            ],
-        },
-    }
-
-    curve = loadCurveFromJsonObj(obj)
-    assert curve._xAxisName == "Depth"
-    assert curve._yAxisName == "Value"
-    assert np.array_equal(curve._abscissa, np.array([1.0, 2.0, 3.0]))
-    assert np.array_equal(curve._ordinate, np.array([10.0, 20.0, 30.0]))
-    assert isinstance(curve._interpFunc, LowerBoundInterpolator)
-
-
-def test_loadCurveFromJsonObj_upperBound() -> None:
-    """Load a Curve from a CurveSchema.json-compatible object (upperBound)."""
-    obj = {
-        "format": "pyWellSFM.CurveData",
-        "version": "1.0",
-        "curve": {
-            "xAxisName": "Depth",
-            "yAxisName": "Value",
-            "interpolationMethod": "UpperBound",
-            "data": [
-                {"x": 2, "y": 20},
-                {"x": 1, "y": 10},
-                {"x": 3, "y": 30},
-            ],
-        },
-    }
-
-    curve = loadCurveFromJsonObj(obj)
-    assert curve._xAxisName == "Depth"
-    assert curve._yAxisName == "Value"
-    assert np.array_equal(curve._abscissa, np.array([1.0, 2.0, 3.0]))
-    assert np.array_equal(curve._ordinate, np.array([10.0, 20.0, 30.0]))
-    assert isinstance(curve._interpFunc, UpperBoundInterpolator)
-
-
-def test_loadCurveFromFile_json(tmp_path: Path) -> None:
-    """Load Curve from a JSON file matching CurveSchema.json."""
-    json_path = tmp_path / "curve.json"
-    json_path.write_text(
-        """
-{
-  \"format\": \"pyWellSFM.CurveData\",
-  \"version\": \"1.0\",
-  \"curve\": {
-    \"xAxisName\": \"Depth\",
-    \"yAxisName\": \"Value\",
-    \"interpolationMethod\": \"linear\",
-    \"data\": [
-      {\"x\": 0, \"y\": 0},
-      {\"x\": 1, \"y\": 1}
-    ]
-  }
-}
-""".strip(),
-        encoding="utf-8",
-    )
-
-    curves = loadCurvesFromFile(json_path)
-    assert len(curves) == 1
-    curve = curves[0]
-    assert curve._xAxisName == "Depth"
-    assert curve._yAxisName == "Value"
-    assert curve.getValueAt(0.5) == pytest.approx(0.5)
-
-
-def test_loadCurvesFromFile_csv(tmp_path: Path) -> None:
-    """Load Curve from a CSV file with a header row."""
-    csv_path = tmp_path / "curve.csv"
-    csv_path.write_text(
-        "Depth,Value\n0,0\n1,1\n",
-        encoding="utf-8",
-    )
-
-    curves: list[Curve] = loadCurvesFromFile(csv_path)
-    assert len(curves) == 1
-    curve: Curve = curves[0]
-    assert curve._xAxisName == "Depth"
-    assert curve._yAxisName == "Value"
-    assert curve.getValueAt(0.25) == pytest.approx(0.25)
-
-
-def test_loadCurvesFromFile_missing_raises(tmp_path: Path) -> None:
-    """Missing file should raise FileNotFoundError."""
-    missing = tmp_path / "does_not_exist.json"
-    with pytest.raises(FileNotFoundError):
-        loadCurvesFromFile(missing)
-
-
-def test_loadCurvesFromFile_unsupported_extension(tmp_path: Path) -> None:
-    """Unsupported extension should raise ValueError."""
-    p = tmp_path / "curve.txt"
-    p.write_text("hello", encoding="utf-8")
-    with pytest.raises(ValueError, match="Unsupported file extension"):
-        loadCurvesFromFile(p)
-
-
-# Test UncertaintyCurve IO functions
-def test_loadUncertaintyCurveFromJsonObj_single_curve() -> None:
-    """Load an UncertaintyCurve from schema-compatible object."""
-    obj = {
-        "format": "pyWellSFM.UncertaintyCurveData",
-        "version": "1.0",
-        "data": {
-            "name": "Bathymetry",
-            "curves": [
-                {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
-                    "curve": {
-                        "xAxisName": "Depth",
-                        "yAxisName": "Bathymetry",
-                        "interpolationMethod": "linear",
-                        "data": [
-                            {"x": 0, "y": 10},
-                            {"x": 1, "y": 20},
-                        ],
-                    },
-                }
-            ],
-        },
-    }
-
-    u = loadUncertaintyCurveFromJsonObj(obj)
-    assert u.name == "Bathymetry"
-    assert np.array_equal(u.getAbscissa(), np.array([0.0, 1.0]))
-    assert np.array_equal(u.getMedianValues(), np.array([10.0, 20.0]))
-    # With a single curve, min/max default to the median.
-    assert np.array_equal(u.getMinValues(), np.array([10.0, 20.0]))
-    assert np.array_equal(u.getMaxValues(), np.array([10.0, 20.0]))
-
-
-def test_loadUncertaintyCurveFromJsonObj_three_curves_ordered() -> None:
-    """Load an UncertaintyCurve from 3 curves."""
-    obj = {
-        "format": "pyWellSFM.UncertaintyCurveData",
-        "version": "1.0",
-        "data": {
-            "name": "Accommodation",
-            "curves": [
-                {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
-                    "curve": {
-                        "xAxisName": "Depth",
-                        "yAxisName": "median",
-                        "interpolationMethod": "linear",
-                        "data": [{"x": 0, "y": 5}, {"x": 1, "y": 6}],
-                    },
-                },
-                {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
-                    "curve": {
-                        "xAxisName": "Depth",
-                        "yAxisName": "min",
-                        "interpolationMethod": "linear",
-                        "data": [{"x": 0, "y": 2}, {"x": 1, "y": 3}],
-                    },
-                },
-                {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
-                    "curve": {
-                        "xAxisName": "Depth",
-                        "yAxisName": "max",
-                        "interpolationMethod": "linear",
-                        "data": [{"x": 0, "y": 8}, {"x": 1, "y": 9}],
-                    },
-                },
-            ],
-        },
-    }
-
-    u = loadUncertaintyCurveFromJsonObj(obj)
-    assert u.name == "Accommodation"
-    assert np.array_equal(u.getMedianValues(), np.array([5.0, 6.0]))
-    assert np.array_equal(u.getMinValues(), np.array([2.0, 3.0]))
-    assert np.array_equal(u.getMaxValues(), np.array([8.0, 9.0]))
-
-
-def test_loadUncertaintyCurveFromJsonObj_abscissa_mismatch_raises() -> None:
-    """Test loadUncertaintyCurveFromJsonObj with abscissa mismatch."""
-    obj = {
-        "format": "pyWellSFM.UncertaintyCurveData",
-        "version": "1.0",
-        "data": {
-            "name": "Any",
-            "curves": [
-                {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
-                    "curve": {
-                        "xAxisName": "Depth",
-                        "yAxisName": "median",
-                        "interpolationMethod": "linear",
-                        "data": [{"x": 0, "y": 1}, {"x": 1, "y": 2}],
-                    },
-                },
-                {
-                    "format": "pyWellSFM.CurveData",
-                    "version": "1.0",
-                    "curve": {
-                        "xAxisName": "Depth",
-                        "yAxisName": "min",
-                        "interpolationMethod": "linear",
-                        "data": [{"x": 0, "y": 0}, {"x": 2, "y": 0}],
-                    },
-                },
-            ],
-        },
-    }
-
-    with pytest.raises(ValueError, match="abscissa"):
-        loadUncertaintyCurveFromJsonObj(obj)
-
-
-def test_loadUncertaintyCurveFromJsonObj_invalid_format_raises() -> None:
-    """Test loadUncertaintyCurveFromJsonObj with invalid format."""
-    obj = {
-        "format": "pyWellSFM.NotUncertaintyCurve",
-        "version": "1.0",
-        "data": {"name": "X", "curves": []},
-    }
-
-    with pytest.raises(ValueError, match="Invalid uncertainty curve format"):
-        loadUncertaintyCurveFromJsonObj(obj)
-
-
-def test_loadUncertaintyCurveFromCsv_no_header_4_columns_drops_nan_and_sorts(
-    tmp_path: Path,
-) -> None:
-    """Load UncertaintyCurve from a headerless 4-column CSV."""
-    csv_path = tmp_path / "bathy_unc.csv"
-    csv_path.write_text(
-        "0,1,4,20\n1,10,0,20\n0.5,5,0,10\n",
-        encoding="utf-8",
-    )
-
+def test_Curve_init_invalid_interpolation_method() -> None:
+    """Raise wrapped ValueError when scipy interp1d fails."""
+    bad_abscissa = np.array([0.0, 1.0, 2.0])
+    bad_ordinate = np.array([0.0, 1.0])
     with pytest.raises(
-        ValueError, match="UncertaintyCurve CSV must have a header row"
+        ValueError,
+        match="Invalid interpolation method: linear.",
     ):
-        loadUncertaintyCurveFromCsv(csv_path)
+        Curve(xAxisName, yAxisName, bad_abscissa, bad_ordinate, "linear")
 
 
-def test_loadUncertaintyCurveFromCsv_header_two_columns_defaults(
-    tmp_path: Path,
-) -> None:
-    """With only x,y columns, min/max default to median."""
-    csv_path = tmp_path / "unc2.csv"
-    csv_path.write_text(
-        "Depth,Value\n2,20\n1,10\n",
-        encoding="utf-8",
-    )
-
-    u = loadUncertaintyCurveFromCsv(csv_path)
-    assert np.array_equal(u.getAbscissa(), np.array([1.0, 2.0]))
-    assert np.array_equal(u.getMedianValues(), np.array([10.0, 20.0]))
-    assert np.array_equal(u.getMinValues(), np.array([10.0, 20.0]))
-    assert np.array_equal(u.getMaxValues(), np.array([10.0, 20.0]))
+def test_Curve_repr_matches_numpy_stack() -> None:
+    """Return repr matching stacked abscissa and ordinate."""
+    curve = Curve(xAxisName, yAxisName, abscissa, ordinate)
+    expected = str(np.column_stack((abscissa, ordinate)))
+    assert repr(curve) == expected
 
 
-def test_loadUncertaintyCurveFromCsv_three_columns_header_max_only(
-    tmp_path: Path,
-) -> None:
-    """With 3 columns, a header containing 'ymax' sets only max values."""
-    csv_path = tmp_path / "unc3.csv"
-    csv_path.write_text(
-        "Depth,median,ymax\n0,10,15\n1,20,30\n",
-        encoding="utf-8",
-    )
-
-    u = loadUncertaintyCurveFromCsv(csv_path)
-    assert np.array_equal(u.getMedianValues(), np.array([10.0, 20.0]))
-    # Only ymax provided; ymin defaults to median.
-    assert np.array_equal(u.getMinValues(), np.array([10.0, 20.0]))
-    assert np.array_equal(u.getMaxValues(), np.array([15.0, 30.0]))
+def test_Curve_setSampledPoints_updates_arrays_and_bounds() -> None:
+    """Update sampled arrays and cached bounds."""
+    curve = Curve(xAxisName, yAxisName, abscissa, ordinate)
+    new_abscissa = np.array([-2.0, 0.0, 5.0])
+    new_ordinate = np.array([10.0, 20.0, 30.0])
+    curve.setSampledPoints(new_abscissa, new_ordinate)
+    assert np.array_equal(curve._abscissa, new_abscissa)
+    assert np.array_equal(curve._ordinate, new_ordinate)
+    assert curve._minAbscissa == -2.0
+    assert curve._maxAbscissa == 5.0
 
 
-def test_loadUncertaintyCurveFromCsv_invalid_column_count_raises(
-    tmp_path: Path,
-) -> None:
-    """Invalid number of columns should raise ValueError."""
-    p = tmp_path / "too_many.csv"
-    p.write_text("a,b,c,d,e\n1,2,3,4,5\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="2 to 4 columns"):
-        loadUncertaintyCurveFromCsv(p)
+def test_Curve_setValueAt_raises_for_unknown_x() -> None:
+    """Raise when setting ordinate for absent abscissa."""
+    curve = Curve(xAxisName, yAxisName, abscissa, ordinate)
+    with pytest.raises(
+        IndexError,
+        match="Input abscissa 999.0 is not in the array of sampled points.",
+    ):
+        curve.setValueAt(999.0, 1.0)
 
 
-def test_loadUncertaintyCurveFromFile_csv(tmp_path: Path) -> None:
-    """Load UncertaintyCurve from a CSV file with a header row."""
-    csv_path = tmp_path / "unc.csv"
-    csv_path.write_text(
-        "Depth,median,ymin,ymax\n2,20,15,25\n1,10,5,12\n",
-        encoding="utf-8",
-    )
-
-    u = loadUncertaintyCurveFromFile(csv_path)
-    # For CSV, current implementation uses the 1st column header as curve name.
-    assert u.name == "Depth"
-    assert np.array_equal(u.getAbscissa(), np.array([1.0, 2.0]))
-    assert np.array_equal(u.getMedianValues(), np.array([10.0, 20.0]))
-    assert np.array_equal(u.getMinValues(), np.array([5.0, 15.0]))
-    assert np.array_equal(u.getMaxValues(), np.array([12.0, 25.0]))
+def test_Curve_getValueAt_above_domain_returns_last() -> None:
+    """Return last ordinate value above curve domain."""
+    curve = Curve(xAxisName, yAxisName, abscissa, ordinate)
+    assert curve.getValueAt(curve._maxAbscissa + 1.0) == curve._ordinate[-1]
 
 
-def test_loadUncertaintyCurveFromFile_json(tmp_path: Path) -> None:
-    """Load UncertaintyCurve from a JSON file matching schema."""
-    json_path = tmp_path / "unc.json"
-    json_path.write_text(
-        """
-{
-    \"format\": \"pyWellSFM.UncertaintyCurveData\",
-    \"version\": \"1.0\",
-    \"data\": {
-        \"name\": \"Bathymetry\",
-        \"curves\": [
-            {
-                \"format\": \"pyWellSFM.CurveData\",
-                \"version\": \"1.0\",
-                \"curve\": {
-                    \"xAxisName\": \"Depth\",
-                    \"yAxisName\": \"median\",
-                    \"interpolationMethod\": \"linear\",
-                    \"data\": [
-                        {\"x\": 0, \"y\": 10},
-                        {\"x\": 1, \"y\": 20}
-                    ]
-                }
-            }
-        ]
-    }
-}
-""".strip(),
-        encoding="utf-8",
-    )
-
-    u = loadUncertaintyCurveFromFile(json_path)
-    assert u.name == "Bathymetry"
-    assert np.array_equal(u.getAbscissa(), np.array([0.0, 1.0]))
-    assert np.array_equal(u.getMedianValues(), np.array([10.0, 20.0]))
+def test_Curve_setValueBetween_raises_on_vector_boolean() -> None:
+    """Raise ValueError from invalid ndarray boolean operation."""
+    curve = Curve(xAxisName, yAxisName, abscissa, ordinate)
+    with pytest.raises(ValueError, match="truth value of an array"):
+        curve.setValueBetween(0.25, 1.25, 8.0)
 
 
-def test_loadUncertaintyCurveFromFile_missing_raises(tmp_path: Path) -> None:
-    """Missing file should raise FileNotFoundError."""
-    missing = tmp_path / "does_not_exist.csv"
-    with pytest.raises(FileNotFoundError):
-        loadUncertaintyCurveFromFile(missing)
+def test_Curve_addSampledPoint_updates_existing_x() -> None:
+    """Update existing x without changing sampled array size."""
+    curve = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    curve.addSampledPoint(1.0, 9.0)
+    assert curve._abscissa.size == 2
+    assert curve._ordinate[1] == 9.0
 
 
-def test_loadUncertaintyCurveFromFile_unsupported_extension(
-    tmp_path: Path,
-) -> None:
-    """Unsupported extension should raise ValueError."""
-    p = tmp_path / "unc.txt"
-    p.write_text("hello", encoding="utf-8")
-    with pytest.raises(ValueError, match="Unsupported file extension"):
-        loadUncertaintyCurveFromFile(p)
+def test_Curve_getIndexOfX_returns_present_index() -> None:
+    """Return exact sampled index when x exists."""
+    curve = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    assert curve._getIndexOfX(1.0) == 1
+
+
+def test_Curve_getValueAt_below_domain_returns_first() -> None:
+    """Return first ordinate value below curve domain."""
+    curve = Curve("x", "y", np.array([0.0, 1.0]), np.array([2.0, 4.0]))
+    assert curve.getValueAt(-1.0) == 2.0
+
+
+def test_Curve_setValueBetween_updates_single_point_with_large_tol() -> None:
+    """Update point through setValueBetween when scalar boolean is valid."""
+    curve = Curve("x", "y", np.array([0.5]), np.array([1.0]))
+    curve.setValueBetween(0.0, 1.0, 7.0, tol=1.0)
+    assert curve._ordinate[0] == 7.0
+
+
+def test_Curve_toDataFrame_raises_on_inverted_bounds() -> None:
+    """Raise when start abscissa is not lower than end abscissa."""
+    curve = Curve("x", "y", np.array([0.0, 1.0]), np.array([2.0, 4.0]))
+    with pytest.raises(
+        ValueError,
+        match="Start abscissa must be lower than end abscissa.",
+    ):
+        curve.toDataFrame(fromX=1.0, toX=1.0)
+
+
+def test_Curve_toDataFrame_raises_on_non_positive_dx() -> None:
+    """Raise when sampling step is non-positive."""
+    curve = Curve("x", "y", np.array([0.0, 1.0]), np.array([2.0, 4.0]))
+    with pytest.raises(
+        ValueError,
+        match="Sampling step must be strictly positive.",
+    ):
+        curve.toDataFrame(fromX=0.0, toX=1.0, dx=-1.0)
+
+
+def test_UncertaintyCurve_setCurve_rejects_non_curve() -> None:
+    """Reject non-Curve object when setting median curve."""
+    base = Curve(xAxisName, yAxisName, abscissa, ordinate)
+    unc = UncertaintyCurve("u", base)
+    with pytest.raises(TypeError, match="Input curve must be of type Curve"):
+        unc.setCurve("not_a_curve")  # type: ignore[arg-type]
+
+
+def test_UncertaintyCurve_getMedianValues_raises_without_curve() -> None:
+    """Raise when median curve is missing."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    unc._medianCurve = None  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="Median curve is undefined."):
+        unc.getMedianValues()
+
+
+def test_UncertaintyCurve_getAbscissa_raises_without_curve() -> None:
+    """Raise when median abscissa curve is missing."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    unc._medianCurve = None  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="Median curve is undefined."):
+        unc.getAbscissa()
+
+
+def test_UncertaintyCurve_getMinValues_raises_without_curve() -> None:
+    """Raise when minimum curve is missing."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    unc._minCurve = None  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="Min curve is undefined."):
+        unc.getMinValues()
+
+
+def test_UncertaintyCurve_getMaxValues_raises_without_curve() -> None:
+    """Raise when maximum curve is missing."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    unc._maxCurve = None  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="Max curve is undefined."):
+        unc.getMaxValues()
+
+
+def test_UncertaintyCurve_setMinCurveValues_raises_on_wrong_size() -> None:
+    """Raise when min values size does not match abscissa size."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    with pytest.raises(
+        ValueError,
+        match="Values size must match min curve abscissa size.",
+    ):
+        unc.setMinCurveValues(np.array([1.0]))
+
+
+def test_UncertaintyCurve_setMaxCurveValues_raises_on_wrong_size() -> None:
+    """Raise when max values size does not match abscissa size."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    with pytest.raises(
+        ValueError,
+        match="Values size must match max curve abscissa size.",
+    ):
+        unc.setMaxCurveValues(np.array([1.0]))
+
+
+def test_UncertaintyCurve_setMinCurveValues_raises_without_curve() -> None:
+    """Raise when minimum curve is missing during update."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    unc._minCurve = None  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="Min curve is undefined."):
+        unc.setMinCurveValues(np.array([1.0, 2.0]))
+
+
+def test_UncertaintyCurve_setMaxCurveValues_raises_without_curve() -> None:
+    """Raise when maximum curve is missing during update."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    unc._maxCurve = None  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="Max curve is undefined."):
+        unc.setMaxCurveValues(np.array([1.0, 2.0]))
+
+
+def test_UncertaintyCurve_addSampledPoint_defaults_to_median() -> None:
+    """Use median value as default bounds when ymin and ymax are NaN."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([2.0, 4.0]))
+    unc = UncertaintyCurve("u", base)
+    unc.addSampledPoint(2.0, 6.0)
+    assert unc.getMedianValues()[-1] == 6.0
+    assert unc.getMinValues()[-1] == 6.0
+    assert unc.getMaxValues()[-1] == 6.0
+
+
+def test_UncertaintyCurve_setSampledPoints_default_nan_bounds() -> None:
+    """Set median values and keep min/max values as NaN by default."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    x = np.array([0.0, 2.0, 4.0])
+    y = np.array([1.0, 3.0, 5.0])
+    unc.setSampledPoints(x, y)
+    assert np.array_equal(unc.getAbscissa(), x)
+    assert np.array_equal(unc.getMedianValues(), y)
+    assert np.isnan(unc.getMinValues()).all()
+    assert np.isnan(unc.getMaxValues()).all()
+
+
+def test_UncertaintyCurve_setSampledPoints_sets_min_and_max() -> None:
+    """Set min and max arrays when flags are enabled."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([1.0, 2.0]))
+    unc = UncertaintyCurve("u", base)
+    x = np.array([0.0, 1.0, 2.0])
+    y = np.array([2.0, 4.0, 6.0])
+    unc.setSampledPoints(x, y, setAsMinValues=True, setAsMaxValues=True)
+    assert np.array_equal(unc.getMinValues(), y)
+    assert np.array_equal(unc.getMaxValues(), y)
+
+
+def test_UncertaintyCurve_getRangeAt_returns_min_median_max() -> None:
+    """Return triplet from min, median and max curves at abscissa."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([2.0, 4.0]))
+    unc = UncertaintyCurve("u", base)
+    unc.setMinCurveValues(np.array([1.0, 3.0]))
+    unc.setMaxCurveValues(np.array([3.0, 5.0]))
+    assert unc.getRangeAt(0.5) == (2.0, 2.0, 2.0)
+
+
+def test_UncertaintyCurve_addSampledPoint_uses_explicit_bounds() -> None:
+    """Add point using explicit minimum and maximum values."""
+    base = Curve("x", "y", np.array([0.0, 1.0]), np.array([2.0, 4.0]))
+    unc = UncertaintyCurve("u", base)
+    unc.addSampledPoint(2.0, 6.0, ymin=5.0, ymax=7.0)
+    assert unc.getMedianValues()[-1] == 6.0
+    assert unc.getMinValues()[-1] == 5.0
+    assert unc.getMaxValues()[-1] == 7.0
 
 
 # Test AccumulationCurve class
@@ -823,7 +533,7 @@ def test_AccumulationCurve_init2() -> None:
     prodAbscissa = np.array([0.0, 10.0, 50.0])
     prodOrdinate = np.array([0.0, 2.0, 0.0])
     with pytest.raises(
-        AssertionError,
+        ValueError,
         match="Accumulation curve ordinates must be between 0 and 1.",
     ):
         AccumulationCurve(prodName, prodAbscissa, prodOrdinate)

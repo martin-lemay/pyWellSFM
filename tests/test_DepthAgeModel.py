@@ -65,7 +65,7 @@ def test_DepthAgeModel_addMarker_with_and_without_existing_curve() -> None:
 
     model.addMarker(Marker("M1", depth=200.0, age=10.0))
     depth = model.getDepth(10.0)
-    assert np.isscalar(depth) or isinstance(depth, np.ndarray)
+    assert isinstance(depth, float)
 
 
 def test_DepthAgeModel_getDepth_getAge_when_curve_missing() -> None:

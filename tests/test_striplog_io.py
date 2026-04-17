@@ -67,10 +67,7 @@ def test_importStriplogFromCsv_preserves_non_depth_columns(
     """All non top/base columns are preserved in component metadata."""
     csv_path = tmp_path / "litho_with_props.csv"
     csv_path.write_text(
-        (
-            "top,base,lithology,color,porosity\n"
-            "0.0,0.5,sandstone,yellow,0.25\n"
-        ),
+        ("top,base,lithology,color,porosity\n0.0,0.5,sandstone,yellow,0.25\n"),
         encoding="utf-8",
     )
 

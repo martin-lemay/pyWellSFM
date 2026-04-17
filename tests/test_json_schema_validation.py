@@ -178,7 +178,11 @@ def test_validate_wrapper_functions_with_real_and_mocked_inputs(
     assert isinstance(well_obj, dict)
 
     # Mocked non-dict return to exercise each wrapper's type guard branch.
-    monkeypatch.setattr(jsv, "validate_json_file_against_schema", lambda *_a, **_k: [])
+    monkeypatch.setattr(
+        jsv,
+        "validate_json_file_against_schema",
+        lambda *_a, **_k: [],
+    )
 
     wrappers = [
         jsv.validateAccumulationModelJsonFile,
@@ -197,7 +201,11 @@ def test_validate_wrapper_functions_with_real_and_mocked_inputs(
             _ = fn("dummy.json")
 
     # Mocked dict return to exercise each wrapper success return branch.
-    monkeypatch.setattr(jsv, "validate_json_file_against_schema", lambda *_a, **_k: {"ok": True})
+    monkeypatch.setattr(
+        jsv,
+        "validate_json_file_against_schema",
+        lambda *_a, **_k: {"ok": True},
+    )
     for fn in wrappers:
         obj = fn("dummy.json")
         assert isinstance(obj, dict)

@@ -1,7 +1,5 @@
 """PyWellSFM public API."""
 
-import logging
-
 from .io import validate_json_file_against_schema
 from .model import (
     AccommodationSpaceWellCalculator,
@@ -22,6 +20,7 @@ from .model import (
     FaciesCriteriaCollection,
     FaciesCriteriaType,
     FaciesModel,
+    FSSimulatorParameters,
     Marker,
     PetrophysicalFacies,
     RealizationData,
@@ -37,10 +36,13 @@ from .simulator import (
     DESimulatorParameters,
     EnvironmentConditionSimulator,
     FSSimulator,
-    FSSimulatorParameters,
     IntervalDistanceMethod,
 )
 from .utils.logging_utils import (
+    DEBUG,
+    ERROR,
+    INFO,
+    WARNING,
     clear_stored_logs,
     configure_logging,
     export_stored_logs,
@@ -97,7 +99,11 @@ __all__ = [
     "get_stored_logs",
     "set_log_level",
     "validate_json_file_against_schema",
+    "ERROR",
+    "WARNING",
+    "INFO",
+    "DEBUG",
 ]
 
 
-configure_logging(level=logging.INFO, enable_console=True)
+configure_logging(level=INFO, enable_console=True)

@@ -86,6 +86,13 @@ def test_set_Element() -> None:
     )
 
 
+@pytest.mark.parametrize("other", [None, 0, "Sand", object()])
+def test_element_equality_non_element(other: object) -> None:
+    """Test equality returns False with non-Element objects."""
+    element = Element("Sand")
+    assert (element == other) is False
+
+
 if __name__ == "__main__":
     pytest.main(
         [

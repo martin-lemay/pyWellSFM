@@ -18,6 +18,7 @@ from .DepositionalEnvironmentSimulator import (
 )
 from .EnvironmentConditionSimulator import EnvironmentConditionSimulator
 from .FSSimulator import FSSimulator, FSSimulatorParameters
+from .TimeStepController import TimeStepController
 
 __all__ = [
     "AccommodationSimulator",
@@ -29,4 +30,5 @@ __all__ = [
     "FSSimulator",
     "FSSimulatorParameters",
     "IntervalDistanceMethod",
+    "TimeStepController",
 ]

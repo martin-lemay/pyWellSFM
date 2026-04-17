@@ -15,7 +15,7 @@ from .geometry import (
     hausdorff_distance,
     wasserstein2_distance,
 )
-from .helpers import (
+from .interpolation import (
     Interpolator,
     LinearInterpolator,
     LowerBoundInterpolator,
@@ -23,6 +23,10 @@ from .helpers import (
     UpperBoundInterpolator,
 )
 from .logging_utils import (
+    DEBUG,
+    ERROR,
+    INFO,
+    WARNING,
     clear_stored_logs,
     configure_logging,
     export_stored_logs,
@@ -56,4 +60,8 @@ __all__ = [
     "get_stored_log_messages",
     "get_stored_logs",
     "set_log_level",
+    "ERROR",
+    "WARNING",
+    "INFO",
+    "DEBUG",
 ]

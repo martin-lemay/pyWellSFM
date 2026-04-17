@@ -100,7 +100,12 @@ def test_save_and_load_tabulated_function_json_round_trip(
     assert payload["abscissaName"] == "Age"
     assert payload["ordinateName"] == "ReductionCoeff"
 
-    abscissa_name, ordinate_name, x, y = loadTabulatedFunctionFromFile(out_path)
+    (
+        abscissa_name,
+        ordinate_name,
+        x,
+        y,
+    ) = loadTabulatedFunctionFromFile(out_path)
     assert abscissa_name == "Age"
     assert ordinate_name == "ReductionCoeff"
     assert np.allclose(x, np.array([0.0, 10.0], dtype=float))
@@ -133,7 +138,12 @@ def test_save_and_load_tabulated_function_csv_round_trip(
     )
 
     assert out_path.exists()
-    abscissa_name, ordinate_name, x, y = loadTabulatedFunctionFromFile(out_path)
+    (
+        abscissa_name,
+        ordinate_name,
+        x,
+        y,
+    ) = loadTabulatedFunctionFromFile(out_path)
     assert abscissa_name == "tabulated"
     assert ordinate_name == "ReductionCoeff"
     assert np.allclose(x, np.array([0.0, 5.0, 10.0], dtype=float))

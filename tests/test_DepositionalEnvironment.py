@@ -1,13 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
-# ruff: noqa: E402, D103, E501 # test-module import order/docstrings/line-length
+# ruff: noqa: E402, D103, E501
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -15,12 +13,6 @@ m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
 
-from pywellsfm.io.depositional_environment_model_io import (
-    depositionalEnvironmentModelToJsonObj,
-    loadDepositionalEnvironmentModel,
-    loadDepositionalEnvironmentModelFromJsonObj,
-    saveDepositionalEnvironmentModel,
-)
 from pywellsfm.model.DepositionalEnvironment import (
     CarbonateOpenRampDepositionalEnvironmentModel,
     CarbonateProtectedRampDepositionalEnvironmentModel,
@@ -52,153 +44,12 @@ def _make_environment(
 
 
 #############################################################################
-#                  Tests for deposition environment model I/O.              #
-#############################################################################
-
-
-def test_load_depositional_environment_model_from_json_obj() -> None:
-    payload = {
-        "format": "pyWellSFM.DepositionalEnvironmentModelSchema",
-        "version": "1.0",
-        "name": "MyModel",
-        "environments": [
-            {
-                "name": "Lagoon",
-                "waterDepthModel": {
-                    "format": "pyWellSFM.EnvironmentConditionModelData",
-                    "version": "1.0",
-                    "model": {
-                        "modelType": "Uniform",
-                        "minValue": 0.0,
-                        "maxValue": 10.0,
-                    },
-                },
-                "distality": 0.2,
-                "environmentConditionsModel": {
-                    "format": "pyWellSFM.EnvironmentConditionsModelData",
-                    "version": "1.0",
-                    "environmentConditions": {
-                        "energy": {
-                            "format": "pyWellSFM.EnvironmentConditionModelData",
-                            "version": "1.0",
-                            "model": {
-                                "modelType": "Constant",
-                                "value": 0.25,
-                            },
-                        }
-                    },
-                },
-            }
-        ],
-    }
-
-    model = loadDepositionalEnvironmentModelFromJsonObj(payload)
-
-    assert model.name == "MyModel"
-    assert model.getEnvironmentCount() == 1
-
-    env = model.getEnvironmentByName("Lagoon")
-    assert env is not None
-    assert env.waterDepth_range == (0.0, 10.0)
-    assert env.distality == 0.2
-    assert env.envConditionsModel.environmentConditionNames == ["energy"]
-
-
-def test_load_rejects_legacy_environment_fields() -> None:
-    payload = {
-        "format": "pyWellSFM.DepositionalEnvironmentModelSchema",
-        "version": "1.0",
-        "name": "LegacyLike",
-        "environments": [
-            {
-                "name": "Lagoon",
-                "waterDepth_range": [0.0, 10.0],
-            }
-        ],
-    }
-
-    with pytest.raises(ValueError, match="unsupported properties"):
-        loadDepositionalEnvironmentModelFromJsonObj(payload)
-
-
-def test_save_and_load_roundtrip(tmp_path: Path) -> None:
-    environment = DepositionalEnvironment(
-        name="OuterRamp",
-        waterDepthModel=EnvironmentConditionModelUniform(
-            "waterDepth", 20.0, 50.0
-        ),
-        envConditionsModel=EnvironmentConditionsModel(
-            [
-                EnvironmentConditionModelUniform("energy", 0.0, 0.2),
-            ]
-        ),
-        distality=2.0,
-    )
-
-    model = DepositionalEnvironmentModel(
-        name="RoundtripModel",
-        environments=[environment],
-    )
-
-    payload = depositionalEnvironmentModelToJsonObj(model)
-    assert payload["format"] == "pyWellSFM.DepositionalEnvironmentModelSchema"
-    assert payload["version"] == "1.0"
-    assert payload["name"] == "RoundtripModel"
-
-    out_path = tmp_path / "deposition_model.json"
-    saveDepositionalEnvironmentModel(model, str(out_path))
-    loaded = loadDepositionalEnvironmentModel(str(out_path))
-
-    loaded_env = loaded.getEnvironmentByName("OuterRamp")
-    assert loaded_env is not None
-    assert loaded_env.waterDepth_range == (20.0, 50.0)
-    assert loaded_env.distality == 2.0
-    assert loaded_env.envConditionsModel.environmentConditionNames == [
-        "energy"
-    ]
-
-
-def test_duplicate_environment_names_are_rejected() -> None:
-    payload = {
-        "format": "pyWellSFM.DepositionalEnvironmentModelSchema",
-        "version": "1.0",
-        "name": "DupModel",
-        "environments": [
-            {
-                "name": "A",
-                "waterDepthModel": {
-                    "format": "pyWellSFM.EnvironmentConditionModelData",
-                    "version": "1.0",
-                    "model": {
-                        "modelType": "Constant",
-                        "value": 1.0,
-                    },
-                },
-            },
-            {
-                "name": "A",
-                "waterDepthModel": {
-                    "format": "pyWellSFM.EnvironmentConditionModelData",
-                    "version": "1.0",
-                    "model": {
-                        "modelType": "Constant",
-                        "value": 2.0,
-                    },
-                },
-            },
-        ],
-    }
-
-    with pytest.raises(ValueError, match="Duplicate environment name"):
-        loadDepositionalEnvironmentModelFromJsonObj(payload)
-
-
-#############################################################################
 #                       Tests for DepositionEnvironment                     #
 #############################################################################
 
 
 def test_depositional_environment_equality_hash_and_repr() -> None:
+    """Checks equality, hash and repr for matching environments."""
     env1 = _make_environment("OuterRamp", 20.0, 50.0, distality=2.0)
     env2 = _make_environment("OuterRamp", 20.0, 50.0, distality=2.0)
 
@@ -208,6 +59,7 @@ def test_depositional_environment_equality_hash_and_repr() -> None:
 
 
 def test_depositional_environment_waterdepth_helpers() -> None:
+    """Checks water depth helper properties."""
     env = _make_environment("Shore", 0.0, 10.0)
 
     assert env.waterDepth_range == (0.0, 10.0)
@@ -218,6 +70,7 @@ def test_depositional_environment_waterdepth_helpers() -> None:
 
 
 def test_get_environment_conditions() -> None:
+    """Returns configured environment conditions."""
     env = DepositionalEnvironment(
         name="Lagoon",
         waterDepthModel=EnvironmentConditionModelUniform(
@@ -236,12 +89,20 @@ def test_get_environment_conditions() -> None:
     assert values["temperature"] == 27.0
 
 
+def test_depositional_environment_eq_returns_false_for_other_type() -> None:
+    """Returns false when compared to a non environment object."""
+    env = _make_environment("OuterRamp", 20.0, 50.0, distality=2.0)
+
+    assert env != "OuterRamp"
+
+
 #############################################################################
 #                     Tests for DepositionalEnvironmentModel                #
 #############################################################################
 
 
 def test_depositional_environment_model_equality_respects_content() -> None:
+    """Compares model equality by values, independent from order."""
     left = DepositionalEnvironmentModel(
         name="M",
         environments=[
@@ -268,7 +129,21 @@ def test_depositional_environment_model_equality_respects_content() -> None:
     assert left != right_different
 
 
+def test_depositional_environment_model_eq_other_type_and_name() -> None:
+    """Returns false for other type and different model name."""
+    env = _make_environment("A", 0.0, 10.0)
+    model = DepositionalEnvironmentModel(name="M", environments=[env])
+    same_env_other_name = DepositionalEnvironmentModel(
+        name="N",
+        environments=[_make_environment("A", 0.0, 10.0)],
+    )
+
+    assert model != "M"
+    assert model != same_env_other_name
+
+
 def test_depositional_environment_model_add_get_exists_and_duplicate() -> None:
+    """Adds, checks, gets and rejects duplicate environments."""
     env = _make_environment("Lagoon", 0.0, 10.0)
     model = DepositionalEnvironmentModel(name="M", environments=[])
 
@@ -282,6 +157,7 @@ def test_depositional_environment_model_add_get_exists_and_duplicate() -> None:
 
 
 def test_depositional_environment_model_add_set_and_remove() -> None:
+    """Adds a set then removes matching environment names."""
     model = DepositionalEnvironmentModel(name="M", environments=[])
     env_set = {
         _make_environment("A", 0.0, 10.0),
@@ -298,7 +174,24 @@ def test_depositional_environment_model_add_set_and_remove() -> None:
     assert model.isEmpty()
 
 
+def test_remove_environment_unknown_name_keeps_collection() -> None:
+    """Keeps environments unchanged when name is absent."""
+    model = DepositionalEnvironmentModel(
+        name="M",
+        environments=[
+            _make_environment("A", 0.0, 10.0),
+            _make_environment("B", 10.0, 20.0),
+        ],
+    )
+
+    model.removeEnvironment("C")
+    assert model.getEnvironmentCount() == 2
+    assert model.environmentExists("A")
+    assert model.environmentExists("B")
+
+
 def test_depositional_environment_model_clear_and_type_errors() -> None:
+    """Raises type errors and clears all environments."""
     model = DepositionalEnvironmentModel(
         name="M",
         environments=[_make_environment("A", 0.0, 10.0)],
@@ -313,12 +206,23 @@ def test_depositional_environment_model_clear_and_type_errors() -> None:
     assert model.isEmpty()
 
 
+def test_get_environment_by_name_returns_none_when_missing() -> None:
+    """Returns none when environment name does not exist."""
+    model = DepositionalEnvironmentModel(
+        name="M",
+        environments=[_make_environment("A", 0.0, 10.0)],
+    )
+
+    assert model.getEnvironmentByName("B") is None
+
+
 #############################################################################
 #             Tests for derived DepositionalEnvironmentModel classes        #
 #############################################################################
 
 
 def test_carbonate_open_ramp_default_environments() -> None:
+    """Builds open ramp model with expected default environments."""
     model = CarbonateOpenRampDepositionalEnvironmentModel()
 
     assert model.name == "Carbonate Open Ramp"
@@ -336,6 +240,7 @@ def test_carbonate_open_ramp_default_environments() -> None:
 
 
 def test_carbonate_protected_ramp_default_environments() -> None:
+    """Builds protected ramp model with expected defaults."""
     model = CarbonateProtectedRampDepositionalEnvironmentModel()
 
     assert model.name == "Carbonate Protected Ramp"
@@ -350,19 +255,3 @@ def test_carbonate_protected_ramp_default_environments() -> None:
     assert fore_reef is not None
     assert lagoon.waterDepth_range == (2.0, 10.0)
     assert fore_reef.waterDepth_range == (1.0, 20.0)
-
-
-def test_saved_payload_has_no_legacy_fields(tmp_path: Path) -> None:
-    model = DepositionalEnvironmentModel(
-        name="NoLegacy",
-        environments=[_make_environment("A", 0.0, 1.0)],
-    )
-    path = tmp_path / "model.json"
-    saveDepositionalEnvironmentModel(model, str(path))
-
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    env_obj = raw["environments"][0]
-    assert "waterDepthModel" in env_obj
-    assert "waterDepth_range" not in env_obj
-    assert "other_property_ranges" not in env_obj
-    assert "property_curves" not in env_obj

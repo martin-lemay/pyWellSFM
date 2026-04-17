@@ -8,7 +8,6 @@ import sys
 m_path = os.path.join(os.getcwd(), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
-print(sys.path)
 
 import random as rd
 from dataclasses import dataclass
@@ -18,7 +17,13 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from pywellsfm.utils import LinearInterpolator, PolynomialInterpolator
+from pywellsfm.utils import (
+    LinearInterpolator,
+    LowerBoundInterpolator,
+    PolynomialInterpolator,
+    UpperBoundInterpolator,
+)
+from pywellsfm.utils.interpolation import Interpolator
 
 nbPtsFunc: int = 101
 nbDeg: int = 5
@@ -94,6 +99,35 @@ def test_LinearInterpolator_compute() -> None:
         assert abs(yy - yyExp) < eps, "Evaluated value is wrong."
 
 
+def test_LinearInterpolator_outside_domain_returns_edges() -> None:
+    """Linear interpolator clamps values outside the domain."""
+    interp = LinearInterpolator()
+    interp.initialize(np.array([0.0, 1.0]), np.array([10.0, 20.0]))
+
+    assert interp(-0.1) == 10.0
+    assert interp(1.1) == 20.0
+
+
+def test_LowerBoundInterpolator_compute_and_str() -> None:
+    """Lower bound interpolator handles boundaries and formatting."""
+    interp = LowerBoundInterpolator()
+    interp.initialize(np.array([0.0, 1.0, 2.0]), np.array([2.0, 4.0, 6.0]))
+
+    assert str(interp) == "Lower bound interpolator"
+    assert interp(-1.0) == 2.0
+    assert interp(1.2) == 4.0
+
+
+def test_UpperBoundInterpolator_compute_and_str() -> None:
+    """Upper bound interpolator handles boundaries and formatting."""
+    interp = UpperBoundInterpolator()
+    interp.initialize(np.array([0.0, 1.0, 2.0]), np.array([2.0, 4.0, 6.0]))
+
+    assert str(interp) == "Upper bound interpolator"
+    assert interp(3.0) == 6.0
+    assert interp(0.4) == 4.0
+
+
 @pytest.mark.parametrize("testCase", __generate_test_data_polynomial())
 def test_PolynomialInterpolator_init(testCase: TestCase) -> None:
     """Test of PolynomialInterpolator class."""
@@ -125,6 +159,70 @@ def test_PolynomialInterpolator_Parabol(deg: int, nbPts: int) -> None:
         yy = np.round(interp(xx), prec)
         yyExp = np.round(xx**deg, prec)
         assert abs(yy - yyExp) < eps, "Evaluated value is wrong."
+
+
+def test_PolynomialInterpolator_boundary_and_str_paths() -> None:
+    """Polynomial interpolator covers boundary paths and string output."""
+    lx = np.linspace(0.0, 10.0, 11)
+    ly = lx**2
+    interp = PolynomialInterpolator()
+    interp.initialize(lx, ly)
+    interp.setAdditionalArgs(deg=2, nbPts=3)
+
+    assert str(interp) == "Polynomial interpolator"
+    assert interp(-0.01) == ly[0]
+    assert interp(10.01) == ly[-1]
+    assert np.isfinite(interp(0.1))
+    assert np.isfinite(interp(9.9))
+
+
+def test_Interpolator_base_methods() -> None:
+    """Protocol helper methods sort inputs and raise by default."""
+    interp = LinearInterpolator()
+    x = np.array([2.0, 0.0, 1.0])
+    y = np.array([20.0, 0.0, 10.0])
+
+    Interpolator.initialize(interp, x, y)
+    Interpolator.setAdditionalArgs(interp, custom=1)
+
+    assert interp.name == "LinearInterpolator"
+    assert np.array_equal(interp.x, np.array([0.0, 1.0, 2.0]))
+    assert np.array_equal(interp.y, np.array([0.0, 10.0, 20.0]))
+    with pytest.raises(NotImplementedError):
+        Interpolator.__call__(interp, 1.0)  # type: ignore[abstract]
+
+
+@pytest.mark.parametrize(
+    "InterpolatorClass",
+    [
+        LinearInterpolator,
+        LowerBoundInterpolator,
+        UpperBoundInterpolator,
+        PolynomialInterpolator,
+    ],
+)
+def test_initialize_caches_x_bounds(InterpolatorClass: type) -> None:
+    """All interpolators cache _x_min and _x_max after initialize."""
+    interp = InterpolatorClass()
+    x = np.array([3.0, 1.0, 2.0])
+    y = np.array([30.0, 10.0, 20.0])
+    interp.initialize(x, y)
+
+    assert interp._x_min == 1.0
+    assert interp._x_max == 3.0
+
+
+def test_cached_bounds_match_unsorted_input() -> None:
+    """Cached bounds reflect the sorted array, not the input order."""
+    interp = LinearInterpolator()
+    x = np.array([5.0, -2.0, 10.0, 0.0])
+    y = np.array([50.0, -20.0, 100.0, 0.0])
+    interp.initialize(x, y)
+
+    assert interp._x_min == -2.0
+    assert interp._x_max == 10.0
+    assert interp.x[0] == -2.0
+    assert interp.x[-1] == 10.0
 
 
 @pytest.mark.parametrize("testCase", __generate_test_data_polynomial())

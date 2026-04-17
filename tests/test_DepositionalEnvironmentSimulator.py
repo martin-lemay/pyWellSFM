@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
 
 m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
@@ -18,12 +17,6 @@ from typing import Self
 import numpy as np
 import pytest
 
-from pywellsfm.io.depositional_environment_simulation_io import (
-    depositionalEnvironmentSimulationToJsonObj,
-    loadDepositionalEnvironmentSimulation,
-    loadDepositionalEnvironmentSimulationFromJsonObj,
-    saveDepositionalEnvironmentSimulation,
-)
 from pywellsfm.model.DepositionalEnvironment import (
     CarbonateProtectedRampDepositionalEnvironmentModel,
     DepositionalEnvironment,
@@ -111,6 +104,16 @@ def carbonate_envs() -> DepositionalEnvironmentModel:
 
 
 class TestConstructor:
+    def test_invalid_waterDepth_sigma(self: Self) -> None:
+        """Test invalid waterDepth sigma raises an error."""
+        with pytest.raises(ValueError, match="waterDepth_sigma"):
+            DESimulatorParameters(waterDepth_sigma=0.0)
+
+    def test_invalid_transition_sigma(self: Self) -> None:
+        """Test invalid transition sigma raises an error."""
+        with pytest.raises(ValueError, match="transition_sigma"):
+            DESimulatorParameters(transition_sigma=0.0)
+
     def test_invalid_trend_sigma(self: Self) -> None:
         """Test invalid trend sigma raises an error."""
         with pytest.raises(ValueError, match="trend_sigma"):
@@ -141,6 +144,82 @@ class TestConstructor:
         """
         envs = simple_sim.environments
         assert envs is not simple_sim.environments  # returns a copy
+
+    def test_params_property(
+        self: Self, simple_sim: DepositionalEnvironmentSimulator
+    ) -> None:
+        """Test params property exposes simulator parameters."""
+        assert isinstance(simple_sim.params, DESimulatorParameters)
+
+    def test_missing_model_raises(self: Self) -> None:
+        """Test constructor rejects a missing model."""
+        with pytest.raises(ValueError, match="must"):
+            DepositionalEnvironmentSimulator(None)  # type: ignore[arg-type]
+
+
+class TestStaticHelpers:
+    def test_interval_distance_all_methods(self: Self) -> None:
+        """Test interval distance supports all declared methods."""
+        methods = [
+            IntervalDistanceMethod.GAP,
+            IntervalDistanceMethod.CENTER,
+            IntervalDistanceMethod.HAUSDORFF,
+            IntervalDistanceMethod.WASSERSTEIN2,
+            IntervalDistanceMethod.GAP_TIMES_CENTER,
+            IntervalDistanceMethod.GAP_OVERLAPPING_WIDTH,
+        ]
+        for method in methods:
+            val = DepositionalEnvironmentSimulator._interval_distance(
+                0.0,
+                1.0,
+                2.0,
+                3.0,
+                method,
+            )
+            assert val >= 0.0
+
+    def test_interval_distance_invalid_method(self: Self) -> None:
+        """Test unsupported interval distance method raises an error."""
+        with pytest.raises(ValueError, match="Unsupported"):
+            DepositionalEnvironmentSimulator._interval_distance(
+                0.0,
+                1.0,
+                2.0,
+                3.0,
+                method="invalid",  # type: ignore[arg-type]
+            )
+
+    def test_estimate_distality_slope_empty(self: Self) -> None:
+        """Test empty series has zero estimated slope."""
+        slope = DepositionalEnvironmentSimulator._estimate_distality_slope([])
+        assert slope == 0.0
+
+    def test_normalize_weights_negative_total(self: Self) -> None:
+        """Test negative total weights raise an error."""
+        with pytest.raises(ValueError, match="non-negative"):
+            DepositionalEnvironmentSimulator._normalize_weights(
+                -1.0,
+                -1.0,
+                -1.0,
+            )
+
+    def test_normalize_weights_zero_total(self: Self) -> None:
+        """Test zero total weights trigger division by zero."""
+        with pytest.raises(ZeroDivisionError):
+            DepositionalEnvironmentSimulator._normalize_weights(
+                0.0,
+                0.0,
+                0.0,
+            )
+
+    def test_weighted_likelihood_requires_names(self: Self) -> None:
+        """Test names are required when likelihood is None."""
+        with pytest.raises(ValueError, match="names"):
+            DepositionalEnvironmentSimulator._weightedLikelihood(
+                None,
+                1.0,
+                None,
+            )
 
 
 # ======================================================================
@@ -270,6 +349,19 @@ class TestWaterDepthLikelihood:
         lik = simple_sim.compute_waterDepth_likelihood(waterDepth_value=5000.0)
         for v in lik.values():
             assert v >= 0.0  # may underflow to 0 for extreme values
+
+    def test_negative_obs_excludes_nonnegative_env(self: Self) -> None:
+        """Test negative values exclude non-negative-only environments."""
+        envs = [
+            _make_environment("shore", 0.0, 10.0),
+            _make_environment("subaerial", -10.0, -1.0),
+        ]
+        sim = DepositionalEnvironmentSimulator(
+            DepositionalEnvironmentModel("shore_subaerial", envs)
+        )
+        lik = sim.compute_waterDepth_likelihood(waterDepth_value=-2.0)
+        assert lik["shore"] == 0.0
+        assert lik["subaerial"] > 0.0
 
 
 # ======================================================================
@@ -453,6 +545,37 @@ class TestDistalityTrendLikelihood:
         # In this custom mapping, trend is toward smaller values.
         assert lik["shallow1"] < lik["deep2"] < lik["deep1"]
 
+    def test_empty_distality_map_is_unconstrained(
+        self: Self, simple_envs: DepositionalEnvironmentModel
+    ) -> None:
+        """Test empty distality map yields neutral trend likelihood."""
+        sim = DepositionalEnvironmentSimulator(simple_envs)
+        lik = sim.compute_distality_trend_likelihood(["shallow", "mid"])
+        for value in lik.values():
+            assert value == 1.0
+
+    def test_flat_slope_is_unconstrained(
+        self: Self, simple_envs: DepositionalEnvironmentModel
+    ) -> None:
+        """Test near-flat trend slope yields neutral trend likelihood."""
+        sim = DepositionalEnvironmentSimulator(simple_envs)
+        sim.prepare()
+        sim._trend_threshold = 10.0
+        lik = sim.compute_distality_trend_likelihood(["shallow", "mid"])
+        for value in lik.values():
+            assert value == 1.0
+
+    def test_two_step_trend_sign_branches(
+        self: Self, simple_envs: DepositionalEnvironmentModel
+    ) -> None:
+        """Test two-step trend uses sign-based mismatch branch."""
+        sim = DepositionalEnvironmentSimulator(simple_envs)
+        sim.prepare()
+        lik = sim.compute_distality_trend_likelihood(["shallow", "mid"])
+        assert lik["mid"] == 1.0
+        assert lik["deep"] == 1.0
+        assert lik["shallow"] < 1.0
+
 
 # ======================================================================
 # Posterior
@@ -562,6 +685,116 @@ class TestPosterior:
             previous_environments=["shallow1", "shallow2", "mid"],
         )
         assert post["deep2"] > post["shallow2"] > post["shallow1"]
+
+    def test_fallback_1a_returns_relaxed_trend(self: Self) -> None:
+        """Test fallback 1a returns once relaxed trend is non-zero."""
+        envs = [
+            _make_environment("A", 0.0, 10.0),
+            _make_environment("B", 10.0, 20.0),
+        ]
+        sim = DepositionalEnvironmentSimulator(
+            DepositionalEnvironmentModel("AB", envs)
+        )
+        outputs = [
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 1.0, "B": 0.0}, 1.0),
+        ]
+
+        def fake_compute(
+            *_args: object, **_kwargs: object
+        ) -> tuple[dict[str, float], float]:
+            return outputs.pop(0)
+
+        sim._compute_posterior = fake_compute  # type: ignore[method-assign]
+        post = sim.compute_posterior(
+            waterDepth_value=5.0,
+            previous_environments=["A", "B"],
+        )
+        assert post == {"A": 1.0, "B": 0.0}
+
+    def test_fallback_1b_returns_without_trend(self: Self) -> None:
+        """Test fallback 1b returns after dropping trend likelihood."""
+        envs = [
+            _make_environment("A", 0.0, 10.0),
+            _make_environment("B", 10.0, 20.0),
+        ]
+        sim = DepositionalEnvironmentSimulator(
+            DepositionalEnvironmentModel("AB", envs)
+        )
+        outputs = [
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 0.0, "B": 1.0}, 1.0),
+        ]
+
+        def fake_compute(
+            *_args: object, **_kwargs: object
+        ) -> tuple[dict[str, float], float]:
+            return outputs.pop(0)
+
+        sim._compute_posterior = fake_compute  # type: ignore[method-assign]
+        post = sim.compute_posterior(
+            waterDepth_value=5.0,
+            previous_environments=["A", "B"],
+        )
+        assert post == {"A": 0.0, "B": 1.0}
+
+    def test_fallback_2a_returns_relaxed_transition(self: Self) -> None:
+        """Test fallback 2a returns once transition is relaxed."""
+        envs = [
+            _make_environment("A", 0.0, 10.0),
+            _make_environment("B", 10.0, 20.0),
+        ]
+        sim = DepositionalEnvironmentSimulator(
+            DepositionalEnvironmentModel("AB", envs)
+        )
+        outputs = [
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 1.0, "B": 0.0}, 1.0),
+        ]
+
+        def fake_compute(
+            *_args: object, **_kwargs: object
+        ) -> tuple[dict[str, float], float]:
+            return outputs.pop(0)
+
+        sim._compute_posterior = fake_compute  # type: ignore[method-assign]
+        post = sim.compute_posterior(
+            waterDepth_value=5.0,
+            previous_environments=["A", "B"],
+        )
+        assert post == {"A": 1.0, "B": 0.0}
+
+    def test_fallback_2b_returns_without_transition(self: Self) -> None:
+        """Test fallback 2b returns after dropping transition."""
+        envs = [
+            _make_environment("A", 0.0, 10.0),
+            _make_environment("B", 10.0, 20.0),
+        ]
+        sim = DepositionalEnvironmentSimulator(
+            DepositionalEnvironmentModel("AB", envs)
+        )
+        outputs = [
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 0.0, "B": 0.0}, 0.0),
+            ({"A": 0.0, "B": 1.0}, 1.0),
+        ]
+
+        def fake_compute(
+            *_args: object, **_kwargs: object
+        ) -> tuple[dict[str, float], float]:
+            return outputs.pop(0)
+
+        sim._compute_posterior = fake_compute  # type: ignore[method-assign]
+        post = sim.compute_posterior(
+            waterDepth_value=5.0,
+            previous_environments=["A", "B"],
+        )
+        assert post == {"A": 0.0, "B": 1.0}
 
 
 # ======================================================================
@@ -762,88 +995,14 @@ class TestRun:
         assert result is not None
         assert result.name in sim.environment_names
 
-
-# ======================================================================
-# I/O
-# ======================================================================
-
-
-class TestSimulationIO:
-    def test_json_obj_roundtrip(
-        self: Self, simple_envs: DepositionalEnvironmentModel
+    def test_run_out_of_model_range_returns_none(
+        self: Self, simple_sim: DepositionalEnvironmentSimulator
     ) -> None:
-        """Test export/load round-trip from in-memory JSON object."""
-        sim = DepositionalEnvironmentSimulator(
-            simple_envs,
-            weights={"shallow": 3.0, "mid": 2.0, "deep": 1.0},
-            params=DESimulatorParameters(
-                waterDepth_sigma=7.0,
-                transition_sigma=9.0,
-                trend_sigma=0.5,
-                trend_window=4,
-                interval_distance_method=IntervalDistanceMethod.CENTER,
-            ),
-        )
-
-        payload = depositionalEnvironmentSimulationToJsonObj(sim)
-        loaded = loadDepositionalEnvironmentSimulationFromJsonObj(payload)
-
-        assert loaded.environment_names == sim.environment_names
-        assert loaded.params.waterDepth_sigma == 7.0
-        assert loaded.params.transition_sigma == 9.0
-        assert loaded.params.trend_sigma == 0.5
-        assert loaded.params.trend_window == 4
-        assert (
-            loaded.params.interval_distance_method
-            == IntervalDistanceMethod.CENTER
-        )
-        prior = loaded.compute_prior()
-        assert math.isclose(prior["shallow"], 3.0 / 6.0)
-        assert math.isclose(prior["mid"], 2.0 / 6.0)
-        assert math.isclose(prior["deep"], 1.0 / 6.0)
-
-    def test_save_and_load_file(
-        self: Self,
-        tmp_path: Path,
-        simple_envs: DepositionalEnvironmentModel,
-    ) -> None:
-        """Test save/load functions with a JSON file path."""
-        sim = DepositionalEnvironmentSimulator(simple_envs)
-        sim.prepare()
-        out_path = Path(tmp_path) / "de_simulation.json"
-
-        saveDepositionalEnvironmentSimulation(sim, str(out_path))
-        loaded = loadDepositionalEnvironmentSimulation(str(out_path))
-
-        assert loaded.environment_names == sim.environment_names
-        assert loaded.params == sim.params
-
-    def test_missing_weights_key_raises(
-        self: Self, simple_envs: DepositionalEnvironmentModel
-    ) -> None:
-        """Test load raises when weights are missing env names."""
-        sim = DepositionalEnvironmentSimulator(simple_envs)
-        payload = depositionalEnvironmentSimulationToJsonObj(sim)
-        payload["weights"] = {"shallow": 1.0, "mid": 1.0}
-
-        with pytest.raises(ValueError, match="missing keys"):
-            loadDepositionalEnvironmentSimulationFromJsonObj(payload)
-
-    def test_unknown_weights_key_raises(
-        self: Self, simple_envs: DepositionalEnvironmentModel
-    ) -> None:
-        """Test load raises when weights contain unknown env names."""
-        sim = DepositionalEnvironmentSimulator(simple_envs)
-        payload = depositionalEnvironmentSimulationToJsonObj(sim)
-        payload["weights"] = {
-            "shallow": 1.0,
-            "mid": 1.0,
-            "deep": 1.0,
-            "unknown": 1.0,
-        }
-
-        with pytest.raises(ValueError, match="unknown environments"):
-            loadDepositionalEnvironmentSimulationFromJsonObj(payload)
+        """Test out-of-range waterDepth interval returns None result."""
+        simple_sim.prepare()
+        posterior, result = simple_sim.run(waterDepth_range=(-5.0, 500.0))
+        assert result is None
+        assert set(posterior.values()) == {0.0}
 
 
 # ======================================================================

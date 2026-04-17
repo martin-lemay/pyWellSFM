@@ -5,6 +5,7 @@
 import json
 import os
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -28,6 +29,9 @@ from pywellsfm.io.fssimulation_io import (
 )
 from pywellsfm.model.AccumulationModel import (
     AccumulationModel,
+)
+from pywellsfm.simulator.DepositionalEnvironmentSimulator import (
+    DESimulatorParameters,
 )
 
 fileDir = os.path.dirname(os.path.abspath(__file__))
@@ -981,3 +985,497 @@ def test_exportSimulationData_writes_inline_objects_and_roundtrips(
     assert FSSimulationData.realizationDataList[0].initialBathymetry == 15.0
     assert FSSimulationData.realizationDataList[1].well.name == "Well2"
     assert FSSimulationData.realizationDataList[1].initialBathymetry == 20.0
+
+
+def _minimal_accumulation_model_obj() -> dict[str, object]:
+    return {
+        "format": "pyWellSFM.AccumulationModelData",
+        "version": "1.0",
+        "accumulationModel": {
+            "name": "AM_MIN",
+            "modelType": "Gaussian",
+            "elements": {
+                "Carbonate": {
+                    "accumulationRate": 100.0,
+                    "model": {
+                        "modelType": "Gaussian",
+                        "stddevFactor": 0.2,
+                    },
+                }
+            },
+        },
+    }
+
+
+def _minimal_scenario_obj(name: str = "ScenarioMin") -> dict[str, object]:
+    return {
+        "format": "pyWellSFM.ScenarioData",
+        "version": "1.0",
+        "name": name,
+        "accumulationModel": _minimal_accumulation_model_obj(),
+    }
+
+
+def _minimal_realization_obj() -> dict[str, object]:
+    return {
+        "format": "pyWellSFM.RealizationData",
+        "version": "1.0",
+        "well": {
+            "format": "pyWellSFM.WellData",
+            "version": "1.0",
+            "well": {
+                "name": "WellMin",
+                "location": {"x": 1.0, "y": 2.0, "z": 3.0},
+                "depth": 100.0,
+            },
+        },
+        "initialBathymetry": 15.0,
+    }
+
+
+def _minimal_simulation_obj() -> dict[str, object]:
+    return {
+        "format": "pyWellSFM.FSSimulationData",
+        "version": "1.0",
+        "name": "SimMin",
+        "scenario": _minimal_scenario_obj(),
+        "realizations": [_minimal_realization_obj()],
+    }
+
+
+def _minimal_de_model_obj() -> dict[str, object]:
+    return {
+        "format": "pyWellSFM.DepositionalEnvironmentModelSchema",
+        "version": "1.0",
+        "name": "simple",
+        "environments": [
+            {
+                "name": "shallow",
+                "waterDepthModel": {
+                    "format": "pyWellSFM.EnvironmentConditionModelData",
+                    "version": "1.0",
+                    "model": {
+                        "modelType": "Uniform",
+                        "minValue": 0.0,
+                        "maxValue": 10.0,
+                    },
+                },
+            }
+        ],
+    }
+
+
+def test_loadRealizationData_without_subsidence_curve(tmp_path: Path) -> None:
+    """Subsidence curve is optional and defaults to None."""
+    realization_path = tmp_path / "realization_no_subsidence.json"
+    payload = _minimal_realization_obj()
+    realization_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    rd = loadRealizationData(str(realization_path))
+    assert rd.subsidenceCurve is None
+
+
+def test_loadRealizationData_rejects_invalid_bathymetry_type(
+    tmp_path: Path,
+) -> None:
+    """Reject non-numeric initial bathymetry values."""
+    payload = _minimal_realization_obj()
+    payload["initialBathymetry"] = "fifteen"
+    path = tmp_path / "realization_bad_bathy.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"initialBathymetry must be a number"
+    ):
+        loadRealizationData(str(path))
+
+
+def test_loadRealizationData_rejects_invalid_initial_environment_type(
+    tmp_path: Path,
+) -> None:
+    """Reject non-string initialEnvironment values."""
+    payload = _minimal_realization_obj()
+    payload["initialEnvironment"] = 10
+    path = tmp_path / "realization_bad_initial_env.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"initialEnvironment must be a string"
+    ):
+        loadRealizationData(str(path))
+
+
+def test_loadRealizationData_rejects_missing_subsidence_curve_fields(
+    tmp_path: Path,
+) -> None:
+    """Require both curve and type in subsidenceCurve."""
+    payload = _minimal_realization_obj()
+    payload["subsidenceCurve"] = {
+        "curve": {"url": f"{dataDir}/subsidence_curve.csv"}
+    }
+    path = tmp_path / "realization_bad_subs_fields.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"must contain 'curve' and 'type'"):
+        loadRealizationData(str(path))
+
+
+def test_loadRealizationData_rejects_invalid_subsidence_type(
+    tmp_path: Path,
+) -> None:
+    """Reject subsidenceCurve.type values outside cumulative/rate."""
+    payload = _minimal_realization_obj()
+    payload["subsidenceCurve"] = {
+        "type": "invalid",
+        "curve": {"url": f"{dataDir}/subsidence_curve.csv"},
+    }
+    path = tmp_path / "realization_bad_subs_type.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"must be either 'cumulative' or 'rate'"
+    ):
+        loadRealizationData(str(path))
+
+
+def test_loadRealizationData_rejects_unsupported_well_url(
+    tmp_path: Path,
+) -> None:
+    """Wrap unsupported well URL targets with a clear ValueError."""
+    bad_well = tmp_path / "well.txt"
+    bad_well.write_text("not-a-well", encoding="utf-8")
+    payload = _minimal_realization_obj()
+    payload["well"] = {"url": "well.txt"}
+    path = tmp_path / "realization_bad_well_url.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"well\.url must point"):
+        loadRealizationData(str(path))
+
+
+def test_loadRealizationData_rejects_unsupported_subsidence_url(
+    tmp_path: Path,
+) -> None:
+    """Wrap unsupported subsidence URL targets with a clear ValueError."""
+    bad_curve = tmp_path / "subsidence.txt"
+    bad_curve.write_text("not-a-curve", encoding="utf-8")
+    payload = _minimal_realization_obj()
+    payload["subsidenceCurve"] = {
+        "type": "cumulative",
+        "curve": {"url": "subsidence.txt"},
+    }
+    path = tmp_path / "realization_bad_subs_url.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"subsidenceCurve\.url must point"):
+        loadRealizationData(str(path))
+
+
+def test_exportRealizationData_null_subsidence_curve_when_missing(
+    tmp_path: Path,
+) -> None:
+    """Exporter writes subsidenceCurve as null when absent in model."""
+    in_path = tmp_path / "realization_in.json"
+    out_path = tmp_path / "realization_out.json"
+    in_path.write_text(
+        json.dumps(_minimal_realization_obj()), encoding="utf-8"
+    )
+
+    rd = loadRealizationData(str(in_path))
+    saveRealizationData(rd, str(out_path))
+
+    out_obj = json.loads(out_path.read_text(encoding="utf-8"))
+    assert out_obj["subsidenceCurve"] is None
+
+
+def test_saveRealizationData_rejects_non_json_extension(
+    tmp_path: Path,
+) -> None:
+    """Reject non-JSON output extension for realization export."""
+    in_path = tmp_path / "realization_in.json"
+    in_path.write_text(
+        json.dumps(_minimal_realization_obj()), encoding="utf-8"
+    )
+    rd = loadRealizationData(str(in_path))
+
+    with pytest.raises(ValueError, match=r"must have a \.json extension"):
+        saveRealizationData(rd, str(tmp_path / "realization_out.txt"))
+
+
+def test_loadScenario_rejects_empty_name(tmp_path: Path) -> None:
+    """Reject blank Scenario.name values."""
+    payload = _minimal_scenario_obj(name="   ")
+    path = tmp_path / "scenario_empty_name.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"Scenario\.name must be a non-empty"
+    ):
+        loadScenario(str(path))
+
+
+def test_loadScenario_rejects_unsupported_accumulation_url(
+    tmp_path: Path,
+) -> None:
+    """Wrap unsupported accumulation model URL references."""
+    payload = {
+        "format": "pyWellSFM.ScenarioData",
+        "version": "1.0",
+        "name": "ScenarioBadAM",
+        "accumulationModel": {"url": "missing_accumulation_model.csv"},
+    }
+    path = tmp_path / "scenario_bad_am_url.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"accumulationModel\.url must point"):
+        loadScenario(str(path))
+
+
+def test_loadScenario_rejects_non_object_de_model(tmp_path: Path) -> None:
+    """Reject non-object depositionalEnvironmentModel payloads."""
+    payload = _minimal_scenario_obj()
+    payload["depositionalEnvironmentModel"] = 1
+    path = tmp_path / "scenario_bad_demodel_type.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"depositionalEnvironmentModel must be an object"
+    ):
+        loadScenario(str(path))
+
+
+def test_loadScenario_rejects_unsupported_de_model_url(
+    tmp_path: Path,
+) -> None:
+    """Wrap unsupported depositional environment model URL references."""
+    payload = _minimal_scenario_obj()
+    payload["depositionalEnvironmentModel"] = {"url": "missing_demodel.csv"}
+    path = tmp_path / "scenario_bad_demodel_url.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"depositionalEnvironmentModel\.url must point"
+    ):
+        loadScenario(str(path))
+
+
+def test_loadScenario_rejects_unsupported_eustatic_url(
+    tmp_path: Path,
+) -> None:
+    """Wrap unsupported eustatic curve URL references."""
+    payload = _minimal_scenario_obj()
+    payload["eustaticCurve"] = {"url": "missing_curve.csv"}
+    path = tmp_path / "scenario_bad_eustatic_url.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"eustaticCurve\.url must point"):
+        loadScenario(str(path))
+
+
+def test_saveScenario_rejects_empty_name_on_export(tmp_path: Path) -> None:
+    """Export validation rejects blank names on Scenario objects."""
+    scenario_in = tmp_path / "scenario_in.json"
+    scenario_in.write_text(
+        json.dumps(_minimal_scenario_obj()), encoding="utf-8"
+    )
+    scenario = loadScenario(str(scenario_in))
+    invalid = replace(scenario, name="")
+
+    with pytest.raises(
+        ValueError, match=r"Scenario\.name must be a non-empty"
+    ):
+        saveScenario(invalid, str(tmp_path / "scenario_out.json"))
+
+
+def test_saveScenario_exports_de_model_and_handles_non_null_facies(
+    tmp_path: Path,
+) -> None:
+    """Export includes DE model and tolerates non-null faciesModel."""
+    payload = _minimal_scenario_obj(name="ScenarioWithDE")
+    payload["depositionalEnvironmentModel"] = _minimal_de_model_obj()
+    scenario_in = tmp_path / "scenario_with_de.json"
+    scenario_out = tmp_path / "scenario_with_de_out.json"
+    scenario_in.write_text(json.dumps(payload), encoding="utf-8")
+
+    scenario = loadScenario(str(scenario_in))
+    scenario_with_facies = replace(
+        scenario,
+        faciesModel=object(),  # type: ignore[arg-type]
+    )
+    saveScenario(scenario_with_facies, str(scenario_out))
+
+    out_obj = json.loads(scenario_out.read_text(encoding="utf-8"))
+    assert isinstance(out_obj.get("depositionalEnvironmentModel"), dict)
+    assert "faciesModel" not in out_obj
+
+
+def test_saveScenario_rejects_non_json_extension(tmp_path: Path) -> None:
+    """Reject non-JSON output extension for scenario export."""
+    scenario_in = tmp_path / "scenario_in.json"
+    scenario_in.write_text(
+        json.dumps(_minimal_scenario_obj()), encoding="utf-8"
+    )
+    scenario = loadScenario(str(scenario_in))
+
+    with pytest.raises(ValueError, match=r"must have a \.json extension"):
+        saveScenario(scenario, str(tmp_path / "scenario_out.txt"))
+
+
+def test_saveFSSimulation_rejects_non_json_extension(tmp_path: Path) -> None:
+    """Reject non-JSON output extension for simulation export."""
+    scenario_path = tmp_path / "scenario.json"
+    realization_path = tmp_path / "realization.json"
+    scenario_path.write_text(
+        json.dumps(_minimal_scenario_obj()), encoding="utf-8"
+    )
+    realization_path.write_text(
+        json.dumps(_minimal_realization_obj()), encoding="utf-8"
+    )
+
+    scenario = loadScenario(str(scenario_path))
+    rd = loadRealizationData(str(realization_path))
+    sim = FSSimulator(scenario=scenario, realizationDataList=[rd])
+
+    with pytest.raises(ValueError, match=r"must have a \.json extension"):
+        saveFSSimulation(sim, str(tmp_path / "simulation.txt"), name="Sim")
+
+
+def test_saveFSSimulation_rejects_empty_name(tmp_path: Path) -> None:
+    """Reject blank simulation names during export."""
+    scenario_path = tmp_path / "scenario.json"
+    realization_path = tmp_path / "realization.json"
+    scenario_path.write_text(
+        json.dumps(_minimal_scenario_obj()), encoding="utf-8"
+    )
+    realization_path.write_text(
+        json.dumps(_minimal_realization_obj()), encoding="utf-8"
+    )
+
+    scenario = loadScenario(str(scenario_path))
+    rd = loadRealizationData(str(realization_path))
+    sim = FSSimulator(scenario=scenario, realizationDataList=[rd])
+
+    with pytest.raises(
+        ValueError, match=r"Simulation\.name must be a non-empty"
+    ):
+        saveFSSimulation(sim, str(tmp_path / "simulation.json"), name="")
+
+
+def test_saveFSSimulation_rejects_empty_realizations(tmp_path: Path) -> None:
+    """Reject exports with empty realizationDataList."""
+    scenario_path = tmp_path / "scenario.json"
+    scenario_path.write_text(
+        json.dumps(_minimal_scenario_obj()), encoding="utf-8"
+    )
+
+    scenario = loadScenario(str(scenario_path))
+    sim = FSSimulator(scenario=scenario, realizationDataList=[])
+
+    with pytest.raises(
+        ValueError,
+        match=r"Simulation\.realizations must contain at least one item",
+    ):
+        saveFSSimulation(sim, str(tmp_path / "simulation.json"), name="Sim")
+
+
+def test_saveFSSimulation_exports_de_simulator_fields(tmp_path: Path) -> None:
+    """Export includes DE simulator fields when enabled."""
+    scenario_path = tmp_path / "scenario.json"
+    realization_path = tmp_path / "realization.json"
+    out_path = tmp_path / "simulation_out.json"
+    scenario_path.write_text(
+        json.dumps(_minimal_scenario_obj()), encoding="utf-8"
+    )
+    realization_path.write_text(
+        json.dumps(_minimal_realization_obj()), encoding="utf-8"
+    )
+
+    scenario = loadScenario(str(scenario_path))
+    rd = loadRealizationData(str(realization_path))
+    sim = FSSimulator(
+        scenario=scenario,
+        realizationDataList=[rd],
+        use_depositional_environment_simulator=True,
+        deSimulator_weights={"shallow": 3.0},
+        deSimulator_params=DESimulatorParameters(),
+    )
+    saveFSSimulation(sim, str(out_path), name="SimWithDE")
+
+    out_obj = json.loads(out_path.read_text(encoding="utf-8"))
+    assert out_obj["use_depositional_environment_simulator"] is True
+    assert out_obj["deSimulator_weights"] == {"shallow": 3.0}
+    assert isinstance(out_obj["deSimulator_params"], dict)
+
+
+def test_loadFSSimulation_rejects_empty_name(tmp_path: Path) -> None:
+    """Reject blank simulation names while loading."""
+    payload = _minimal_simulation_obj()
+    payload["name"] = " "
+    path = tmp_path / "simulation_bad_name.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"Simulation\.name must be a non-empty"
+    ):
+        loadFSSimulation(str(path))
+
+
+def test_loadFSSimulation_rejects_non_boolean_use_desimulator(
+    tmp_path: Path,
+) -> None:
+    """Require boolean value for DE simulator toggle."""
+    payload = _minimal_simulation_obj()
+    payload["use_depositional_environment_simulator"] = "yes"
+    path = tmp_path / "simulation_bad_use_desimulator.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match=r"use_depositional_environment_simulator.*must be a boolean",
+    ):
+        loadFSSimulation(str(path))
+
+
+def test_loadFSSimulation_rejects_non_object_deSimulator_weights(
+    tmp_path: Path,
+) -> None:
+    """Require DE simulator weights to be provided as an object."""
+    payload = _minimal_simulation_obj()
+    payload["use_depositional_environment_simulator"] = True
+    payload["deSimulator_weights"] = [1, 2]
+    path = tmp_path / "simulation_bad_desim_weights.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"deSimulator_weights must be an object"
+    ):
+        loadFSSimulation(str(path))
+
+
+def test_loadFSSimulation_rejects_non_object_deSimulator_params(
+    tmp_path: Path,
+) -> None:
+    """Require DE simulator params to be provided as an object."""
+    payload = _minimal_simulation_obj()
+    payload["use_depositional_environment_simulator"] = True
+    payload["deSimulator_params"] = 1
+    path = tmp_path / "simulation_bad_desim_params.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"deSimulator_params must be an object"
+    ):
+        loadFSSimulation(str(path))
+
+
+def test_loadFSSimulation_rejects_non_dict_params(tmp_path: Path) -> None:
+    """Require Simulation.params to be a dictionary when provided."""
+    payload = _minimal_simulation_obj()
+    payload["params"] = "invalid"
+    path = tmp_path / "simulation_bad_params.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=r"Simulation\.params must be a dictionary"
+    ):
+        loadFSSimulation(str(path))
