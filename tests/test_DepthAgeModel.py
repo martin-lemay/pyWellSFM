@@ -64,8 +64,15 @@ def test_DepthAgeModel_addMarker_with_and_without_existing_curve() -> None:
     assert model.depthAgeCurve is not None
 
     model.addMarker(Marker("M1", depth=200.0, age=10.0))
-    depth = model.getDepth(10.0)
-    assert isinstance(depth, float)
+    assert model.depthAgeCurve is not None
+    assert np.array_equal(
+        model.depthAgeCurve._abscissa,
+        np.array([0.0, 10.0], dtype=float),
+    )
+    assert np.array_equal(
+        model.depthAgeCurve._ordinate,
+        np.array([100.0, 200.0], dtype=float),
+    )
 
 
 def test_DepthAgeModel_getDepth_getAge_when_curve_missing() -> None:
