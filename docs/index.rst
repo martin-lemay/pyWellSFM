@@ -118,6 +118,10 @@ Run these from the repository root:
    # Tests
    pytest
 
+   # Coverage gate (configured in pyproject.toml)
+   # Test run fails if total coverage is below 80%
+   pytest --cov=pywellsfm --cov-fail-under=80
+
    # To mirror CI more closely (includes doctests)
    pytest ./ --doctest-modules
 
@@ -138,6 +142,7 @@ On each Pull Request, GitHub Actions runs:
 - ``ruff check`` (lint; currently non-blocking in CI)
 - ``mypy`` (static type checks)
 - ``pytest`` (tests + doctests)
+- Coverage threshold: test run fails if total coverage is below 80%
 - ``sphinx`` (documentation build)
 
 Contents

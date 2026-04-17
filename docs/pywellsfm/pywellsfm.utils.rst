@@ -11,7 +11,8 @@ Files documented
 This page is built from the following Python modules:
 
 * ``geometry.py`` (``pywellsfm.utils.geometry``)
-* ``helpers.py`` (``pywellsfm.utils.helpers``)
+* ``interpolation.py`` (``pywellsfm.utils.interpolation``)
+* ``logging_utils.py`` (``pywellsfm.utils.logging_utils``)
 
 API reference
 -------------
@@ -21,7 +22,12 @@ API reference
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pywellsfm.utils.helpers
+.. automodule:: pywellsfm.utils.interpolation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pywellsfm.utils.logging_utils
    :members:
    :undoc-members:
    :show-inheritance:

@@ -17,6 +17,7 @@ This page is built from the following Python modules:
 * ``FSSimulator.py`` (``pywellsfm.simulator.FSSimulator``)
 * ``DepositionalEnvironmentSimulator.py`` (``pywellsfm.simulator.DepositionalEnvironmentSimulator``)
 * ``EnvironmentConditionSimulator.py`` (``pywellsfm.simulator.EnvironmentConditionSimulator``)
+* ``TimeStepController.py`` (``pywellsfm.simulator.TimeStepController``)
 
 API reference
 -------------
@@ -52,6 +53,12 @@ API reference
    :no-index:
 
 .. automodule:: pywellsfm.simulator.FSSimulator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
+
+.. automodule:: pywellsfm.simulator.TimeStepController
    :members:
    :undoc-members:
    :show-inheritance:

@@ -63,3 +63,21 @@ class RealizationData:
     initialEnvironmentName: Optional[str]
     subsidenceCurve: Optional[Curve]
     subsidenceType: SubsidenceType
+
+
+@dataclass
+class FSSimulatorParameters:
+    """Parameters for the Forward Stratigraphic Simulator (FSSimulator)."""
+
+    #: maximum waterDepth change and accumulated thickness
+    #: per step (in meters). Default is 0.5 m.
+    max_waterDepth_change_per_step: float = 0.5
+    #: minimum time step (in Myr). Default is 1e-3 Myr.
+    dt_min: float = 1e-3
+    #: maximum time step (in Myr). Default is 0.1 Myr.
+    dt_max: float = 0.1
+    #: safety factor for time step adjustment. Must be in (0, 1].
+    #: Default is 0.9.
+    safety: float = 0.9
+    #: maximum number of steps. Default is 1e9.
+    max_steps: int = int(1e9)

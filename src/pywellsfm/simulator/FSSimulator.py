@@ -6,13 +6,16 @@ from typing import Optional, Self
 import numpy as np
 import numpy.typing as npt
 import xarray as xr
-from attr import dataclass
 
 from pywellsfm.model.DepositionalEnvironment import DepositionalEnvironment
 from pywellsfm.model.EnvironmentConditionModel import (
     EnvironmentConditionModelUniform,
 )
-from pywellsfm.model.FSSimulationParameters import RealizationData, Scenario
+from pywellsfm.model.FSSimulationParameters import (
+    FSSimulatorParameters,
+    RealizationData,
+    Scenario,
+)
 from pywellsfm.model.Marker import Marker
 from pywellsfm.utils import get_logger
 
@@ -24,26 +27,9 @@ from .DepositionalEnvironmentSimulator import (
     DESimulatorParameters,
 )
 from .EnvironmentConditionSimulator import EnvironmentConditionSimulator
+from .TimeStepController import TimeStepController
 
 logger = get_logger(__name__)
-
-
-@dataclass
-class FSSimulatorParameters:
-    """Parameters for the Forward Stratigraphic Simulator (FSSimulator)."""
-
-    #: maximum waterDepth change and accumulated thickness
-    #: per step (in meters). Default is 0.5 m.
-    max_waterDepth_change_per_step: float = 0.5
-    #: minimum time step (in Myr). Default is 1e-3 Myr.
-    dt_min: float = 1e-3
-    #: maximum time step (in Myr). Default is 0.1 Myr.
-    dt_max: float = 0.1
-    #: safety factor for time step adjustment. Must be in (0, 1].
-    #: Default is 0.9.
-    safety: float = 0.9
-    #: maximum number of steps. Default is 1e9.
-    max_steps: int = int(1e9)
 
 
 class FSSimulator:
@@ -115,6 +101,11 @@ class FSSimulator:
             self.realizationDataList
         )  # number of realizations
         self.params: FSSimulatorParameters = fsSimulator_params
+
+        # Initialize adaptive time-step controller
+        self._time_step_controller = TimeStepController(
+            self.params, self._computeMaxWaterDepthChange
+        )
 
         # marker ages
         self.markerAges: set[float] = set()
@@ -290,6 +281,9 @@ class FSSimulator:
         else:
             exactAges = exactAges.union(self.markerAges)
 
+        # Pre-sort exact ages for efficient lookup during stepping
+        self._time_step_controller.set_exact_ages(exactAges)
+
         # Determine start and stop times
         # absolute geological age (in Myr) at start of simulation
         start = self.getStartAge()
@@ -363,10 +357,10 @@ class FSSimulator:
             # **** 2. DURATION OF STEP t ****
             # Choose adaptive time step (step duration)
             remaining = t - stop
-            dt = self._adaptTimeStep(
-                t, waterDepth_t, accumulationRates, remaining, exactAges
+            dt = self._time_step_controller.adapt(
+                t, waterDepth_t, accumulationRates, remaining
             )
-            t2 = self._getNewTime(t, dt)
+            t2 = t - dt
 
             # Record time step duration for this step
             self.dts.append(dt)
@@ -484,145 +478,6 @@ class FSSimulator:
                     depEnv[i] = env_i
         return depEnv
 
-    def _adaptTimeStep(
-        self: Self,
-        t: float,
-        curWaterDepths: npt.NDArray[np.float64],
-        rates: npt.NDArray[np.float64],
-        remaining: float,
-        exactAges: set[float],
-    ) -> float:
-        """Choose an adaptive time step based on waterDepth change constraint.
-
-        Max time step duration is limited by the maximum accumulated thickness
-        and waterDepth change allowed.
-
-        :param float t: current time.
-        :param npt.NDArray[np.float64] curWaterDepths: current water depth for
-            each realization.
-        :param npt.NDArray[np.float64] rates: deposition rates for each
-            realization.
-        :param float remaining: remaining time to stop.
-        :param set[float] exactAges: set of exact ages to include in the
-            simulation. These ages will be included in the set of ages at which
-            the simulator state is recorded.
-        :return float: chosen time step.
-        """
-        # get next exact age to include that is smaller than current time t
-        nextExactAges = sorted(
-            [age for age in exactAges if age < t], reverse=True
-        )
-        nextExactAge: Optional[float] = (
-            None if len(nextExactAges) == 0 else nextExactAges[0]
-        )
-
-        # set dt max as the minimum of user-defined dt_max and the dt that
-        # would cause max deposition (use max deposition rate as proxy)
-        # TODO: to improve, better evaluate max deposition rate (need to
-        # cumulate over waterDepth range)
-        dt_max = min(
-            self.params.dt_max,
-            self.params.max_waterDepth_change_per_step
-            / float(np.nanmax(rates)),
-        )
-        dt_hi = float(min(dt_max, remaining))
-        dt_lo = float(min(self.params.dt_min, dt_hi))
-        max_change = self.params.max_waterDepth_change_per_step
-
-        # Check if constraint can be satisfied at dt_min
-        max_change_at_dt_min = self._computeMaxWaterDepthChange(
-            t, rates, dt_lo
-        )
-        if max_change_at_dt_min > max_change:
-            t2 = self._getNewTime(t, dt_lo)
-            delta_sea_level = self._getDeltaSeaLevel(t, t2)
-            delta_subsidences = self._getDeltaSubsidence(t, t2)
-            thicknesses_step = self._getAccumulatedThickness(rates, dt_lo)
-            max_delta_subs = float(np.max(np.abs(delta_subsidences)))
-            max_thickness = float(np.max(np.abs(thicknesses_step)))
-            raise RuntimeError(
-                "Cannot satisfy waterDepth-change constraint at dt_min.\n"
-                f"  - time: {t:.6f} Myr, dt_min: {dt_lo:.6g} Myr\n"
-                f"  - allowed max change: {max_change:.6g} m\n"
-                "  - computed max change at dt_min: "
-                + f"{max_change_at_dt_min:.6g} m\n"
-                f"  - sea-level change over dt_min: {delta_sea_level:.6g} m\n"
-                "  - max subsidence change over dt_min: "
-                + f"{max_delta_subs:.6g} m\n"
-                "  - max deposited thickness over dt_min: "
-                + f"{max_thickness:.6g} m\n"
-                "Possible causes:\n"
-                "  1. Discontinuous forcing curve (e.g., step/lower-bound "
-                + "interpolation causing jumps).\n"
-                "  2. Forcing or accumulation rates too strong for current "
-                + "constraints.\n"
-                "  3. Units mismatch between rates (m/Myr), curves, and "
-                + "timestep (Myr).\n"
-                "Try: decreasing dt_min, smoothing input curves "
-                + "(e.g., linear interpolation), increasing "
-                + "max_waterDepth_change_per_step, or reducing "
-                + "forcing/rates."
-            )
-
-        # Check if dt_max satisfies constraint
-        max_change_at_dt_max = self._computeMaxWaterDepthChange(
-            t, rates, dt_hi
-        )
-        if max_change_at_dt_max <= max_change:
-            dt = dt_hi
-        else:
-            # Binary search for optimal dt between dt_lo and dt_hi
-            dt = self._binarySearchForOptimalDt(
-                t, curWaterDepths, rates, dt_lo, dt_hi
-            )
-
-        # Apply safety factor
-        dt = float(
-            max(self.params.dt_min, min(dt * self.params.safety, dt_hi))
-        )
-
-        # clamp dt to not overshoot next exact age
-        if nextExactAge is not None and dt > t - nextExactAge:
-            dt = t - nextExactAge
-
-        # Final safety check to ensure chosen dt still satisfies constraint.
-        max_change_at_selected_dt = self._computeMaxWaterDepthChange(
-            t, rates, dt
-        )
-        if max_change_at_selected_dt > max_change:
-            t2 = self._getNewTime(t, dt)
-            delta_sea_level = self._getDeltaSeaLevel(t, t2)
-            delta_subsidences = self._getDeltaSubsidence(t, t2)
-            thicknesses_step = self._getAccumulatedThickness(rates, dt)
-            max_delta_subs = float(np.max(np.abs(delta_subsidences)))
-            max_thickness = float(np.max(np.abs(thicknesses_step)))
-            raise RuntimeError(
-                "Chosen timestep still violates waterDepth-change "
-                "constraint.\n"
-                f"  - time: {t:.6f} Myr\n"
-                f"  - dt_min: {dt_lo:.6g} Myr, dt_max: {dt_hi:.6g} Myr\n"
-                f"  - selected dt: {dt:.6g} Myr\n"
-                f"  - allowed max change: {max_change:.6g} m\n"
-                f"  - change at dt_max: {max_change_at_dt_max:.6g} m\n"
-                "  - change at selected dt: "
-                + f"{max_change_at_selected_dt:.6g} m\n"
-                "  - sea-level change over selected dt: "
-                + f"{delta_sea_level:.6g} m\n"
-                "  - max subsidence change over selected dt: "
-                + f"{max_delta_subs:.6g} m\n"
-                "  - max deposited thickness over selected dt: "
-                + f"{max_thickness:.6g} m\n"
-                "Possible causes:\n"
-                "  1. Discontinuous forcing curve (e.g., step/lower-bound "
-                + "interpolation causing jumps).\n"
-                "  2. Constraint too strict for current forcing/rates.\n"
-                "  3. Numerical edge case near dt bounds or remaining time.\n"
-                "Try: smoothing input curves (e.g., linear interpolation), "
-                + "increasing max_waterDepth_change_per_step, reducing "
-                + "forcing/rates, or lowering dt_max."
-            )
-        return dt
-
     def _getDeltaSeaLevel(self: Self, t1: float, t2: float) -> float:
         """Get the change in sea level between t1 and t2.
 
@@ -659,17 +514,8 @@ class FSSimulator:
                 raise ValueError(f"Unknown subsidence type: {subsType}")
         return delta_subs
 
-    def _getNewTime(self: Self, t: float, dt: float) -> float:
-        """Get the new time after advancing by dt.
-
-        :param float t: current time.
-        :param float dt: time step duration.
-        :return float: new time (t - dt).
-        """
-        return t - dt
-
     def _computeMaxWaterDepthChange(
-        self: Self, t1: float, rates: npt.NDArray[np.float64], dt: float
+        self: Self, t1: float, dt: float, rates: npt.NDArray[np.float64]
     ) -> float:
         """Compute maximum water depth change across realizations for a dt.
 
@@ -679,7 +525,7 @@ class FSSimulator:
         :param float dt: candidate time step.
         :return float: maximum absolute water depth change.
         """
-        t2 = self._getNewTime(t1, dt)
+        t2 = t1 - dt
 
         # Get sea level variation between t1 and t2 (same for all realizations)
         delta_sea_level = self._getDeltaSeaLevel(t1, t2)
@@ -702,40 +548,6 @@ class FSSimulator:
         if finite.size == 0:
             return float("inf")
         return float(np.max(np.abs(finite)))
-
-    def _binarySearchForOptimalDt(
-        self: Self,
-        t: float,
-        curWaterDepths: npt.NDArray[np.float64],
-        rates: npt.NDArray[np.float64],
-        dt_lo: float,
-        dt_hi: float,
-    ) -> float:
-        """Binary search for optimal time step between dt_lo and dt_hi.
-
-        :param float t: current time.
-        :param npt.NDArray[np.float64] curWaterDepths: current water depth for
-            each realization.
-        :param npt.NDArray[np.float64] rates: deposition rates at time t.
-        :param float dt_lo: lower bound for time step.
-        :param float dt_hi: upper bound for time step.
-        :return float: optimal time step.
-        """
-        max_change = float(self.params.max_waterDepth_change_per_step)
-        lo = dt_lo
-        hi = dt_hi
-        for _ in range(40):
-            mid = 0.5 * (lo + hi)
-            deltaWD = self._computeMaxWaterDepthChange(t, rates, mid)
-            newWds = curWaterDepths + deltaWD
-            changeWaterDepthSign = np.all(
-                np.sign(newWds) == np.sign(curWaterDepths)
-            )
-            if deltaWD <= max_change and changeWaterDepthSign:
-                lo = mid
-            else:
-                hi = mid
-        return lo
 
     def _computeAccumulationRates(
         self: Self,
@@ -804,12 +616,15 @@ class FSSimulator:
         if self.depositionalEnvironmentSimulator is None:
             return [None] * self.n_real
 
-        assert len(prev_env) == self.n_real, (
-            "prev_env must have the same length as number of realizations"
-        )
-        assert len(waterDepth) == self.n_real, (
-            "waterDepth must have the same length as number of realizations"
-        )
+        if len(prev_env) != self.n_real:
+            raise ValueError(
+                "prev_env must have the same length as number of realizations"
+            )
+        if len(waterDepth) != self.n_real:
+            raise ValueError(
+                "waterDepth must have the same length as number of "
+                + "realizations"
+            )
 
         env: list[DepositionalEnvironment | None] = []
         for i in range(self.n_real):
