@@ -1,0 +1,11 @@
+{
+  "format": "pyWellSFM.EnvironmentConditionModelData",
+  "version": "1.0",
+  "model": {
+    "modelType": "Gaussian",
+    "meanValue": 25.0,
+    "stdDev": 2.0,
+    "minValue": 15.0,
+    "maxValue": 40.0
+  }
+}

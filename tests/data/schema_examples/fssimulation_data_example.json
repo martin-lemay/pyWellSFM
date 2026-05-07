@@ -1,0 +1,16 @@
+{
+  "format": "pyWellSFM.FSSimulationData",
+  "version": "1.0",
+  "name": "FSSimulationExample",
+  "scenario": {"url": "scenario_example.json"},
+  "realizations": [
+    {"url": "realization_data_example.json"}
+  ],
+  "params": {
+    "max_waterDepth_change_per_step": 0.6,
+    "dt_min": 0.001,
+    "dt_max": 0.1,
+    "safety": 0.9,
+    "max_steps": 1000
+  }
+}

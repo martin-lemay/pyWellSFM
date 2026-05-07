@@ -1,0 +1,11 @@
+{
+  "format": "pyWellSFM.WellData",
+  "version": "1.0",
+  "well": {
+    "name": "WellCsvRefs",
+    "location": {"x": 1.0, "y": 2.0, "z": 3.0},
+    "depth": 100.0,
+    "striplogs": ["striplog_lithology.csv"],
+    "continuousLogs": {"url": "well_continuous_logs.csv"}
+  }
+}

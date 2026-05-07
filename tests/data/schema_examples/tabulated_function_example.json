@@ -1,0 +1,10 @@
+{
+  "format": "pyWellSFM.TabulatedFunctionData",
+  "version": "1.0",
+  "abscissaName": "Age",
+  "ordinateName": "ReductionCoeff",
+  "values": {
+    "xValues": [0.0, 10.0, 20.0],
+    "yValues": [1.0, 0.8, 0.5]
+  }
+}

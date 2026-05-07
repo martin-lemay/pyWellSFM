@@ -1,0 +1,14 @@
+{
+  "format": "pyWellSFM.EnvironmentConditionsModelData",
+  "version": "1.0",
+  "environmentConditions": {
+    "oxygen": {
+      "format": "pyWellSFM.EnvironmentConditionModelData",
+      "version": "1.0",
+      "model": {
+        "modelType": "Curve",
+        "curve": {"url": "curve_water_depth_reduction.csv"}
+      }
+    }
+  }
+}

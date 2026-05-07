@@ -1,0 +1,34 @@
+{
+  "format": "pyWellSFM.DepositionalEnvironmentModelSchema",
+  "version": "1.0",
+  "name": "DepositionalEnvExample",
+  "environments": [
+    {
+      "name": "Lagoon",
+      "waterDepthModel": {
+        "format": "pyWellSFM.EnvironmentConditionModelData",
+        "version": "1.0",
+        "model": {
+          "modelType": "Uniform",
+          "minValue": 0.0,
+          "maxValue": 10.0
+        }
+      },
+      "environmentConditionsModel": {
+        "format": "pyWellSFM.EnvironmentConditionsModelData",
+        "version": "1.0",
+        "environmentConditions": {
+          "energy": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Constant",
+              "value": 0.25
+            }
+          }
+        }
+      },
+      "distality": 0.2
+    }
+  ]
+}

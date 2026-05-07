@@ -1,0 +1,23 @@
+{
+  "format": "pyWellSFM.EnvironmentConditionsModelData",
+  "version": "1.0",
+  "environmentConditions": {
+    "energy": {
+      "format": "pyWellSFM.EnvironmentConditionModelData",
+      "version": "1.0",
+      "model": {
+        "modelType": "Uniform",
+        "minValue": 0.1,
+        "maxValue": 0.8
+      }
+    },
+    "temperature": {
+      "format": "pyWellSFM.EnvironmentConditionModelData",
+      "version": "1.0",
+      "model": {
+        "modelType": "Constant",
+        "value": 22.0
+      }
+    }
+  }
+}

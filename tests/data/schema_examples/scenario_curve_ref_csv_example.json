@@ -1,0 +1,7 @@
+{
+  "format": "pyWellSFM.ScenarioData",
+  "version": "1.0",
+  "name": "ScenarioCsvRef",
+  "accumulationModel": {"url": "accumulation_model_example.json"},
+  "eustaticCurve": {"url": "curve_age_value.csv"}
+}

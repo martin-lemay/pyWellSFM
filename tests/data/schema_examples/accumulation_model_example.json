@@ -1,0 +1,23 @@
+{
+  "format": "pyWellSFM.AccumulationModelData",
+  "version": "1.0",
+  "accumulationModel": {
+    "name": "AccumulationGaussianExample",
+    "elements": {
+      "sand": {
+        "accumulationRate": 120.0,
+        "model": {
+          "modelType": "Gaussian",
+          "stddevFactor": 0.2
+        }
+      },
+      "shale": {
+        "accumulationRate": 45.0,
+        "model": {
+          "modelType": "Gaussian",
+          "stddevFactor": 0.15
+        }
+      }
+    }
+  }
+}

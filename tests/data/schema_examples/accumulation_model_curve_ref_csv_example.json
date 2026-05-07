@@ -1,0 +1,18 @@
+{
+  "format": "pyWellSFM.AccumulationModelData",
+  "version": "1.0",
+  "accumulationModel": {
+    "name": "AccumulationEnvOptimumCsvRef",
+    "elements": {
+      "carbonate": {
+        "accumulationRate": 80.0,
+        "model": {
+          "modelType": "EnvironmentOptimum",
+          "accumulationCurves": [
+            {"url": "curve_water_depth_reduction.csv"}
+          ]
+        }
+      }
+    }
+  }
+}

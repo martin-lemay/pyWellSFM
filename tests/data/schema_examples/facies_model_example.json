@@ -1,0 +1,14 @@
+{
+  "format": "pyWellSFM.FaciesModelData",
+  "version": "1.0",
+  "faciesModel": [
+    {
+      "name": "LagoonMud",
+      "criteriaType": "sedimentological",
+      "criteria": [
+        {"name": "waterDepth", "minRange": 0.0, "maxRange": 20.0},
+        {"name": "energy", "minRange": 0.0, "maxRange": 0.4}
+      ]
+    }
+  ]
+}

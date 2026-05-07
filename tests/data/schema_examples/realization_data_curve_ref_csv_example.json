@@ -1,0 +1,10 @@
+{
+  "format": "pyWellSFM.RealizationData",
+  "version": "1.0",
+  "well": {"url": "well_example.json"},
+  "initialBathymetry": 18.0,
+  "subsidenceCurve": {
+    "type": "cumulative",
+    "curve": {"url": "curve_age_value.csv"}
+  }
+}

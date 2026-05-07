@@ -1,0 +1,45 @@
+{
+  "format": "pyWellSFM.WellData",
+  "version": "1.0",
+  "well": {
+    "name": "WellSchemaExample",
+    "location": {"x": 0.0, "y": 0.0, "z": 0.0},
+    "depth": 100.0,
+    "wellPath": [
+      {"x": 0.0, "y": 0.0, "z": 0.0},
+      {"x": 0.0, "y": 0.0, "z": 100.0}
+    ],
+    "markers": [
+      {
+        "name": "M1",
+        "depth": 20.0,
+        "age": 5.0,
+        "stratigraphicType": "Conform"
+      }
+    ],
+    "striplogs": [
+      {
+        "name": "lithology",
+        "intervals": [
+          {"top": 0.0, "base": 50.0, "lithology": "sandstone"},
+          {"top": 50.0, "base": 100.0, "lithology": "shale"}
+        ]
+      }
+    ],
+    "continuousLogs": [
+      {
+        "format": "pyWellSFM.CurveData",
+        "version": "1.0",
+        "curve": {
+          "xAxisName": "Depth",
+          "yAxisName": "GR",
+          "interpolationMethod": "linear",
+          "data": [
+            {"x": 0.0, "y": 55.0},
+            {"x": 100.0, "y": 68.0}
+          ]
+        }
+      }
+    ]
+  }
+}
