@@ -350,8 +350,8 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_inline_curves(
     bathy_curve_obj = curveToJsonObj(
         AccumulationCurve(
             "WaterDepth",
-            np.array([0.0, 10.0]),
-            np.array([0.0, 1.0]),
+            np.array([0.0, 10.0, 20.0, 100.0]),
+            np.array([0.0, 1.0, 0.0, 0.0]),
         ),
         y_axis_name="ReductionCoeff",
         x_axis_name_default="WaterDepth",
@@ -359,8 +359,8 @@ def test_loadAccumulationModelEnvironmentOptimumFromJson_inline_curves(
     energy_curve_obj = curveToJsonObj(
         AccumulationCurve(
             "Energy",
-            np.array([0.0, 1.0]),
-            np.array([0.0, 1.0]),
+            np.array([0.0, 0.5, 1.0]),
+            np.array([0.0, 0.5, 1.0]),
         ),
         y_axis_name="ReductionCoeff",
         x_axis_name_default="Energy",
