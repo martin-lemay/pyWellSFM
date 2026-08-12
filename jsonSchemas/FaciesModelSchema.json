@@ -32,9 +32,8 @@
                         ]
                     },
                     "criteria": {
-                        "description": "List of criteria used to define the facies (must contain at least one criteria).",
+                        "description": "List of criteria used to define the facies.",
                         "type": "array",
-                        "minItems": 1,
                         "items": {
                             "$ref": "#/$defs/FaciesCriterion"
                         }
