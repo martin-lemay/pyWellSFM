@@ -1,0 +1,47 @@
+{
+  "month": "2026-08",
+  "generated": "2026-08-12T00:00:00Z",
+  "summary": "August brings significant new simulation capabilities: the forward simulator now builds simulated wells with lithology logs and hiatus detection, and a new facies classification engine supports multi-criteria matching. Additional features include water depth/thickness ratio analysis, uncertainty curve export, and a plotting utilities module.",
+  "entries": [
+    {
+      "title": "Allow facies with empty criteria and add specificity scoring",
+      "description": "Facies definitions can now have an empty criteria set, enabling unconstrained catch-all facies. A new specificity score helps the classifier pick the most specific matching facies when multiple candidates overlap.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-08-12",
+      "commits": ["8583d8f"]
+    },
+    {
+      "title": "Add water depth / thickness ratio curve computation",
+      "description": "AccommodationSpaceWellCalculator can now compute a water-depth-to-thickness ratio curve with uncertainty bounds, useful for analysing bathymetric trends relative to sediment accumulation.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-08-12",
+      "commits": ["26e0d95"]
+    },
+    {
+      "title": "Build simulated wells with lithology logs and hiatus detection",
+      "description": "After running the forward simulation, the simulator now creates simulated wells with MainElement, Environment, and optional Facies logs in both age and depth domains. Hiatus periods are automatically detected and marked with erosive stratigraphic markers.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-08-12",
+      "commits": ["8dc4185"]
+    },
+    {
+      "title": "Add uncertainty curve CSV save and bytes export",
+      "description": "New functions saveUncertaintyCurveToCsv and uncertaintyCurveToBytes allow exporting UncertaintyCurve data to CSV files or in-memory bytes, with round-trip compatibility with the existing loader.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-08-12",
+      "commits": ["9304cd1"]
+    },
+    {
+      "title": "Add plot utilities module",
+      "description": "A new plotting module provides functions for visualising accommodation curves, water depth, lithology logs, WD/thickness ratios, and well comparison panels.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-08-12",
+      "commits": ["0f14c76"]
+    }
+  ]
+}
