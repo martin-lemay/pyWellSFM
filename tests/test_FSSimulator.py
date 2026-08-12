@@ -8,6 +8,7 @@ from typing import Any, Self, cast
 
 import numpy as np
 import pytest
+from striplog import Striplog
 
 from pywellsfm.io.fssimulation_io import loadFSSimulation
 from pywellsfm.model.DepositionalEnvironment import (
@@ -16,6 +17,12 @@ from pywellsfm.model.DepositionalEnvironment import (
 )
 from pywellsfm.model.EnvironmentConditionModel import (
     EnvironmentConditionModelUniform,
+)
+from pywellsfm.model.Facies import (
+    Facies,
+    FaciesCriteria,
+    FaciesCriteriaType,
+    FaciesModel,
 )
 from pywellsfm.model.Marker import Marker
 from pywellsfm.simulator.FSSimulator import FSSimulator, FSSimulatorParameters
@@ -519,3 +526,716 @@ def test_build_dataset_includes_environment_when_simulator_is_set(
     ds = fs_sim._buildEnsembleDataset()
 
     assert "environment" in ds.data_vars
+
+
+def test_classify_main_element_picks_dominant(
+    fs_sim: FSSimulator,
+) -> None:
+    """MainElement classification picks element with highest rate."""
+    result = FSSimulator._classifyMainElement(
+        {"Sand": 0.5, "Shale": 0.3, "Carbonate": 0.2}
+    )
+    assert result == "Sand"
+
+
+def test_classify_main_element_all_zero(
+    fs_sim: FSSimulator,
+) -> None:
+    """MainElement returns Unclassified when all rates are zero."""
+    result = FSSimulator._classifyMainElement({"A": 0.0, "B": 0.0})
+    assert result == "Unclassified"
+
+
+def test_classify_main_element_empty(
+    fs_sim: FSSimulator,
+) -> None:
+    """MainElement returns Unclassified for empty dict."""
+    assert FSSimulator._classifyMainElement({}) == "Unclassified"
+
+
+def test_classify_facies_single_match() -> None:
+    """Facies classification returns the matching facies name."""
+    f1 = Facies(
+        "Limestone",
+        FaciesCriteria(
+            "Carbonate", 0.5, 1.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        ),
+    )
+    f2 = Facies(
+        "Marl",
+        FaciesCriteria(
+            "Carbonate", 0.0, 0.5, FaciesCriteriaType.SEDIMENTOLOGICAL
+        ),
+    )
+    model = FaciesModel({f1, f2})
+    result = FSSimulator._classifyFacies(model, {"Carbonate": 0.7})
+    assert result == "Limestone"
+
+
+def test_classify_facies_no_match() -> None:
+    """Facies classification returns Unclassified when nothing matches."""
+    f1 = Facies(
+        "Limestone",
+        FaciesCriteria(
+            "Carbonate", 0.8, 1.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        ),
+    )
+    model = FaciesModel({f1})
+    result = FSSimulator._classifyFacies(model, {"Carbonate": 0.3})
+    assert result == "Unclassified"
+
+
+def test_classify_facies_multiple_match_picks_most_specific() -> None:
+    """When multiple facies match, pick the most specific (narrowest)."""
+    broad = Facies(
+        "Carbonate",
+        FaciesCriteria(
+            "Carbonate", 0.0, 1.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        ),
+    )
+    narrow = Facies(
+        "PureLimestone",
+        FaciesCriteria(
+            "Carbonate", 0.7, 1.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        ),
+    )
+    model = FaciesModel({broad, narrow})
+    result = FSSimulator._classifyFacies(model, {"Carbonate": 0.8})
+    assert result == "PureLimestone"
+
+
+def test_classify_facies_multi_criteria() -> None:
+    """Facies with multiple criteria must all be satisfied."""
+    f = Facies(
+        "ShallowCarbonate",
+        {
+            FaciesCriteria(
+                "Carbonate", 0.5, 1.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+            ),
+            FaciesCriteria(
+                "waterDepth", 0.0, 20.0, FaciesCriteriaType.ENVIRONMENTAL
+            ),
+        },
+    )
+    model = FaciesModel({f})
+    # Both criteria satisfied
+    assert (
+        FSSimulator._classifyFacies(
+            model, {"Carbonate": 0.8, "waterDepth": 10.0}
+        )
+        == "ShallowCarbonate"
+    )
+    # waterDepth out of range
+    assert (
+        FSSimulator._classifyFacies(
+            model, {"Carbonate": 0.8, "waterDepth": 30.0}
+        )
+        == "Unclassified"
+    )
+
+
+def test_classify_facies_missing_property() -> None:
+    """Facies does not match if a required property is missing."""
+    f = Facies(
+        "Limestone",
+        FaciesCriteria(
+            "Carbonate", 0.5, 1.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+        ),
+    )
+    model = FaciesModel({f})
+    result = FSSimulator._classifyFacies(model, {"waterDepth": 10.0})
+    assert result == "Unclassified"
+
+
+def test_build_striplog_merges_adjacent_same_label() -> None:
+    """Adjacent intervals with same label are merged."""
+    intervals = [
+        (0.0, 10.0, "Sand"),
+        (10.0, 20.0, "Sand"),
+        (20.0, 30.0, "Shale"),
+    ]
+    result = FSSimulator._buildStriplog(intervals)
+    assert isinstance(result, Striplog)
+    assert len(result) == 2
+    assert result[0].primary["lithology"] == "Sand"
+    assert float(result[0].top.z) == pytest.approx(0.0)
+    assert float(result[0].base.z) == pytest.approx(20.0)
+    assert result[1].primary["lithology"] == "Shale"
+
+
+def test_build_striplog_no_merge_different_labels() -> None:
+    """Intervals with different labels are kept separate."""
+    intervals = [
+        (0.0, 10.0, "Sand"),
+        (10.0, 20.0, "Shale"),
+        (20.0, 30.0, "Sand"),
+    ]
+    result = FSSimulator._buildStriplog(intervals)
+    assert len(result) == 3
+
+
+def test_build_striplog_single_interval() -> None:
+    """Single interval produces a single-entry Striplog."""
+    result = FSSimulator._buildStriplog([(5.0, 15.0, "Limestone")])
+    assert len(result) == 1
+    assert result[0].primary["lithology"] == "Limestone"
+    assert float(result[0].top.z) == pytest.approx(5.0)
+    assert float(result[0].base.z) == pytest.approx(15.0)
+
+
+def test_build_striplog_all_same_label() -> None:
+    """All intervals with same label merge into one."""
+    intervals = [
+        (0.0, 5.0, "A"),
+        (5.0, 10.0, "A"),
+        (10.0, 15.0, "A"),
+    ]
+    result = FSSimulator._buildStriplog(intervals)
+    assert len(result) == 1
+    assert float(result[0].top.z) == pytest.approx(0.0)
+    assert float(result[0].base.z) == pytest.approx(15.0)
+
+
+def test_build_simulated_well_main_element_only(
+    fs_sim: FSSimulator,
+) -> None:
+    """Build simulated well with MainElement logs when no FaciesModel."""
+    # Set up minimal simulation state: 2 steps, 2 realizations
+    fs_sim.times = [30.0, 20.0, 10.0]  # 2 steps
+    fs_sim.depo_rate_elements = [
+        # step 0 (age 30->20): [real0, real1]
+        [
+            {"CarbonateShallow": 0.5, "CarbonateDeep": 0.3},
+            {"CarbonateShallow": 0.2, "CarbonateDeep": 0.6},
+        ],
+        # step 1 (age 20->10): [real0, real1]
+        [
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.8},
+            {"CarbonateShallow": 0.7, "CarbonateDeep": 0.1},
+        ],
+    ]
+    fs_sim.thickness_steps = [
+        np.array([5.0, 8.0], dtype=np.float64),  # step 0
+        np.array([9.0, 3.0], dtype=np.float64),  # step 1
+    ]
+    fs_sim.waterDepths = [
+        np.array([15.0, 20.0], dtype=np.float64),  # step 0
+        np.array([10.0, 12.0], dtype=np.float64),  # step 1
+    ]
+    fs_sim.environments = [
+        np.array(["Shallow", "Deep"], dtype=str),  # step 0
+        np.array(["Deep", "Shallow"], dtype=str),  # step 1
+    ]
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    assert well.name == "Well1_sim_0"
+    # Should have MainElement and Environment in both domains
+    age_log = well.getAgeLog("MainElement")
+    depth_log = well.getDepthLog("MainElement")
+    assert age_log is not None
+    assert depth_log is not None
+    assert well.getAgeLog("Environment") is not None
+    assert well.getDepthLog("Environment") is not None
+    # No Facies log (no faciesModel in scenario)
+    assert well.getAgeLog("Facies") is None
+    assert well.getDepthLog("Facies") is None
+
+    # Check age-domain: step0 dominant=CarbonateShallow (age 30->20),
+    # step1 dominant=CarbonateDeep (age 20->10) -> 2 intervals.
+    # Striplog orders ascending top, so index 0 = youngest (top=10.0).
+    assert isinstance(age_log, Striplog)
+    assert len(age_log) == 2
+
+    # Check depth-domain: stacked from oldest marker (depth=90.0)
+    # upward. Step0: 5.0m thick (base=90, top=85), step1: 9.0m thick
+    # (base=85, top=76). Striplog orders ascending top: [0]=top=76, [1]=top=85.
+    assert isinstance(depth_log, Striplog)
+    assert len(depth_log) == 2
+    assert float(depth_log[1].base.z) == pytest.approx(90.0)
+    assert float(depth_log[1].top.z) == pytest.approx(85.0)
+    assert float(depth_log[0].base.z) == pytest.approx(85.0)
+    assert float(depth_log[0].top.z) == pytest.approx(76.0)
+
+
+def test_build_simulated_well_with_facies_model(
+    fs_sim: FSSimulator,
+) -> None:
+    """Build simulated well includes Facies logs when FaciesModel set."""
+    # Add a facies model to scenario
+    f_shallow = Facies(
+        "ShallowCarbonate",
+        FaciesCriteria(
+            "CarbonateShallow",
+            0.5,
+            1.0,
+            FaciesCriteriaType.SEDIMENTOLOGICAL,
+        ),
+    )
+    f_deep = Facies(
+        "DeepCarbonate",
+        FaciesCriteria(
+            "CarbonateDeep",
+            0.5,
+            1.0,
+            FaciesCriteriaType.SEDIMENTOLOGICAL,
+        ),
+    )
+    fm = FaciesModel({f_shallow, f_deep})
+    fs_sim.scenario = replace(fs_sim.scenario, faciesModel=fm)
+
+    # Set up 2 steps, use realization 0
+    fs_sim.times = [30.0, 20.0, 10.0]
+    fs_sim.depo_rate_elements = [
+        [
+            {"CarbonateShallow": 0.8, "CarbonateDeep": 0.2},
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.9},
+        ],
+        [
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.9},
+            {"CarbonateShallow": 0.8, "CarbonateDeep": 0.2},
+        ],
+    ]
+    fs_sim.thickness_steps = [
+        np.array([4.0, 6.0], dtype=np.float64),
+        np.array([6.0, 4.0], dtype=np.float64),
+    ]
+    fs_sim.waterDepths = [
+        np.array([15.0, 20.0], dtype=np.float64),
+        np.array([10.0, 12.0], dtype=np.float64),
+    ]
+    fs_sim.environments = [
+        np.array(["Shallow", "Deep"], dtype=str),
+        np.array(["Deep", "Shallow"], dtype=str),
+    ]
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    age_facies = well.getAgeLog("Facies")
+    depth_facies = well.getDepthLog("Facies")
+    assert age_facies is not None
+    assert depth_facies is not None
+    assert isinstance(age_facies, Striplog)
+    # Step0 (30->20 Ma): CarbonateShallow=0.8 -> ShallowCarbonate
+    # Step1 (20->10 Ma): CarbonateDeep=0.9 -> DeepCarbonate
+    # Striplog orders ascending top: [0]=top=10.0 (DeepCarbonate, younger),
+    # [1]=top=20.0 (ShallowCarbonate, older).
+    assert len(age_facies) == 2
+    assert age_facies[0].primary["lithology"] == "DeepCarbonate"
+    assert age_facies[1].primary["lithology"] == "ShallowCarbonate"
+
+
+def test_build_simulated_well_merges_same_label_steps(
+    fs_sim: FSSimulator,
+) -> None:
+    """Adjacent steps with same dominant element are merged."""
+    fs_sim.times = [30.0, 25.0, 20.0, 10.0]  # 3 steps
+    fs_sim.depo_rate_elements = [
+        # step 0+1: same dominant (CarbonateShallow), step 2: different
+        [
+            {"CarbonateShallow": 0.8, "CarbonateDeep": 0.2},
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.9},
+        ],
+        [
+            {"CarbonateShallow": 0.7, "CarbonateDeep": 0.3},
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.9},
+        ],
+        [
+            {"CarbonateShallow": 0.2, "CarbonateDeep": 0.8},
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.9},
+        ],
+    ]
+    fs_sim.thickness_steps = [
+        np.array([3.0, 4.0], dtype=np.float64),
+        np.array([2.0, 3.0], dtype=np.float64),
+        np.array([5.0, 3.0], dtype=np.float64),
+    ]
+    fs_sim.waterDepths = [
+        np.array([15.0, 20.0], dtype=np.float64),
+        np.array([12.0, 16.0], dtype=np.float64),
+        np.array([10.0, 13.0], dtype=np.float64),
+    ]
+    fs_sim.environments = [
+        np.array(["Shallow", "Deep"], dtype=str),
+        np.array(["Shallow", "Deep"], dtype=str),
+        np.array(["Deep", "Shallow"], dtype=str),
+    ]
+
+    well = fs_sim._buildSimulatedWell(0)
+    age_log = well.getAgeLog("MainElement")
+    assert isinstance(age_log, Striplog)
+    # Steps 0+1 merge (both CarbonateShallow), step 2 is CarbonateDeep
+    assert len(age_log) == 2
+
+    depth_log = well.getDepthLog("MainElement")
+    assert isinstance(depth_log, Striplog)
+    # Merged: CarbonateShallow (steps 0+1: 3+2=5m, base=90→top=85),
+    # CarbonateDeep (step 2: 5m, base=85→top=80).
+    # Striplog orders ascending top: [0]=top=80 (CarbonateDeep), [1]=top=85.
+    assert len(depth_log) == 2
+    assert float(depth_log[1].base.z) == pytest.approx(90.0)
+    assert float(depth_log[1].top.z) == pytest.approx(85.0)
+    assert float(depth_log[0].base.z) == pytest.approx(85.0)
+    assert float(depth_log[0].top.z) == pytest.approx(80.0)
+
+
+def test_build_simulated_well_environment_log(
+    fs_sim: FSSimulator,
+) -> None:
+    """Build simulated well includes Environment logs with merging."""
+    fs_sim.times = [30.0, 25.0, 20.0, 10.0]  # 3 steps
+    fs_sim.depo_rate_elements = [
+        [
+            {"CarbonateShallow": 0.8, "CarbonateDeep": 0.2},
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.9},
+        ],
+        [
+            {"CarbonateShallow": 0.7, "CarbonateDeep": 0.3},
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.9},
+        ],
+        [
+            {"CarbonateShallow": 0.2, "CarbonateDeep": 0.8},
+            {"CarbonateShallow": 0.1, "CarbonateDeep": 0.9},
+        ],
+    ]
+    fs_sim.thickness_steps = [
+        np.array([3.0, 4.0], dtype=np.float64),
+        np.array([2.0, 3.0], dtype=np.float64),
+        np.array([5.0, 3.0], dtype=np.float64),
+    ]
+    fs_sim.waterDepths = [
+        np.array([15.0, 20.0], dtype=np.float64),
+        np.array([12.0, 16.0], dtype=np.float64),
+        np.array([10.0, 13.0], dtype=np.float64),
+    ]
+    # Steps 0+1 same environment ("Shallow"), step 2 different ("Deep")
+    fs_sim.environments = [
+        np.array(["Shallow", "Deep"], dtype=str),
+        np.array(["Shallow", "Deep"], dtype=str),
+        np.array(["Deep", "Shallow"], dtype=str),
+    ]
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    age_env = well.getAgeLog("Environment")
+    depth_env = well.getDepthLog("Environment")
+    assert age_env is not None
+    assert depth_env is not None
+    assert isinstance(age_env, Striplog)
+    assert isinstance(depth_env, Striplog)
+
+    # Steps 0+1 merge (both "Shallow"), step 2 is "Deep" -> 2 intervals
+    assert len(age_env) == 2
+    # Ascending top: [0]=Deep, [1]=Shallow
+    assert age_env[0].primary["lithology"] == "Deep"
+    assert age_env[1].primary["lithology"] == "Shallow"
+
+    # Depth: merged Shallow (steps 0+1: 3+2=5m, base=90→top=85),
+    # Deep (step 2: 5m, base=85→top=80).
+    assert len(depth_env) == 2
+    assert float(depth_env[1].base.z) == pytest.approx(90.0)
+    assert float(depth_env[1].top.z) == pytest.approx(85.0)
+    assert depth_env[1].primary["lithology"] == "Shallow"
+    assert float(depth_env[0].base.z) == pytest.approx(85.0)
+    assert float(depth_env[0].top.z) == pytest.approx(80.0)
+    assert depth_env[0].primary["lithology"] == "Deep"
+
+
+def test_build_simulated_well_creates_erosive_marker_on_hiatus(
+    fs_sim: FSSimulator,
+) -> None:
+    """Hiatus (rate<=0) creates an Erosive marker at onset age/depth."""
+    from pywellsfm.model.Marker import StratigraphicSurfaceType
+
+    # 3 steps: deposit, hiatus, deposit
+    fs_sim.times = [30.0, 25.0, 20.0, 10.0]
+    fs_sim.depo_rate_totals = [
+        np.array([1.0, 1.0], dtype=np.float64),  # step 0: depositing
+        np.array([0.0, 0.0], dtype=np.float64),  # step 1: hiatus
+        np.array([1.0, 1.0], dtype=np.float64),  # step 2: depositing
+    ]
+    fs_sim.depo_rate_elements = [
+        [
+            {"CarbonateShallow": 0.8, "CarbonateDeep": 0.2},
+            {"CarbonateShallow": 0.8, "CarbonateDeep": 0.2},
+        ],
+        [
+            {"CarbonateShallow": 0.0, "CarbonateDeep": 0.0},
+            {"CarbonateShallow": 0.0, "CarbonateDeep": 0.0},
+        ],
+        [
+            {"CarbonateShallow": 0.8, "CarbonateDeep": 0.2},
+            {"CarbonateShallow": 0.8, "CarbonateDeep": 0.2},
+        ],
+    ]
+    fs_sim.thickness_steps = [
+        np.array([5.0, 5.0], dtype=np.float64),  # step 0
+        np.array([0.0, 0.0], dtype=np.float64),  # step 1: no thickness
+        np.array([5.0, 5.0], dtype=np.float64),  # step 2
+    ]
+    fs_sim.waterDepths = [
+        np.array([15.0, 20.0], dtype=np.float64),
+        np.array([15.0, 20.0], dtype=np.float64),
+        np.array([15.0, 20.0], dtype=np.float64),
+    ]
+    fs_sim.environments = [
+        np.array(["Shallow", "Shallow"], dtype=str),
+        np.array(["Shallow", "Shallow"], dtype=str),
+        np.array(["Shallow", "Shallow"], dtype=str),
+    ]
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    # Original well has 2 markers (at ages 30 and 10)
+    # Simulated well should have those 2 + 1 erosive marker
+    markers = well.getMarkers()
+    erosive_markers = [
+        m
+        for m in markers
+        if m.stratigraphicType == StratigraphicSurfaceType.EROSIVE
+    ]
+    assert len(erosive_markers) == 1
+    m = erosive_markers[0]
+    # Onset at age 25.0 (step 1), duration = 25.0 - 20.0 = 5.0
+    assert m.name == "Hiatus_5"
+    assert m.age == 25.0
+    # Depth = oldest marker depth (90.0) - step0 thickness (5.0) = 85.0
+    assert m.depth == pytest.approx(85.0)
+
+
+def test_build_simulated_well_multiple_hiatus_periods(
+    fs_sim: FSSimulator,
+) -> None:
+    """Multiple non-adjacent hiatus periods create separate markers."""
+    from pywellsfm.model.Marker import StratigraphicSurfaceType
+
+    # 5 steps: deposit, hiatus, deposit, hiatus, deposit
+    fs_sim.times = [50.0, 40.0, 30.0, 20.0, 10.0, 0.0]
+    fs_sim.depo_rate_totals = [
+        np.array([1.0, 1.0], dtype=np.float64),  # step 0: deposit
+        np.array([0.0, 0.0], dtype=np.float64),  # step 1: hiatus
+        np.array([1.0, 1.0], dtype=np.float64),  # step 2: deposit
+        np.array([0.0, 0.0], dtype=np.float64),  # step 3: hiatus
+        np.array([1.0, 1.0], dtype=np.float64),  # step 4: deposit
+    ]
+    fs_sim.depo_rate_elements = [
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+        [{"CarbonateShallow": 0.0, "CarbonateDeep": 0.0}] * 2,
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+        [{"CarbonateShallow": 0.0, "CarbonateDeep": 0.0}] * 2,
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+    ]
+    fs_sim.thickness_steps = [
+        np.array([5.0, 5.0], dtype=np.float64),
+        np.array([0.0, 0.0], dtype=np.float64),
+        np.array([5.0, 5.0], dtype=np.float64),
+        np.array([0.0, 0.0], dtype=np.float64),
+        np.array([5.0, 5.0], dtype=np.float64),
+    ]
+    fs_sim.waterDepths = [np.array([15.0, 20.0], dtype=np.float64)] * 5
+    fs_sim.environments = [np.array(["Shallow", "Shallow"], dtype=str)] * 5
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    markers = well.getMarkers()
+    erosive_markers = [
+        m
+        for m in markers
+        if m.stratigraphicType == StratigraphicSurfaceType.EROSIVE
+    ]
+    assert len(erosive_markers) == 2
+    # Sort by age descending (oldest first)
+    erosive_markers.sort(key=lambda m: m.age, reverse=True)
+    # First hiatus: onset at 40.0, ends at 30.0, duration=10
+    assert erosive_markers[0].name == "Hiatus_10"
+    assert erosive_markers[0].age == 40.0
+    # Second hiatus: onset at 20.0, ends at 10.0, duration=10
+    assert erosive_markers[1].name == "Hiatus_10"
+    assert erosive_markers[1].age == 20.0
+
+
+def test_build_simulated_well_hiatus_at_end(
+    fs_sim: FSSimulator,
+) -> None:
+    """Hiatus extending to end of simulation still creates a marker."""
+    from pywellsfm.model.Marker import StratigraphicSurfaceType
+
+    # 2 steps: deposit, then hiatus until end
+    fs_sim.times = [30.0, 20.0, 10.0]
+    fs_sim.depo_rate_totals = [
+        np.array([1.0, 1.0], dtype=np.float64),  # step 0: deposit
+        np.array([0.0, 0.0], dtype=np.float64),  # step 1: hiatus
+    ]
+    fs_sim.depo_rate_elements = [
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+        [{"CarbonateShallow": 0.0, "CarbonateDeep": 0.0}] * 2,
+    ]
+    fs_sim.thickness_steps = [
+        np.array([5.0, 5.0], dtype=np.float64),
+        np.array([0.0, 0.0], dtype=np.float64),
+    ]
+    fs_sim.waterDepths = [np.array([15.0, 20.0], dtype=np.float64)] * 2
+    fs_sim.environments = [np.array(["Shallow", "Shallow"], dtype=str)] * 2
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    markers = well.getMarkers()
+    erosive_markers = [
+        m
+        for m in markers
+        if m.stratigraphicType == StratigraphicSurfaceType.EROSIVE
+    ]
+    assert len(erosive_markers) == 1
+    m = erosive_markers[0]
+    # Onset at 20.0, simulation ends at 10.0, duration=10
+    assert m.name == "Hiatus_10"
+    assert m.age == 20.0
+    assert m.depth == pytest.approx(85.0)
+
+
+def test_build_simulated_well_hiatus_at_start(
+    fs_sim: FSSimulator,
+) -> None:
+    """Hiatus at the very start of simulation creates a marker."""
+    from pywellsfm.model.Marker import StratigraphicSurfaceType
+
+    # 2 steps: hiatus, then deposit
+    fs_sim.times = [30.0, 20.0, 10.0]
+    fs_sim.depo_rate_totals = [
+        np.array([0.0, 0.0], dtype=np.float64),  # step 0: hiatus
+        np.array([1.0, 1.0], dtype=np.float64),  # step 1: deposit
+    ]
+    fs_sim.depo_rate_elements = [
+        [{"CarbonateShallow": 0.0, "CarbonateDeep": 0.0}] * 2,
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+    ]
+    fs_sim.thickness_steps = [
+        np.array([0.0, 0.0], dtype=np.float64),
+        np.array([5.0, 5.0], dtype=np.float64),
+    ]
+    fs_sim.waterDepths = [np.array([15.0, 20.0], dtype=np.float64)] * 2
+    fs_sim.environments = [np.array(["Shallow", "Shallow"], dtype=str)] * 2
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    markers = well.getMarkers()
+    erosive_markers = [
+        m
+        for m in markers
+        if m.stratigraphicType == StratigraphicSurfaceType.EROSIVE
+    ]
+    assert len(erosive_markers) == 1
+    m = erosive_markers[0]
+    # Onset at age 30.0, ends at 20.0, duration=10
+    assert m.name == "Hiatus_10"
+    assert m.age == 30.0
+    # Depth = oldest marker depth (90.0) — no deposition before hiatus
+    assert m.depth == pytest.approx(90.0)
+
+
+def test_build_simulated_well_consecutive_hiatus_steps_one_marker(
+    fs_sim: FSSimulator,
+) -> None:
+    """Multiple consecutive hiatus steps produce a single marker."""
+    from pywellsfm.model.Marker import StratigraphicSurfaceType
+
+    # 4 steps: deposit, hiatus, hiatus, deposit
+    fs_sim.times = [40.0, 30.0, 20.0, 10.0, 0.0]
+    fs_sim.depo_rate_totals = [
+        np.array([1.0, 1.0], dtype=np.float64),  # step 0: deposit
+        np.array([0.0, 0.0], dtype=np.float64),  # step 1: hiatus
+        np.array([0.0, 0.0], dtype=np.float64),  # step 2: hiatus
+        np.array([1.0, 1.0], dtype=np.float64),  # step 3: deposit
+    ]
+    fs_sim.depo_rate_elements = [
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+        [{"CarbonateShallow": 0.0, "CarbonateDeep": 0.0}] * 2,
+        [{"CarbonateShallow": 0.0, "CarbonateDeep": 0.0}] * 2,
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+    ]
+    fs_sim.thickness_steps = [
+        np.array([5.0, 5.0], dtype=np.float64),
+        np.array([0.0, 0.0], dtype=np.float64),
+        np.array([0.0, 0.0], dtype=np.float64),
+        np.array([5.0, 5.0], dtype=np.float64),
+    ]
+    fs_sim.waterDepths = [np.array([15.0, 20.0], dtype=np.float64)] * 4
+    fs_sim.environments = [np.array(["Shallow", "Shallow"], dtype=str)] * 4
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    markers = well.getMarkers()
+    erosive_markers = [
+        m
+        for m in markers
+        if m.stratigraphicType == StratigraphicSurfaceType.EROSIVE
+    ]
+    assert len(erosive_markers) == 1
+    m = erosive_markers[0]
+    # Onset at 30.0, resumes at 10.0, duration=20
+    assert m.name == "Hiatus_20"
+    assert m.age == 30.0
+    assert m.depth == pytest.approx(85.0)
+
+
+def test_build_simulated_well_no_hiatus_no_erosive_markers(
+    fs_sim: FSSimulator,
+) -> None:
+    """Continuous deposition produces no Erosive markers."""
+    from pywellsfm.model.Marker import StratigraphicSurfaceType
+
+    fs_sim.times = [30.0, 20.0, 10.0]
+    fs_sim.depo_rate_totals = [
+        np.array([1.0, 1.0], dtype=np.float64),
+        np.array([1.0, 1.0], dtype=np.float64),
+    ]
+    fs_sim.depo_rate_elements = [
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+        [{"CarbonateShallow": 0.8, "CarbonateDeep": 0.2}] * 2,
+    ]
+    fs_sim.thickness_steps = [
+        np.array([5.0, 5.0], dtype=np.float64),
+        np.array([5.0, 5.0], dtype=np.float64),
+    ]
+    fs_sim.waterDepths = [np.array([15.0, 20.0], dtype=np.float64)] * 2
+    fs_sim.environments = [np.array(["Shallow", "Shallow"], dtype=str)] * 2
+
+    well = fs_sim._buildSimulatedWell(0)
+
+    markers = well.getMarkers()
+    erosive_markers = [
+        m
+        for m in markers
+        if m.stratigraphicType == StratigraphicSurfaceType.EROSIVE
+    ]
+    assert len(erosive_markers) == 0
+
+
+def test_finalize_creates_simulated_wells(
+    fs_sim: FSSimulator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Finalize creates one simulated well per realization."""
+    fs_sim.params = FSSimulatorParameters(dt_min=1.0, dt_max=2.0)
+    fs_sim.prepare()
+    monkeypatch.setattr(
+        fs_sim._time_step_controller,
+        "adapt",
+        lambda _t, _wd, _rates, remaining: min(2.0, remaining),
+    )
+    fs_sim.run()
+    fs_sim.finalize()
+
+    assert len(fs_sim.simulatedWells) == 2
+    assert fs_sim.simulatedWells[0].name == "Well1_sim_0"
+    assert fs_sim.simulatedWells[1].name == "Well2_sim_1"
+
+    # Each well should have MainElement and Environment in both domains
+    for well in fs_sim.simulatedWells:
+        assert well.getAgeLog("MainElement") is not None
+        assert well.getDepthLog("MainElement") is not None
+        assert well.getAgeLog("Environment") is not None
+        assert well.getDepthLog("Environment") is not None
+        # No Facies (no faciesModel in simulation.json)
+        assert well.getAgeLog("Facies") is None
+        assert well.getDepthLog("Facies") is None
