@@ -496,6 +496,92 @@ class AccommodationSpaceWellCalculator:
             self._accommodationStepCurve[i, 2:] = (accoMin, accoMax)
         return self._accommodationStepCurve
 
+    def computeWaterDepthThicknessRatioCurve(
+        self: Self,
+        faciesLogName: str,
+    ) -> UncertaintyCurve:
+        """Compute water depth / thickness ratio curve.
+
+        Uses the deepest interval as the reference for water depth
+        delta computation.
+
+        :param str faciesLogName: name of the sedimentary facies log
+        :raises RuntimeError: if water depth step curve has not been
+            computed yet.
+        :return UncertaintyCurve: ratio curve with min/max values.
+        """
+        if self._waterDepthStepCurve is None:
+            raise RuntimeError(
+                "water depth step curve must be computed before"
+                " computing the WD/thickness ratio. Call"
+                " computeAccommodationCurve() first."
+            )
+        faciesLog: Striplog = cast(
+            Striplog, self._well.getDepthLog(faciesLogName)
+        )
+        if faciesLog is None:
+            raise ValueError(
+                f"The discrete log {faciesLogName} does not"
+                f" exist in the well {self._well.name}."
+            )
+
+        # Reference: deepest interval (last row)
+        bathy0 = self._waterDepthStepCurve[-1]
+
+        # Collect ratio step curve rows: [base_depth, top_depth, min, max]
+        ratio_step: list[tuple[float, float, float, float]] = []
+        interval: Interval
+        for i, interval in enumerate(faciesLog):
+            row = self._waterDepthStepCurve[i]
+            if not np.isfinite(row[2]):
+                continue
+            thickness = abs(interval.top.middle - interval.base.middle)
+            if thickness == 0:
+                continue
+            dbmin = row[2] - bathy0[3]
+            dbmax = row[3] - bathy0[2]
+            ratio_min = dbmin / thickness
+            ratio_max = dbmax / thickness
+            if ratio_min > ratio_max:
+                ratio_min, ratio_max = ratio_max, ratio_min
+            ratio_step.append(
+                (float(row[0]), float(row[1]), ratio_min, ratio_max)
+            )
+
+        if not ratio_step:
+            abscissa = np.array([0.0, self._well.depth])
+            ordinate = np.full_like(abscissa, np.nan)
+            return UncertaintyCurve(
+                "WDThicknessRatio",
+                Curve("Depth", "WDThicknessRatio", abscissa, ordinate),
+            )
+
+        # Build flat arrays: 2 depth samples per interval (base-eps, top+eps)
+        xs: list[float] = []
+        ys_med: list[float] = []
+        ys_min: list[float] = []
+        ys_max: list[float] = []
+        for base_d, top_d, r_min, r_max in ratio_step:
+            med = (r_min + r_max) / 2.0
+            xs.extend([base_d - self._eps, top_d + self._eps])
+            ys_med.extend([med, med])
+            ys_min.extend([r_min, r_min])
+            ys_max.extend([r_max, r_max])
+
+        abscissa = np.array(xs)
+        sort_idx = np.argsort(abscissa)
+        abscissa = abscissa[sort_idx]
+        ys_med_arr = np.array(ys_med)[sort_idx]
+        ys_min_arr = np.array(ys_min)[sort_idx]
+        ys_max_arr = np.array(ys_max)[sort_idx]
+
+        median_curve = Curve("Depth", "WDThicknessRatio", abscissa, ys_med_arr)
+        ratio_curve = UncertaintyCurve("WDThicknessRatio", median_curve)
+        ratio_curve.setMinCurveValues(ys_min_arr)
+        ratio_curve.setMaxCurveValues(ys_max_arr)
+
+        return ratio_curve
+
     def _convertIntervalCurve2UncertaintyCurve(
         self: Self,
         stepCurve: npt.NDArray[np.float64],
