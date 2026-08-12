@@ -1,0 +1,78 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/WellSchema.json",
+    "format": "pyWellSFM.WellData",
+    "version": "1.0",
+    "well": {
+        "name": "Well1",
+        "location": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "depth": 100.0,
+        "wellPath": [
+            {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 120.0
+            }
+        ],
+        "striplogs": [
+            {
+                "name": "lithology",
+                "intervals": [
+                    {
+                        "top": 0.0,
+                        "base": 2.0,
+                        "lithology": "sandstone"
+                    },
+                    {
+                        "top": 2.0,
+                        "base": 10.0,
+                        "lithology": "siltstone"
+                    },
+                    {
+                        "top": 10.0,
+                        "base": 15.0,
+                        "lithology": "sandstone"
+                    },
+                    {
+                        "top": 15.0,
+                        "base": 30.0,
+                        "lithology": "shale"
+                    },
+                    {
+                        "top": 30.0,
+                        "base": 50.0,
+                        "lithology": "siltstone"
+                    },
+                    {
+                        "top": 50.0,
+                        "base": 55.0,
+                        "lithology": "sandstone"
+                    },
+                    {
+                        "top": 55.0,
+                        "base": 65.0,
+                        "lithology": "shale"
+                    },
+                    {
+                        "top": 65.0,
+                        "base": 75.0,
+                        "lithology": "siltstone"
+                    },
+                    {
+                        "top": 75.0,
+                        "base": 80.0,
+                        "lithology": "sandstone"
+                    }
+                ]
+            }
+        ]
+    }
+}

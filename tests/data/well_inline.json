@@ -1,0 +1,87 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/WellSchema.json",
+    "format": "pyWellSFM.WellData",
+    "version": "1.0",
+    "well": {
+        "name": "Well-B",
+        "location": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "depth": 100.0,
+        "wellPath": [
+            {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 100.0
+            }
+        ],
+        "markers": [
+            {
+                "name": "M1",
+                "depth": 10.0,
+                "age": 5.0,
+                "stratigraphicType": "Baselap"
+            }
+        ],
+        "striplogs": [
+            {
+                "name": "lithology",
+                "intervals": [
+                    {
+                        "top": 0.0,
+                        "base": 15.0,
+                        "lithology": "sandstone"
+                    },
+                    {
+                        "top": 15.0,
+                        "base": 30.0,
+                        "lithology": "shale"
+                    }
+                ]
+            }
+        ],
+        "continuousLogs": [
+            {
+                "format": "pyWellSFM.CurveData",
+                "version": "1.0",
+                "curve": {
+                    "xAxisName": "Depth",
+                    "yAxisName": "GR",
+                    "interpolationMethod": "linear",
+                    "data": [
+                        {"x": 0.0, "y": 100.0},
+                        {"x": 20.0, "y": 150.0},
+                        {"x": 40.0, "y": 250.0},
+                        {"x": 60.0, "y": 240.0},
+                        {"x": 80.0, "y": 200.0},
+                        {"x": 100.0, "y": 160.0}
+                    ]
+                }
+            },
+            {
+                "format": "pyWellSFM.CurveData",
+                "version": "1.0",
+                "curve": {
+                    "xAxisName": "Depth",
+                    "yAxisName": "Density",
+                    "interpolationMethod": "linear",
+                    "data": [
+                        {"x": 0.0, "y": 2.6},
+                        {"x": 20.0, "y": 2.5},
+                        {"x": 40.0, "y": 1.9},
+                        {"x": 60.0, "y": 2.0},
+                        {"x": 80.0, "y": 2.3},
+                        {"x": 100.0, "y": 2.4}
+                    ]
+                }
+            }
+        ]
+    }
+}
