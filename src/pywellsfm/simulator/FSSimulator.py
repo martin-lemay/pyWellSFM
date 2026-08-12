@@ -6,17 +6,20 @@ from typing import Optional, Self
 import numpy as np
 import numpy.typing as npt
 import xarray as xr
+from striplog import Component, Interval, Striplog
 
 from pywellsfm.model.DepositionalEnvironment import DepositionalEnvironment
 from pywellsfm.model.EnvironmentConditionModel import (
     EnvironmentConditionModelUniform,
 )
+from pywellsfm.model.Facies import Facies, FaciesModel
 from pywellsfm.model.FSSimulationParameters import (
     FSSimulatorParameters,
     RealizationData,
     Scenario,
 )
-from pywellsfm.model.Marker import Marker
+from pywellsfm.model.Marker import Marker, StratigraphicSurfaceType
+from pywellsfm.model.Well import Well
 from pywellsfm.utils import get_logger
 
 from .AccommodationSimulator import AccommodationSimulator
@@ -127,6 +130,7 @@ class FSSimulator:
         self.initial_waterDepths: Optional[npt.NDArray[np.float64]] = None
 
         self.outputs: Optional[xr.Dataset] = None
+        self.simulatedWells: list[Well] = []
 
         self._ready: bool = False
 
@@ -669,11 +673,141 @@ class FSSimulator:
         return env_conds
 
     def finalize(self: Self) -> None:
-        """Finalize the FS simulator after running."""
+        """Finalize the FS simulator after running.
+
+        Builds the ensemble xarray Dataset and creates simulated wells
+        for each realization with lithology logs in both time and depth
+        domains.
+        """
         # create output xarray Dataset
         self.outputs = self._buildEnsembleDataset()
 
-        # TODO: create simulated wells
+        # create simulated wells
+        self.simulatedWells = [
+            self._buildSimulatedWell(r) for r in range(self.n_real)
+        ]
+
+    def _buildSimulatedWell(self: Self, r: int) -> Well:
+        """Build a simulated well for a given realization.
+
+        Creates a shallow copy of the original well and adds lithology
+        Striplogs in both age and depth domains. Always produces a
+        "MainElement" log (dominant element). If a FaciesModel is defined
+        in the scenario, also produces a "Facies" log.
+
+        :param int r: realization index.
+        :return Well: simulated well with lithology logs.
+        """
+        source_well = self.realizationDataList[r].well
+        well = source_well.shallowCopy(
+            f"{source_well.name}_sim_{r}",
+            copyMarkers=True,
+            copyLogs=False,
+        )
+
+        n_steps = len(self.times) - 1
+        faciesModel = self.scenario.faciesModel
+
+        # Build per-step classification data
+        age_intervals_main: list[tuple[float, float, str]] = []
+        age_intervals_facies: list[tuple[float, float, str]] = []
+        age_intervals_env: list[tuple[float, float, str]] = []
+        depth_intervals_main: list[tuple[float, float, str]] = []
+        depth_intervals_facies: list[tuple[float, float, str]] = []
+        depth_intervals_env: list[tuple[float, float, str]] = []
+
+        # Depth stacking: start from oldest marker depth, go upward
+        current_depth = source_well.oldestMarker.depth
+
+        # Hiatus detection state
+        in_hiatus = False
+        hiatus_start_age = 0.0
+        hiatus_depth = 0.0
+        hiatus_markers: list[Marker] = []
+
+        for t in range(n_steps):
+            element_rates = self.depo_rate_elements[t][r]
+            thickness = float(self.thickness_steps[t][r])
+
+            # Classify MainElement
+            main_label = self._classifyMainElement(element_rates)
+
+            # Environment name for this step
+            env_label = str(self.environments[t][r])
+
+            # Age interval: top = younger age, base = older age
+            age_top = self.times[t + 1]
+            age_base = self.times[t]
+            age_intervals_main.append((age_top, age_base, main_label))
+            age_intervals_env.append((age_top, age_base, env_label))
+
+            # Depth interval: stack upward from base
+            depth_base = current_depth
+            depth_top = current_depth - thickness
+            depth_intervals_main.append((depth_top, depth_base, main_label))
+            depth_intervals_env.append((depth_top, depth_base, env_label))
+
+            # Classify Facies if model is available
+            if faciesModel is not None:
+                total_rate = sum(element_rates.values())
+                properties: dict[str, float] = {}
+                if total_rate > 0.0:
+                    for name, rate in element_rates.items():
+                        properties[name] = rate / total_rate
+                properties["waterDepth"] = float(self.waterDepths[t][r])
+                facies_label = self._classifyFacies(faciesModel, properties)
+                age_intervals_facies.append((age_top, age_base, facies_label))
+                depth_intervals_facies.append(
+                    (depth_top, depth_base, facies_label)
+                )
+
+            # Detect hiatus onset/end
+            total_rate = float(self.depo_rate_totals[t][r])
+            if total_rate <= 0.0 and not in_hiatus:
+                in_hiatus = True
+                hiatus_start_age = self.times[t]
+                hiatus_depth = current_depth
+            elif total_rate > 0.0 and in_hiatus:
+                duration = hiatus_start_age - self.times[t]
+                hiatus_markers.append(
+                    Marker(
+                        name=f"Hiatus_{duration:.4g}",
+                        depth=hiatus_depth,
+                        age=hiatus_start_age,
+                        stratigraphicType=StratigraphicSurfaceType.EROSIVE,
+                    )
+                )
+                in_hiatus = False
+
+            current_depth = depth_top
+
+        # Handle hiatus extending to end of simulation
+        if in_hiatus:
+            duration = hiatus_start_age - self.times[-1]
+            hiatus_markers.append(
+                Marker(
+                    name=f"Hiatus_{duration:.4g}",
+                    depth=hiatus_depth,
+                    age=hiatus_start_age,
+                    stratigraphicType=StratigraphicSurfaceType.EROSIVE,
+                )
+            )
+
+        # Build and add Striplogs
+        well.addAgeLog("MainElement", self._buildStriplog(age_intervals_main))
+        well.addLog("MainElement", self._buildStriplog(depth_intervals_main))
+        well.addAgeLog("Environment", self._buildStriplog(age_intervals_env))
+        well.addLog("Environment", self._buildStriplog(depth_intervals_env))
+
+        if faciesModel is not None:
+            well.addAgeLog("Facies", self._buildStriplog(age_intervals_facies))
+            well.addLog("Facies", self._buildStriplog(depth_intervals_facies))
+
+        # Add hiatus markers to well
+        if hiatus_markers:
+            well.addMarkers(hiatus_markers)
+
+        return well
 
     def _buildEnsembleDataset(self: Self) -> xr.Dataset:
         """Build the ensemble dataset after running all realizations.
@@ -801,3 +935,98 @@ class FSSimulator:
             time step.
         """
         return delta_seaLevel + delta_subs - thickness_step
+
+    @staticmethod
+    def _buildStriplog(
+        intervals: list[tuple[float, float, str]],
+    ) -> Striplog:
+        """Build a Striplog from raw intervals, merging adjacent same labels.
+
+        :param list[tuple[float, float, str]] intervals: list of
+            (top, base, label) tuples. Units are caller-defined
+            (meters for depth, Myr for age).
+        :return Striplog: merged Striplog object.
+        """
+        if not intervals:
+            raise ValueError("intervals must not be empty")
+
+        # Merge adjacent intervals with identical labels.
+        # Supports both ascending-top and descending-top orderings.
+        merged: list[tuple[float, float, str]] = [intervals[0]]
+        for top, base, label in intervals[1:]:
+            prev_top, prev_base, prev_label = merged[-1]
+            if label == prev_label:
+                merged[-1] = (
+                    min(top, prev_top),
+                    max(base, prev_base),
+                    label,
+                )
+            else:
+                merged.append((top, base, label))
+
+        return Striplog(
+            [
+                Interval(
+                    top,
+                    base,
+                    components=[Component({"lithology": label})],
+                )
+                for top, base, label in merged
+            ]
+        )
+
+    @staticmethod
+    def _classifyMainElement(element_rates: dict[str, float]) -> str:
+        """Return the element name with the highest accumulation rate.
+
+        :param dict[str, float] element_rates: element accumulation rates.
+        :return str: name of the dominant element, or "Unclassified" if all
+            rates are zero or the dict is empty.
+        """
+        if not element_rates:
+            return "Unclassified"
+        max_rate = max(element_rates.values())
+        if max_rate <= 0.0:
+            return "Unclassified"
+        return max(element_rates, key=element_rates.get)  # type: ignore[arg-type]
+
+    @staticmethod
+    def _classifyFacies(
+        faciesModel: FaciesModel, properties: dict[str, float]
+    ) -> str:
+        """Classify a step into a facies based on property values.
+
+        For each facies in the model, checks whether ALL criteria are
+        satisfied (property value within [minRange, maxRange]). If
+        multiple facies match, selects the most specific one (smallest
+        total range width) and logs a warning.
+
+        :param FaciesModel faciesModel: facies model containing the facies
+            to classify against.
+        :param dict[str, float] properties: property values for the step
+            (element proportions, waterDepth, etc.).
+        :return str: name of the matching facies, or "Unclassified".
+        """
+        matches: list[Facies] = []
+        for facies in faciesModel.faciesSet:
+            all_match = True
+            for crit in facies.criteriaCollection.criteria:
+                value = properties.get(crit.name)
+                if value is None or not (
+                    crit.minRange <= value <= crit.maxRange
+                ):
+                    all_match = False
+                    break
+            if all_match:
+                matches.append(facies)
+
+        if not matches:
+            return "Unclassified"
+        if len(matches) == 1:
+            return matches[0].name
+
+        logger.warning(
+            "Multiple facies match: %s. Picking the most specific.",
+            [f.name for f in matches],
+        )
+        return min(matches, key=lambda f: f.specificityScore()).name
