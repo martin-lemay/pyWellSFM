@@ -45,10 +45,14 @@ release = u'0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx_design', 'sphinx.ext.todo', 'sphinx.ext.autodoc', 'sphinx.ext.doctest', 
-    'sphinx.ext.mathjax', 'sphinxarg.ext', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 
-    'sphinxcontrib.programoutput'
+    'sphinx_design', 'sphinx.ext.todo', 'sphinx.ext.autodoc', 'sphinx.ext.doctest',
+    'sphinx.ext.mathjax', 'sphinxarg.ext', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary',
+    'sphinxcontrib.programoutput', 'sphinx.ext.intersphinx'
 ]
+
+intersphinx_mapping = {
+    'pywellsfmui': ('https://pywellsfmui.readthedocs.io/en/latest/', None),
+}
 
 #autodoc_mock_imports = [ ]
 autoclass_content = 'both'
