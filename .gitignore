@@ -204,6 +204,7 @@ cython_debug/
 # Claude
 CLAUDE.md
 .claude/
+.superpowers/
 
 # Marimo
 marimo/_static/
