@@ -37,6 +37,15 @@ from .logging_utils import (
     get_stored_logs,
     set_log_level,
 )
+from .plot import (
+    DEFAULT_LITHO_COLORS,
+    plot_accommodation,
+    plot_litho_log,
+    plot_water_depth,
+    plot_wd_thickness_ratio,
+    plot_well_analysis,
+    plot_well_comparison,
+)
 
 __all__ = [
     "center_distance",
@@ -64,4 +73,11 @@ __all__ = [
     "WARNING",
     "INFO",
     "DEBUG",
+    "DEFAULT_LITHO_COLORS",
+    "plot_accommodation",
+    "plot_litho_log",
+    "plot_water_depth",
+    "plot_wd_thickness_ratio",
+    "plot_well_analysis",
+    "plot_well_comparison",
 ]
