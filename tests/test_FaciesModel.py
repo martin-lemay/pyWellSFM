@@ -426,22 +426,20 @@ def test_FaciesCriteriaCollection_getters_and_clear_methods() -> None:
 # ------------------------------
 
 
-def test_Facies_init_requiresAtLeast1Criteria_when_collection_provided() -> (
-    None
-):
-    """Test Facies __init__ rejects empty collections for criteria parameter.
+def test_Facies_init_accepts_empty_criteria_set() -> None:
+    """Test Facies __init__ accepts an empty criteria set.
 
     Objective:
-    - Ensure Facies rejects empty collections (set/list/tuple).
+    - Ensure Facies can be created with no criteria.
 
     Input data:
     - criteria=set()
 
     Expected outputs:
-    - ValueError.
+    - Facies with 0 criteria.
     """
-    with pytest.raises(ValueError):
-        Facies(name="Test", criteria=set())
+    f = Facies(name="Test", criteria=set())
+    assert f.getCriteriaCount() == 0
 
 
 def test_Facies_init_accepts_single_FaciesCriteria() -> None:
@@ -844,10 +842,12 @@ def test_loadFaciesModel_rejects_invalid_criteria_list_and_items(
         "version": "1.0",
         "faciesModel": [{"name": "A", "criteria": []}],
     }
-    with pytest.raises(ValueError, match="criteria must be a non-empty list"):
-        path = _write_json(tmp_path, payload_empty_list, filename="bad3.json")
-        loadFaciesModel(path)
-        _delete_temp_file(path)
+    path = _write_json(tmp_path, payload_empty_list, filename="ok_empty.json")
+    model = loadFaciesModel(path)
+    _delete_temp_file(path)
+    facies = model.getFaciesByName("A")
+    assert facies is not None
+    assert facies.getCriteriaCount() == 0
 
     payload_crit_not_object = {
         "format": "pyWellSFM.FaciesModelData",
