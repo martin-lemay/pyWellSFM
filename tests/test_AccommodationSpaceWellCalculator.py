@@ -856,6 +856,89 @@ def test_compute_accommodation_curve0_uses_cached_step_curve() -> None:
     assert len(calc.accommodationChangeCurve.getAbscissa()) > 0
 
 
+def test_computeWaterDepthThicknessRatioCurve() -> None:
+    """Test WD/thickness ratio curve computation."""
+    simpleLithoLog = """top,base,comp lithology
+0.0,15.0,sandstone
+15.0,30.0,siltstone
+30.0,55.0,shale
+"""
+    wellCoords = np.array((0.0, 0.0, 0.0))
+    depth = 100.0
+    well = Well("TestWell", wellCoords, depth)
+    lithoLog = Striplog.from_csv(text=simpleLithoLog)
+    well.addLog("lithology", lithoLog)
+
+    sandFac = SedimentaryFacies(
+        "sandstone",
+        {
+            FaciesCriteria(
+                "WaterDepth",
+                0.0,
+                5.0,
+                FaciesCriteriaType.SEDIMENTOLOGICAL,
+            )
+        },
+    )
+    siltFac = SedimentaryFacies(
+        "siltstone",
+        {
+            FaciesCriteria(
+                "WaterDepth",
+                5.0,
+                30.0,
+                FaciesCriteriaType.SEDIMENTOLOGICAL,
+            )
+        },
+    )
+    shaleFac = SedimentaryFacies(
+        "shale",
+        {
+            FaciesCriteria(
+                "WaterDepth",
+                20.0,
+                50.0,
+                FaciesCriteriaType.SEDIMENTOLOGICAL,
+            )
+        },
+    )
+
+    calc = AccommodationSpaceWellCalculator(well, [sandFac, siltFac, shaleFac])
+    calc.computeAccommodationCurve("lithology")
+    ratio = calc.computeWaterDepthThicknessRatioCurve("lithology")
+
+    assert isinstance(ratio, UncertaintyCurve)
+    # 2 points per interval (base-eps, top+eps) = 6 points
+    assert len(ratio.getAbscissa()) == 6
+    # Min and max values should be finite
+    assert np.all(np.isfinite(ratio.getMinValues()))
+    assert np.all(np.isfinite(ratio.getMaxValues()))
+
+
+def test_computeWaterDepthThicknessRatioCurve_raises_without_wd() -> None:
+    """Test that ratio curve raises if WD not computed."""
+    wellCoords = np.array((0.0, 0.0, 0.0))
+    well = Well("TestWell", wellCoords, 100.0)
+    lithoLog = Striplog.from_csv(
+        text="top,base,comp lithology\n0.0,50.0,sandstone\n"
+    )
+    well.addLog("lithology", lithoLog)
+    sandFac = SedimentaryFacies(
+        "sandstone",
+        {
+            FaciesCriteria(
+                "WaterDepth",
+                0.0,
+                5.0,
+                FaciesCriteriaType.SEDIMENTOLOGICAL,
+            )
+        },
+    )
+    calc = AccommodationSpaceWellCalculator(well, [sandFac])
+    with pytest.raises(RuntimeError, match="water depth"):
+        calc.computeWaterDepthThicknessRatioCurve("lithology")
+
+
 def array_equal(array1: np.ndarray, array2: np.ndarray, tol: float) -> bool:
     """Helper to compare arrays.
 
