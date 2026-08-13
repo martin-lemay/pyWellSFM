@@ -280,10 +280,6 @@ class Facies:
             the facies. Default is UNCATEGORIZED that means that any criteria
             type can be used.
         """
-        if isinstance(criteria, (set, list, tuple)) and len(criteria) == 0:
-            raise ValueError(
-                f"At least one criteria must be defined for the facies {name}"
-            )
         self.name: str = name
         self.criteriaCollection: FaciesCriteriaCollection = (
             FaciesCriteriaCollection(criteriaType)
@@ -314,6 +310,18 @@ class Facies:
             if not found
         """
         return self.criteriaCollection.getCriteriaByName(criteriaName)
+
+    def specificityScore(self: Self) -> float:
+        """Compute specificity score as total range width across criteria.
+
+        Lower score means more specific (narrower criteria ranges).
+
+        :return float: sum of (maxRange - minRange) for all criteria.
+            Infinite ranges contribute infinity.
+        """
+        return sum(
+            c.maxRange - c.minRange for c in self.criteriaCollection.criteria
+        )
 
 
 class PetrophysicalFacies(Facies):

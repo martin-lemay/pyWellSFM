@@ -77,10 +77,8 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
             ) from exc
 
         criteria_list = facies_def.get("criteria")
-        if not isinstance(criteria_list, list) or len(criteria_list) < 1:
-            raise ValueError(
-                f"faciesModel[{idx}].criteria must be a non-empty list."
-            )
+        if not isinstance(criteria_list, list):
+            raise ValueError(f"faciesModel[{idx}].criteria must be a list.")
 
         criteria_set: set[FaciesCriteria] = set()
         for jdx, crit_def in enumerate(criteria_list):
@@ -227,12 +225,6 @@ def faciesModelToJsonObj(faciesModel: FaciesModel) -> dict[str, Any]:
                 crit_obj["maxRange"] = float(crit.maxRange)
 
             facies_obj["criteria"].append(crit_obj)
-
-        if len(facies_obj["criteria"]) == 0:
-            raise ValueError(
-                f"At least one criteria must be defined for the "
-                f"facies '{facies.name}'"
-            )
 
         payload["faciesModel"].append(facies_obj)
 

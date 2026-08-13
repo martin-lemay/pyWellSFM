@@ -1,0 +1,40 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FaciesModelSchema.json",
+    "format": "pyWellSFM.FaciesModelData",
+    "version": "1.0",
+    "faciesModel": [
+        {
+            "name": "sandstone",
+            "criteriaType": "sedimentological",
+            "criteria": [
+                {
+                    "name": "WaterDepth",
+                    "minRange": 0.0,
+                    "maxRange": 5.0
+                }
+            ]
+        },
+        {
+            "name": "siltstone",
+            "criteriaType": "sedimentological",
+            "criteria": [
+                {
+                    "name": "WaterDepth",
+                    "minRange": 5.0,
+                    "maxRange": 30.0
+                }
+            ]
+        },
+        {
+            "name": "shale",
+            "criteriaType": "sedimentological",
+            "criteria": [
+                {
+                    "name": "WaterDepth",
+                    "minRange": 20.0,
+                    "maxRange": 50.0
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,918 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FSSimulationDataSchema.json",
+  "format": "pyWellSFM.FSSimulationData",
+  "version": "1.0",
+  "name": "CarbonatePlatformSimulation",
+  "scenario": {
+    "format": "pyWellSFM.ScenarioData",
+    "version": "1.0",
+    "name": "CarbonateProtectedRamp",
+    "accumulationModel": {
+      "format": "pyWellSFM.AccumulationModelData",
+      "version": "1.0",
+      "accumulationModel": {
+        "name": "CarbonateAccumulationModel",
+        "elements": {
+          "Miliolid": {
+            "accumulationRate": 1.0,
+            "model": {
+              "modelType": "EnvironmentOptimum",
+              "accumulationCurves": [
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "WaterDepth",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.0},
+                      {"x": 0.001, "y": 1.0},
+                      {"x": 5.0, "y": 1.0},
+                      {"x": 10.0, "y": 0.0},
+                      {"x": 20.0, "y": 0.0},
+                      {"x": 30.0, "y": 0.0},
+                      {"x": 50.0, "y": 0.0},
+                      {"x": 80.0, "y": 0.0}
+                    ]
+                  }
+                },
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "Energy",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 1.0},
+                      {"x": 0.5, "y": 0.0},
+                      {"x": 1.0, "y": 0.0}
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "Rudist": {
+            "accumulationRate": 2.0,
+            "model": {
+              "modelType": "EnvironmentOptimum",
+              "accumulationCurves": [
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "WaterDepth",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.0},
+                      {"x": 0.001, "y": 0.0},
+                      {"x": 5.0, "y": 0.2},
+                      {"x": 10.0, "y": 1.0},
+                      {"x": 20.0, "y": 0.0},
+                      {"x": 30.0, "y": 0.0},
+                      {"x": 50.0, "y": 0.0},
+                      {"x": 80.0, "y": 0.0}
+                    ]
+                  }
+                },
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "Energy",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.0},
+                      {"x": 0.5, "y": 1.0},
+                      {"x": 1.0, "y": 0.0}
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "Corals": {
+            "accumulationRate": 5.0,
+            "model": {
+              "modelType": "EnvironmentOptimum",
+              "accumulationCurves": [
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "WaterDepth",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.0},
+                      {"x": 0.001, "y": 1.0},
+                      {"x": 5.0, "y": 1.0},
+                      {"x": 10.0, "y": 0.0},
+                      {"x": 20.0, "y": 0.0},
+                      {"x": 30.0, "y": 0.0},
+                      {"x": 50.0, "y": 0.0},
+                      {"x": 80.0, "y": 0.0}
+                    ]
+                  }
+                },
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "Energy",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.0},
+                      {"x": 0.5, "y": 0.0},
+                      {"x": 1.0, "y": 1.0}
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "Ooid": {
+            "accumulationRate": 1.5,
+            "model": {
+              "modelType": "EnvironmentOptimum",
+              "accumulationCurves": [
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "WaterDepth",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.0},
+                      {"x": 0.001, "y": 0.0},
+                      {"x": 5.0, "y": 0.0},
+                      {"x": 10.0, "y": 0.0},
+                      {"x": 20.0, "y": 1.0},
+                      {"x": 30.0, "y": 0.5},
+                      {"x": 50.0, "y": 0.0},
+                      {"x": 80.0, "y": 0.0}
+                    ]
+                  }
+                },
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "Energy",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.5},
+                      {"x": 0.5, "y": 1.0},
+                      {"x": 1.0, "y": 0.0}
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "Bioclast": {
+            "accumulationRate": 1.0,
+            "model": {
+              "modelType": "EnvironmentOptimum",
+              "accumulationCurves": [
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "WaterDepth",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.0},
+                      {"x": 0.001, "y": 0.0},
+                      {"x": 5.0, "y": 0.0},
+                      {"x": 10.0, "y": 0.0},
+                      {"x": 20.0, "y": 0.0},
+                      {"x": 30.0, "y": 0.7},
+                      {"x": 50.0, "y": 1.0},
+                      {"x": 80.0, "y": 0.0}
+                    ]
+                  }
+                },
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "Energy",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 1.0},
+                      {"x": 0.5, "y": 1.0},
+                      {"x": 1.0, "y": 0.0}
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "BasinalMud": {
+            "accumulationRate": 0.5,
+            "model": {
+              "modelType": "EnvironmentOptimum",
+              "accumulationCurves": [
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "WaterDepth",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 0.0},
+                      {"x": 0.001, "y": 0.0},
+                      {"x": 5.0, "y": 0.0},
+                      {"x": 10.0, "y": 0.0},
+                      {"x": 20.0, "y": 0.0},
+                      {"x": 30.0, "y": 0.0},
+                      {"x": 50.0, "y": 0.0},
+                      {"x": 80.0, "y": 1.0}
+                    ]
+                  }
+                },
+                {
+                  "format": "pyWellSFM.CurveData",
+                  "version": "1.0",
+                  "curve": {
+                    "xAxisName": "Energy",
+                    "yAxisName": "ReductionCoefficient",
+                    "interpolationMethod": "linear",
+                    "data": [
+                      {"x": 0.0, "y": 1.0},
+                      {"x": 0.5, "y": 0.0},
+                      {"x": 1.0, "y": 0.0}
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "depositionalEnvironmentModel": {
+      "format": "pyWellSFM.DepositionalEnvironmentModelSchema",
+      "version": "1.0",
+      "name": "CarbonateProtectedRamp",
+      "environments": [
+        {
+          "name": "Continent",
+          "description": "Terrestrial environment, above tidal limit.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": -10000.0,
+              "maxValue": -2.0
+            }
+          },
+          "distality": -2.0
+        },
+        {
+          "name": "SupraTidal",
+          "description": "Supratidal zone with possible evaporite precipitation.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": -2.0,
+              "maxValue": 0.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "salinity": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.5,
+                  "maxValue": 1.0
+                }
+              }
+            }
+          },
+          "distality": -1.0
+        },
+        {
+          "name": "Shore",
+          "description": "Shoreline zone with moderate energy.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 0.0,
+              "maxValue": 2.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.1,
+                  "maxValue": 0.5
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 20.0,
+                  "maxValue": 30.0
+                }
+              }
+            }
+          },
+          "distality": 0.0
+        },
+        {
+          "name": "Lagoon",
+          "description": "Protected lagoon, low energy, shallow water.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 2.0,
+              "maxValue": 10.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.0,
+                  "maxValue": 0.1
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 20.0,
+                  "maxValue": 30.0
+                }
+              }
+            }
+          },
+          "distality": 0.01
+        },
+        {
+          "name": "Buildup",
+          "description": "Patch reefs and buildups within the lagoon.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 0.0,
+              "maxValue": 10.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.0,
+                  "maxValue": 0.5
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 25.0,
+                  "maxValue": 30.0
+                }
+              }
+            }
+          },
+          "distality": 0.01
+        },
+        {
+          "name": "BackReef",
+          "description": "Back-reef zone, low to moderate energy.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 1.0,
+              "maxValue": 2.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.1,
+                  "maxValue": 0.2
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 20.0,
+                  "maxValue": 30.0
+                }
+              }
+            }
+          },
+          "distality": 0.4
+        },
+        {
+          "name": "ReefCrest",
+          "description": "Reef crest, high energy wave-breaking zone.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 0.0,
+              "maxValue": 1.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.7,
+                  "maxValue": 1.0
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 20.0,
+                  "maxValue": 30.0
+                }
+              }
+            }
+          },
+          "distality": 0.5
+        },
+        {
+          "name": "ForeReef",
+          "description": "Fore-reef slope, moderate energy.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 1.0,
+              "maxValue": 20.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.2,
+                  "maxValue": 0.7
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 15.0,
+                  "maxValue": 20.0
+                }
+              }
+            }
+          },
+          "distality": 0.6
+        },
+        {
+          "name": "OuterRamp",
+          "description": "Outer ramp, low energy, below fairweather wave base.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 20.0,
+              "maxValue": 50.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.0,
+                  "maxValue": 0.2
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 10.0,
+                  "maxValue": 15.0
+                }
+              }
+            }
+          },
+          "distality": 2.0
+        },
+        {
+          "name": "ShelfSlope",
+          "description": "Continental shelf slope, no energy.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 200.0,
+              "maxValue": 1000.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.0,
+                  "maxValue": 0.0
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 4.0,
+                  "maxValue": 10.0
+                }
+              }
+            }
+          },
+          "distality": 100.0
+        },
+        {
+          "name": "Basin",
+          "description": "Deep basin, minimal sedimentation.",
+          "waterDepthModel": {
+            "format": "pyWellSFM.EnvironmentConditionModelData",
+            "version": "1.0",
+            "model": {
+              "modelType": "Uniform",
+              "minValue": 1000.0,
+              "maxValue": 10000.0
+            }
+          },
+          "environmentConditionsModel": {
+            "format": "pyWellSFM.EnvironmentConditionsModelData",
+            "version": "1.0",
+            "environmentConditions": {
+              "energy": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 0.0,
+                  "maxValue": 0.0
+                }
+              },
+              "temperature": {
+                "format": "pyWellSFM.EnvironmentConditionModelData",
+                "version": "1.0",
+                "model": {
+                  "modelType": "Uniform",
+                  "minValue": 4.0,
+                  "maxValue": 6.0
+                }
+              }
+            }
+          },
+          "distality": 200.0
+        }
+      ]
+    },
+    "eustaticCurve": {
+      "format": "pyWellSFM.CurveData",
+      "version": "1.0",
+      "curve": {
+        "xAxisName": "Age",
+        "yAxisName": "Eustatism",
+        "interpolationMethod": "linear",
+        "data": [
+          {"x": 0.0, "y": 10.0},
+          {"x": 2.0, "y": 15.0},
+          {"x": 4.0, "y": 5.0},
+          {"x": 6.0, "y": 18.0},
+          {"x": 8.0, "y": 8.0},
+          {"x": 10.0, "y": 22.0},
+          {"x": 12.0, "y": 12.0},
+          {"x": 14.0, "y": 25.0},
+          {"x": 16.0, "y": 10.0},
+          {"x": 18.0, "y": 20.0},
+          {"x": 20.0, "y": 5.0},
+          {"x": 22.0, "y": 15.0},
+          {"x": 24.0, "y": -5.0},
+          {"x": 26.0, "y": 10.0},
+          {"x": 28.0, "y": -10.0},
+          {"x": 30.0, "y": 0.0}
+        ]
+      }
+    }
+  },
+  "realizations": [
+    {
+      "format": "pyWellSFM.RealizationData",
+      "version": "1.0",
+      "well": {
+        "format": "pyWellSFM.WellData",
+        "version": "1.0",
+        "well": {
+          "name": "Lagoon_Well",
+          "location": {"x": 0.0, "y": 0.0, "z": 0.0},
+          "depth": 100.0,
+          "markers": [
+            {"name": "Base", "depth": 80.0, "age": 30.0, "stratigraphicType": "Conform"},
+            {"name": "Top", "depth": 30.0, "age": 10.0, "stratigraphicType": "Conform"}
+          ]
+        }
+      },
+      "initialBathymetry": 5.0,
+      "initialEnvironment": "Lagoon",
+      "subsidenceCurve": {
+        "type": "cumulative",
+        "curve": {
+          "format": "pyWellSFM.CurveData",
+          "version": "1.0",
+          "curve": {
+            "xAxisName": "Age",
+            "yAxisName": "Subsidence",
+            "interpolationMethod": "linear",
+            "data": [
+              {"x": 0.0, "y": 15.0},
+              {"x": 5.0, "y": 14.0},
+              {"x": 10.0, "y": 12.0},
+              {"x": 15.0, "y": 9.0},
+              {"x": 20.0, "y": 6.0},
+              {"x": 25.0, "y": 3.0},
+              {"x": 30.0, "y": 0.0}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "format": "pyWellSFM.RealizationData",
+      "version": "1.0",
+      "well": {
+        "format": "pyWellSFM.WellData",
+        "version": "1.0",
+        "well": {
+          "name": "Buildup_Well",
+          "location": {"x": 1.0, "y": 0.0, "z": 0.0},
+          "depth": 100.0,
+          "markers": [
+            {"name": "Base", "depth": 80.0, "age": 30.0, "stratigraphicType": "Conform"},
+            {"name": "Top", "depth": 30.0, "age": 10.0, "stratigraphicType": "Conform"}
+          ]
+        }
+      },
+      "initialBathymetry": 1.0,
+      "initialEnvironment": "Buildup",
+      "subsidenceCurve": {
+        "type": "cumulative",
+        "curve": {
+          "format": "pyWellSFM.CurveData",
+          "version": "1.0",
+          "curve": {
+            "xAxisName": "Age",
+            "yAxisName": "Subsidence",
+            "interpolationMethod": "linear",
+            "data": [
+              {"x": 0.0, "y": 15.0},
+              {"x": 5.0, "y": 14.0},
+              {"x": 10.0, "y": 12.0},
+              {"x": 15.0, "y": 9.0},
+              {"x": 20.0, "y": 6.0},
+              {"x": 25.0, "y": 3.0},
+              {"x": 30.0, "y": 0.0}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "format": "pyWellSFM.RealizationData",
+      "version": "1.0",
+      "well": {
+        "format": "pyWellSFM.WellData",
+        "version": "1.0",
+        "well": {
+          "name": "ForeReef_Well",
+          "location": {"x": 2.0, "y": 0.0, "z": 0.0},
+          "depth": 100.0,
+          "markers": [
+            {"name": "Base", "depth": 80.0, "age": 30.0, "stratigraphicType": "Conform"},
+            {"name": "Top", "depth": 30.0, "age": 10.0, "stratigraphicType": "Conform"}
+          ]
+        }
+      },
+      "initialBathymetry": 10.0,
+      "initialEnvironment": "ForeReef",
+      "subsidenceCurve": {
+        "type": "cumulative",
+        "curve": {
+          "format": "pyWellSFM.CurveData",
+          "version": "1.0",
+          "curve": {
+            "xAxisName": "Age",
+            "yAxisName": "Subsidence",
+            "interpolationMethod": "linear",
+            "data": [
+              {"x": 0.0, "y": 15.0},
+              {"x": 5.0, "y": 14.0},
+              {"x": 10.0, "y": 12.0},
+              {"x": 15.0, "y": 9.0},
+              {"x": 20.0, "y": 6.0},
+              {"x": 25.0, "y": 3.0},
+              {"x": 30.0, "y": 0.0}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "format": "pyWellSFM.RealizationData",
+      "version": "1.0",
+      "well": {
+        "format": "pyWellSFM.WellData",
+        "version": "1.0",
+        "well": {
+          "name": "OuterRamp_Well",
+          "location": {"x": 3.0, "y": 0.0, "z": 0.0},
+          "depth": 100.0,
+          "markers": [
+            {"name": "Base", "depth": 80.0, "age": 30.0, "stratigraphicType": "Conform"},
+            {"name": "Top", "depth": 30.0, "age": 10.0, "stratigraphicType": "Conform"}
+          ]
+        }
+      },
+      "initialBathymetry": 30.0,
+      "initialEnvironment": "OuterRamp",
+      "subsidenceCurve": {
+        "type": "cumulative",
+        "curve": {
+          "format": "pyWellSFM.CurveData",
+          "version": "1.0",
+          "curve": {
+            "xAxisName": "Age",
+            "yAxisName": "Subsidence",
+            "interpolationMethod": "linear",
+            "data": [
+              {"x": 0.0, "y": 15.0},
+              {"x": 5.0, "y": 14.0},
+              {"x": 10.0, "y": 12.0},
+              {"x": 15.0, "y": 9.0},
+              {"x": 20.0, "y": 6.0},
+              {"x": 25.0, "y": 3.0},
+              {"x": 30.0, "y": 0.0}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "format": "pyWellSFM.RealizationData",
+      "version": "1.0",
+      "well": {
+        "format": "pyWellSFM.WellData",
+        "version": "1.0",
+        "well": {
+          "name": "Basin_Well",
+          "location": {"x": 4.0, "y": 0.0, "z": 0.0},
+          "depth": 100.0,
+          "markers": [
+            {"name": "Base", "depth": 80.0, "age": 30.0, "stratigraphicType": "Conform"},
+            {"name": "Top", "depth": 30.0, "age": 10.0, "stratigraphicType": "Conform"}
+          ]
+        }
+      },
+      "initialBathymetry": 200.0,
+      "initialEnvironment": "ShelfSlope",
+      "subsidenceCurve": {
+        "type": "cumulative",
+        "curve": {
+          "format": "pyWellSFM.CurveData",
+          "version": "1.0",
+          "curve": {
+            "xAxisName": "Age",
+            "yAxisName": "Subsidence",
+            "interpolationMethod": "linear",
+            "data": [
+              {"x": 0.0, "y": 15.0},
+              {"x": 5.0, "y": 14.0},
+              {"x": 10.0, "y": 12.0},
+              {"x": 15.0, "y": 9.0},
+              {"x": 20.0, "y": 6.0},
+              {"x": 25.0, "y": 3.0},
+              {"x": 30.0, "y": 0.0}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "use_depositional_environment_simulator": true,
+  "deSimulator_weights": {
+    "Continent": 1.0,
+    "SupraTidal": 1.0,
+    "Shore": 1.0,
+    "Lagoon": 1.0,
+    "Buildup": 0.5,
+    "BackReef": 1.0,
+    "ReefCrest": 1.0,
+    "ForeReef": 1.0,
+    "OuterRamp": 1.0,
+    "ShelfSlope": 1.0,
+    "Basin": 1.0
+  },
+  "deSimulator_params": {
+    "waterDepth_sigma": 1.0,
+    "waterDepth_weight": 1.0,
+    "transition_sigma": 1.0,
+    "transition_weight": 1.0,
+    "trend_sigma": 2.0,
+    "trend_window": 3,
+    "trend_weight": 1.0,
+    "interval_distance_method": "gap_overlapping_width"
+  },
+  "params": {
+    "max_waterDepth_change_per_step": 2.0,
+    "dt_min": 0.001,
+    "dt_max": 0.1,
+    "safety": 0.9,
+    "max_steps": 1000000000
+  }
+}

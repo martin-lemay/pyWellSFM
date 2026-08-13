@@ -792,5 +792,71 @@ def loadUncertaintyCurveFromCsv(
         if ymax.size == y.size:
             ymax = np.where(np.isfinite(ymax), ymax, y)
             ucurve.setMaxCurveValues(ymax)
-
     return ucurve
+
+
+def saveUncertaintyCurveToCsv(
+    curve: UncertaintyCurve,
+    filepath: str,
+    delimiter: str = ",",
+) -> None:
+    """Save an UncertaintyCurve to a CSV file.
+
+    Writes columns: Depth, median, min, max. Compatible with
+    ``loadUncertaintyCurveFromCsv`` for round-trip.
+
+    Args:
+        curve: The uncertainty curve to save.
+        filepath: Output file path (must end with ``.csv``).
+        delimiter: Column separator. Defaults to ``","``
+    """
+    path = Path(filepath)
+    if path.suffix.lower() != ".csv":
+        raise ValueError(
+            "UncertaintyCurve output file must have a .csv extension."
+        )
+    x = np.asarray(curve.getAbscissa(), dtype=float)
+    median = np.asarray(curve.getMedianValues(), dtype=float)
+    ymin = np.asarray(curve.getMinValues(), dtype=float)
+    ymax = np.asarray(curve.getMaxValues(), dtype=float)
+    df = pd.DataFrame(
+        {
+            "Depth": x,
+            "median": median,
+            "min": ymin,
+            "max": ymax,
+        }
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(path, index=False, sep=delimiter)
+
+
+def uncertaintyCurveToBytes(
+    curve: UncertaintyCurve,
+    delimiter: str = ",",
+) -> bytes:
+    """Serialize an UncertaintyCurve to CSV bytes.
+
+    Same format as ``saveUncertaintyCurveToCsv`` but returns
+    UTF-8-encoded bytes instead of writing to disk.
+
+    Args:
+        curve: The uncertainty curve to serialize.
+        delimiter: Column separator. Defaults to ``","``
+
+    Returns:
+        UTF-8-encoded CSV bytes.
+    """
+    x = np.asarray(curve.getAbscissa(), dtype=float)
+    median = np.asarray(curve.getMedianValues(), dtype=float)
+    ymin = np.asarray(curve.getMinValues(), dtype=float)
+    ymax = np.asarray(curve.getMaxValues(), dtype=float)
+    df = pd.DataFrame(
+        {
+            "Depth": x,
+            "median": median,
+            "min": ymin,
+            "max": ymax,
+        }
+    )
+    return df.to_csv(index=False, sep=delimiter).encode("utf-8")

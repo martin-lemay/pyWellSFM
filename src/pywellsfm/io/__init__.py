@@ -22,6 +22,8 @@ from .curve_io import (
     saveCurve,
     saveCurveToCsv,
     saveCurveToJson,
+    saveUncertaintyCurveToCsv,
+    uncertaintyCurveToBytes,
 )
 from .depositional_environment_model_io import (
     depositionalEnvironmentModelToJsonObj,
@@ -97,6 +99,8 @@ __all__ = [
     "saveCurve",
     "saveCurveToCsv",
     "saveCurveToJson",
+    "saveUncertaintyCurveToCsv",
+    "uncertaintyCurveToBytes",
     "saveDepositionalEnvironmentModel",
     "saveDepositionalEnvironmentSimulation",
     "saveEnvironmentConditionsModel",
