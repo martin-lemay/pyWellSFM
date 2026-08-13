@@ -726,6 +726,10 @@ def test_build_simulated_well_main_element_only(
         np.array(["Shallow", "Deep"], dtype=str),  # step 0
         np.array(["Deep", "Shallow"], dtype=str),  # step 1
     ]
+    fs_sim.depo_rate_totals = [
+        np.array([0.8, 0.8], dtype=np.float64),
+        np.array([0.9, 0.8], dtype=np.float64),
+    ]
 
     well = fs_sim._buildSimulatedWell(0)
 
@@ -808,6 +812,10 @@ def test_build_simulated_well_with_facies_model(
         np.array(["Shallow", "Deep"], dtype=str),
         np.array(["Deep", "Shallow"], dtype=str),
     ]
+    fs_sim.depo_rate_totals = [
+        np.array([1.0, 1.0], dtype=np.float64),
+        np.array([1.0, 1.0], dtype=np.float64),
+    ]
 
     well = fs_sim._buildSimulatedWell(0)
 
@@ -859,6 +867,11 @@ def test_build_simulated_well_merges_same_label_steps(
         np.array(["Shallow", "Deep"], dtype=str),
         np.array(["Shallow", "Deep"], dtype=str),
         np.array(["Deep", "Shallow"], dtype=str),
+    ]
+    fs_sim.depo_rate_totals = [
+        np.array([1.0, 1.0], dtype=np.float64),
+        np.array([1.0, 1.0], dtype=np.float64),
+        np.array([1.0, 1.0], dtype=np.float64),
     ]
 
     well = fs_sim._buildSimulatedWell(0)
@@ -913,6 +926,11 @@ def test_build_simulated_well_environment_log(
         np.array(["Shallow", "Deep"], dtype=str),
         np.array(["Shallow", "Deep"], dtype=str),
         np.array(["Deep", "Shallow"], dtype=str),
+    ]
+    fs_sim.depo_rate_totals = [
+        np.array([1.0, 1.0], dtype=np.float64),
+        np.array([1.0, 1.0], dtype=np.float64),
+        np.array([1.0, 1.0], dtype=np.float64),
     ]
 
     well = fs_sim._buildSimulatedWell(0)
