@@ -10,9 +10,12 @@ where = ["src"]
 include = ["pywellsfm*"]
 exclude = ['tests*']
 
+[tool.setuptools.package-data]
+pywellsfm = ["jsonSchemas/*.json"]
+
 [project]
 name = "pywellsfm"
-version = "0.0.1"
+version = "0.1.0"
 description = "The Python package pyWellSFM aims at simulating the deposition of sediment layers along a well."
 authors = [{name = "Martin Lemay", email = "martinlemay@mines-paris.org"}]
 license = {file = "LICENSE"}
@@ -33,11 +36,11 @@ dependencies = [
     "numpy >= 2.3.1",
     "pandas >= 2.3.0",
     "scipy >= 1.16.0",
-    "welly >= 0.5.2",
     "striplog >= 0.9.2",
     "lasio >= 0.31",
     "xarray >= 2025.12.0",
     "jsonschema >= 4.26.0",
+    "referencing >= 0.36",
     "plotly >= 6.1.0",
 ]
 requires-python = ">= 3.13"
@@ -53,7 +56,8 @@ dev = [
     "ruff",
     "sphinx", 
     "sphinx-rtd-theme", 
-    "sphinx-autodoc-typehints"
+    "sphinx-autodoc-typehints",
+    "myst-nb"
 ]
 test = [
     "pytest",
@@ -65,11 +69,19 @@ file = "README.md"
 content-type = "text/markdown"
 
 [tool.bumpversion]
-current_version = "0.0.1"
+current_version = "0.1.0"
 
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
+
+[[tool.bumpversion.files]]
+filename = "src/pywellsfm/__init__.py"
+search = '__version__ = "{current_version}"'
+
+[[tool.bumpversion.files]]
+filename = "CITATION.cff"
+search = "version: {current_version}"
 
 [tool.ruff]
 target-version = "py313"
@@ -172,5 +184,5 @@ ignore_errors = true
 
 [project.urls]
 Homepage = "https://github.com/martin-lemay/pyWellSFM"
-Documentation = "https://mlemay-pywellsfm.readthedocs.io/en/latest/index.html"
+Documentation = "https://pywellsfm.readthedocs.io/en/latest/"
 Repository = "https://github.com/martin-lemay/pyWellSFM.git"
