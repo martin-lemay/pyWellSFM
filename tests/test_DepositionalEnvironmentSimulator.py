@@ -24,12 +24,236 @@ from pywellsfm.model.DepositionalEnvironment import (
 )
 from pywellsfm.model.EnvironmentConditionModel import (
     EnvironmentConditionModelUniform,
+    EnvironmentConditionsModel,
 )
 from pywellsfm.simulator.DepositionalEnvironmentSimulator import (
     DepositionalEnvironmentSimulator,
     DESimulatorParameters,
 )
 from pywellsfm.utils import IntervalDistanceMethod
+
+# ======================================================================
+# Former protected ramp preset
+# ======================================================================
+# The tests of the carbonate platform integration were written for the
+# former CarbonateProtectedRampDepositionalEnvironmentModel preset (11
+# environments including Shore, Buildup and ReefCrest). The preset was
+# replaced by a rimmed platform model; the former definition is kept here so
+# that these tests still exercise the same configuration.
+
+
+class _LegacyProtectedRampModel(DepositionalEnvironmentModel):
+    def __init__(
+        self: Self,
+        tidal_range: float = 2.0,
+        lagoon_max_waterDepth: float = 10.0,
+        fairweather_wave_base_waterDepth: float = 20.0,
+        storm_wave_base_waterDepth: float = 50.0,
+        shelf_break_waterDepth: float = 200.0,
+        slope_toe_max_waterDepth: float = 1000.0,
+    ) -> None:
+        """Former protected ramp preset, kept to preserve these tests.
+
+        Former docstring: defines a carbonate ramp depositional environment
+        model.
+
+        The model is defined as a list of depositional environments. The
+        model has a pre-defined list of environmnents, but waterDepth ranges
+        are parameterized based on input parameters.
+        The list of pre-defined environmnets includes:
+
+        - Continent: terrestrial environment, above tidal limit.
+        - SupraTidal: supratidal zone where carbonate/salt precipitation may
+          occur.
+        - Inner Ramp Upper Shoreface: 0 to fairweather wave-breaking depth,
+          where energy is high
+        - Inner Ramp Lower Shoreface: fairweather wave-breaking depth to
+          fairweather wave-base where energy is lower than the shoreface zone
+        - Buildup: patch reefs and other buildups creating locally low
+          waterDepth () and high energy () environment.
+        - Outer Ramp: fairweather wave-base to storm wave-base (offshore zone),
+          where energy is low
+        - Shelf Slope: Continental slope
+        - Basin: Deep basin (intra-shelf or open ocean)
+
+        :param float tidal_range: tidal range in meters (default 2 m).
+        :param float lagoon_max_waterDepth: maximum depth of the lagoon
+            (default 10 m).
+
+        :param float fairweather_wave_base_waterDepth: fairweather
+            wave-base depth (default 20 m).
+        :param float storm_wave_base_waterDepth: storm wave-base depth
+            (default 50 m).
+        :param float shelf_break_waterDepth: shelf-break depth
+            (default 200 m).
+        :param float slope_toe_max_waterDepth: base of the slope maximum
+            waterDepth (default 1000 m).
+        """
+        name = "Carbonate Protected Ramp"
+        environments = [
+            DepositionalEnvironment(
+                name="Continent",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", -10000, -tidal_range
+                ),
+                distality=-2.0,
+            ),
+            DepositionalEnvironment(
+                name="SupraTidal",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", -tidal_range, 0.0
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform(
+                            "salinity", 0.5, 1.0
+                        ),  # hypersaline conditions, no unit
+                    ]
+                ),
+                distality=-1.0,
+            ),
+            DepositionalEnvironment(
+                name="Shore",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", 0.0, 2.0
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.1, 0.5),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 20.0, 30.0
+                        ),
+                    ]
+                ),
+                distality=0.0,
+            ),
+            DepositionalEnvironment(
+                # deepest part of the lagoon
+                name="Lagoon",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", 2.0, lagoon_max_waterDepth
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.0, 0.1),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 20.0, 30.0
+                        ),
+                    ]
+                ),
+                distality=0.01,
+            ),
+            DepositionalEnvironment(
+                name="Buildup",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", 0.0, lagoon_max_waterDepth
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.0, 0.5),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 25.0, 30.0
+                        ),
+                    ]
+                ),
+                distality=0.01,
+            ),
+            DepositionalEnvironment(
+                name="BackReef",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", 1.0, 2.0
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.1, 0.2),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 20.0, 30.0
+                        ),
+                    ]
+                ),
+                distality=0.4,
+            ),
+            DepositionalEnvironment(
+                name="ReefCrest",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", 0.0, 1.0
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.7, 1.0),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 20.0, 30.0
+                        ),
+                    ]
+                ),
+                distality=0.5,
+            ),
+            DepositionalEnvironment(
+                name="ForeReef",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", 1.0, fairweather_wave_base_waterDepth
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.2, 0.7),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 15.0, 20.0
+                        ),
+                    ]
+                ),
+                distality=0.6,
+            ),
+            DepositionalEnvironment(
+                name="OuterRamp",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth",
+                    fairweather_wave_base_waterDepth,
+                    storm_wave_base_waterDepth,
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.0, 0.2),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 10.0, 15.0
+                        ),
+                    ]
+                ),
+                distality=2.0,
+            ),
+            DepositionalEnvironment(
+                name="ShelfSlope",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth",
+                    shelf_break_waterDepth,
+                    slope_toe_max_waterDepth,
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.0, 0.0),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 4.0, 10.0
+                        ),
+                    ]
+                ),
+                distality=100.0,
+            ),
+            DepositionalEnvironment(
+                name="Basin",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", slope_toe_max_waterDepth, 10000.0
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.0, 0.0),
+                        EnvironmentConditionModelUniform(
+                            "temperature", 4.0, 6.0
+                        ),
+                    ]
+                ),
+                distality=200.0,
+            ),
+        ]
+        super().__init__(name, environments)
 
 
 # ======================================================================
@@ -87,7 +311,7 @@ def simple_sim(
 @pytest.fixture()
 def carbonate_envs() -> DepositionalEnvironmentModel:
     """Carbonate-platform environments from :meth:`from_breakpoints`."""
-    model = CarbonateProtectedRampDepositionalEnvironmentModel(
+    model = _LegacyProtectedRampModel(
         tidal_range=2.0,
         lagoon_max_waterDepth=5.0,
         fairweather_wave_base_waterDepth=20.0,
@@ -1129,3 +1353,106 @@ class TestCarbonatePlatformIntegration:
             "BackReef",
             "Buildup",
         ]
+
+
+# ======================================================================
+# Integration: protected (rimmed) platform preset
+# ======================================================================
+
+
+class TestProtectedPlatformPreset:
+    def test_transition_discriminates_shallow_environments(
+        self: Self,
+    ) -> None:
+        """Shallow environments sharing water depths follow Walther's law.
+
+        Lagoon, back-reef and reef flat all fit a 5 m water depth: the water
+        depth likelihood cannot separate them, while the transition
+        likelihood favours the environments adjacent to the previous one.
+        """
+        sim = DepositionalEnvironmentSimulator(
+            CarbonateProtectedRampDepositionalEnvironmentModel()
+        )
+        sim.prepare()
+        depth_only = sim.compute_posterior(waterDepth_value=5.0)
+        assert depth_only["Lagoon"] == pytest.approx(depth_only["BackReef"])
+        posterior = sim.compute_posterior(
+            waterDepth_value=5.0, previous_environments=["Lagoon"]
+        )
+        assert posterior["Lagoon"] > posterior["BackReef"]
+        assert posterior["BackReef"] > posterior["ReefFlat"]
+
+    def test_buildup_is_less_frequent_than_lagoon(self: Self) -> None:
+        """Buildup shares lagoon depth and distality but has a lower weight."""
+        sim = DepositionalEnvironmentSimulator(
+            CarbonateProtectedRampDepositionalEnvironmentModel()
+        )
+        sim.prepare()
+        prior = sim.compute_prior()
+        assert prior["Buildup"] == pytest.approx(0.1 * prior["Lagoon"])
+        posterior = sim.compute_posterior(
+            waterDepth_value=5.0, previous_environments=["Lagoon"]
+        )
+        assert posterior["Buildup"] == pytest.approx(0.1 * posterior["Lagoon"])
+
+
+# ======================================================================
+# Environment weights and distality ranks
+# ======================================================================
+
+
+def _weighted_model() -> DepositionalEnvironmentModel:
+    """Three environments; B shares the distality of A with weight 0.25."""
+    return DepositionalEnvironmentModel(
+        "weighted",
+        [
+            DepositionalEnvironment(
+                "A",
+                EnvironmentConditionModelUniform("waterDepth", 0.0, 10.0),
+                distality=1.0,
+            ),
+            DepositionalEnvironment(
+                "B",
+                EnvironmentConditionModelUniform("waterDepth", 0.0, 10.0),
+                distality=1.0,
+                weight=0.25,
+            ),
+            DepositionalEnvironment(
+                "C",
+                EnvironmentConditionModelUniform("waterDepth", 10.0, 20.0),
+                distality=5.0,
+            ),
+        ],
+    )
+
+
+class TestEnvironmentWeights:
+    def test_prior_uses_environment_weights(self: Self) -> None:
+        """Without explicit weights, environment weights define the prior."""
+        sim = DepositionalEnvironmentSimulator(_weighted_model())
+        prior = sim.compute_prior()
+        assert prior["A"] == pytest.approx(1.0 / 2.25)
+        assert prior["B"] == pytest.approx(0.25 / 2.25)
+        assert prior["C"] == pytest.approx(1.0 / 2.25)
+
+    def test_explicit_weights_override_environment_weights(
+        self: Self,
+    ) -> None:
+        """Explicit weights override environment weights by name."""
+        sim = DepositionalEnvironmentSimulator(
+            _weighted_model(), weights={"B": 1.0, "C": 2.0}
+        )
+        prior = sim.compute_prior()
+        assert prior["A"] == pytest.approx(0.25)
+        assert prior["B"] == pytest.approx(0.25)
+        assert prior["C"] == pytest.approx(0.5)
+
+    def test_equal_distalities_share_rank(self: Self) -> None:
+        """Environments with the same distality get the same rank."""
+        sim = DepositionalEnvironmentSimulator(_weighted_model())
+        sim.prepare()
+        assert sim._distality_by_environment == {
+            "A": 0.0,
+            "B": 0.0,
+            "C": 1.0,
+        }

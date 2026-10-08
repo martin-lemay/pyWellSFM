@@ -220,8 +220,10 @@ class DepositionalEnvironmentSimulator:
         environments from proximal to distal if
         *DepositionalEnvironment.distality* is not provided.
     :param dict[str, float] | None weights: optional explicit
-        mapping from environment name to weights.
-        If ``None``, weights are equal to 1.0 for all environments.
+        mapping from environment name to weights. Weights of environments
+        that are not in the mapping (or all weights if ``None``) are the
+        weights defined in the environments
+        (``DepositionalEnvironment.weight``, 1.0 by default).
     :param DESimulatorParameters | None params:
         simulator tuning knobs; when ``None`` the defaults are used.
 
@@ -234,8 +236,15 @@ class DepositionalEnvironmentSimulator:
         depositionalEnvironmentModel: DepositionalEnvironmentModel,
         weights: dict[str, float] | None = None,
         params: DESimulatorParameters | None = None,
+        rng: np.random.Generator | None = None,
     ) -> None:
-        """Initialise the simulator with environments and parameters."""
+        """Initialise the simulator with environments and parameters.
+
+        :param numpy.random.Generator | None rng: random number generator
+            used to sample environments when no explicit seed is given to
+            :meth:`run`. Pass a seeded generator for reproducible
+            simulations. If ``None``, a new unseeded generator is created.
+        """
         if not depositionalEnvironmentModel:
             raise ValueError(
                 "A depositional environment model must " + " be provided."
@@ -252,12 +261,13 @@ class DepositionalEnvironmentSimulator:
         self._environments: dict[str, DepositionalEnvironment] = {
             e.name: e for e in depositionalEnvironmentModel.environments
         }
-        self._weights: dict[str, float] = {}
+        # default weights are the environment weights (1.0 unless set in the
+        # environment definition); explicit weights override them
+        self._weights: dict[str, float] = {
+            e.name: e.weight for e in depositionalEnvironmentModel.environments
+        }
         if weights is not None:
-            self._weights = dict(weights)
-        else:
-            # use equal weights if none provided
-            self._weights = dict.fromkeys(self._names, 1.0)
+            self._weights.update(weights)
 
         # populated by prepare()
         #: mapping of environment name to distality value.
@@ -274,6 +284,11 @@ class DepositionalEnvironmentSimulator:
         ] = {}
         # threshold for considering a distality trend as significant
         self._trend_threshold: float = 0.01
+
+        #: random number generator used for environment sampling
+        self._rng: np.random.Generator = (
+            rng if rng is not None else np.random.default_rng()
+        )
 
     # ------------------------------------------------------------------
     # Properties
@@ -990,13 +1005,18 @@ class DepositionalEnvironmentSimulator:
                 for i, e in enumerate(self._environments.values())
             }
         else:
-            # use ordering based on distality values
-            sorted_envs = sorted(
-                self._environments.values(),
-                key=lambda e: e.distality,  # type: ignore
+            # use ordering based on distality values; environments with the
+            # same distality share the same rank (dense ranking)
+            unique_distalities = sorted(
+                {
+                    float(e.distality)  # type: ignore[arg-type]
+                    for e in self._environments.values()
+                }
             )
+            rank = {d: float(i) for i, d in enumerate(unique_distalities)}
             self._distality_by_environment = {
-                e.name: float(i) for i, e in enumerate(sorted_envs)
+                e.name: rank[float(e.distality)]  # type: ignore[arg-type]
+                for e in self._environments.values()
             }
 
         # cached transition likelihood - computed after distality since
@@ -1034,7 +1054,8 @@ class DepositionalEnvironmentSimulator:
         :param dict[str, float] | None distality_by_environment:
             optional explicit distality mapping.
         :param int | None seed: optional seed for deterministic
-            sampling.
+            sampling. If ``None``, the simulator random number generator
+            is used.
         :returns: ``(posterior, sampled_environment)``.
         """
         # water depth not in the range of any environment, return None for
@@ -1058,5 +1079,10 @@ class DepositionalEnvironmentSimulator:
             waterDepth_range=waterDepth_range,
             previous_environments=previous_environments,
         )
-        sampled_environment = self.sample_environment(posterior, seed=seed)
+        if seed is None:
+            sampled_environment = self.sample_environment(
+                posterior, rng=self._rng
+            )
+        else:
+            sampled_environment = self.sample_environment(posterior, seed=seed)
         return posterior, self._environments[sampled_environment]
