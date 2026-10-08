@@ -1,6 +1,6 @@
 {
-    "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DepositionalEnvironmentModelSchema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/DepositionalEnvironmentModelSchema.json",
     "title": "Depositional Environment model Schema",
     "description": "Defines the input data for a depositional environment model.",
     "type": "object",
@@ -43,16 +43,22 @@
                 },
                 "waterDepthModel": {
                     "description": "Environment condition model for water depth. Should be statistic model.",
-                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/EnvironmentConditionModelSchema.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/EnvironmentConditionModelSchema.json"
                 },
                 "environmentConditionsModel": {
                     "description": "EnvironmentConditionsModel for additional properties (e.g., energy, temperature).",
                     "type": "object",
-                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/EnvironmentConditionsModelSchema.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/EnvironmentConditionsModelSchema.json"
                 },
                 "distality": {
                     "description": "Distality of the depositional environment (between 0 and 1, where 0 is proximal and 1 is distal).",
                     "type": "number"
+                },
+                "weight": {
+                    "description": "Relative weight of the environment in the prior probabilities of the depositional environment simulator (default 1).",
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 1
                 }
             },
             "required": ["name", "waterDepthModel"],

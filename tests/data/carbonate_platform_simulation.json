@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FSSimulationDataSchema.json",
+  "$schema": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/FSSimulationDataSchema.json",
   "format": "pyWellSFM.FSSimulationData",
   "version": "1.0",
   "name": "CarbonatePlatformSimulation",

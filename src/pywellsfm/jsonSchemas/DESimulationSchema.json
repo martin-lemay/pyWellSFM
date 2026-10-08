@@ -1,6 +1,6 @@
 {
-    "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DESimulationSchema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/DESimulationSchema.json",
     "title": "Input Depositional Environment Simulation data Schema",
     "description": "Defines the input data for a depositional environment simulation.",
     "type": "object",
@@ -16,7 +16,7 @@
         "depositionalEnvironmentModel": {
             "description": "Depositional environment model used by the simulator.",
             "type": "object",
-            "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DepositionalEnvironmentModelSchema.json"
+            "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/DepositionalEnvironmentModelSchema.json"
         },
         "weights": {
             "description": "Optional mapping from environment name to prior weight. If omitted, equal weights are used.",

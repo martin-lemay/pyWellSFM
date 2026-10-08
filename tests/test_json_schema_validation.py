@@ -4,11 +4,22 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
 import pywellsfm.io.json_schema_validation as jsv
+
+
+@pytest.fixture(autouse=True)
+def _reset_schema_caches() -> Iterator[None]:
+    """Keep monkeypatched schema dirs from leaking into other tests."""
+    jsv._json_schema_store.cache_clear()
+    jsv._schema_registry.cache_clear()
+    yield
+    jsv._json_schema_store.cache_clear()
+    jsv._schema_registry.cache_clear()
 
 
 def test_format_jsonschema_path_variants() -> None:
@@ -210,3 +221,76 @@ def test_validate_wrapper_functions_with_real_and_mocked_inputs(
         obj = fn("dummy.json")
         assert isinstance(obj, dict)
         assert obj["ok"] is True
+
+
+_EXAMPLES_DIR = Path(__file__).parent / "data" / "schema_examples"
+
+
+def _schema_name_by_format() -> dict[str, str]:
+    """Map each schema's ``format`` const to its schema file name."""
+    out: dict[str, str] = {}
+    for path in jsv._json_schema_dir().glob("*.json"):
+        schema = json.loads(path.read_text(encoding="utf-8"))
+        fmt = schema.get("properties", {}).get("format", {}).get("const")
+        if isinstance(fmt, str):
+            out[fmt] = path.name
+    return out
+
+
+def test_schema_dir_is_shipped_inside_package() -> None:
+    """Schemas live in the package so they are installed with it."""
+    import pywellsfm
+
+    package_dir = Path(pywellsfm.__file__).resolve().parent
+    schema_dir = jsv._json_schema_dir()
+    assert schema_dir.is_relative_to(package_dir)
+    assert any(schema_dir.glob("*.json"))
+
+
+def test_schema_ids_match_file_names() -> None:
+    """Each schema $id ends with its own file name."""
+    for path in jsv._json_schema_dir().glob("*.json"):
+        schema = json.loads(path.read_text(encoding="utf-8"))
+        assert schema["$id"].endswith(f"/{path.name}"), path.name
+
+
+@pytest.mark.parametrize(
+    "example",
+    sorted(p.name for p in _EXAMPLES_DIR.glob("*.json")),
+)
+def test_schema_examples_validate_offline(
+    example: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every documented example validates without any network access."""
+    import urllib.request
+
+    def _no_network(*_a: object, **_k: object) -> None:
+        raise AssertionError("schema validation must not use the network")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _no_network)
+    path = _EXAMPLES_DIR / example
+    fmt = json.loads(path.read_text(encoding="utf-8"))["format"]
+    schema_name = _schema_name_by_format()[fmt]
+
+    data = jsv.validate_json_file_against_schema(str(path), schema_name)
+    assert data["format"] == fmt
+
+
+def test_unknown_ref_raises_instead_of_fetching(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A $ref absent from the local schemas raises a clear error."""
+    schema_dir = tmp_path / "schemas"
+    schema_dir.mkdir()
+    (schema_dir / "BrokenSchema.json").write_text(
+        json.dumps(
+            {
+                "$id": "https://example.org/BrokenSchema.json",
+                "$ref": "https://example.org/Missing.json",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(jsv, "_json_schema_dir", lambda: schema_dir)
+    with pytest.raises(ValueError, match="Missing.json"):
+        jsv._iter_schema_errors({}, "BrokenSchema.json")

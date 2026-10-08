@@ -1,6 +1,6 @@
 {
-    "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/Scenario.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/ScenarioSchema.json",
     "title": "Input Scenario Data",
     "description": "Defines the input data to create a scenario data object.",
     "type": "object",
@@ -21,7 +21,7 @@
             "oneOf": [
                 {
                     "description": "Inline accumulation model definition.",
-                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/AccumulationModel.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/AccumulationModelSchema.json"
                 },
                 {
                     "type": "object",
@@ -43,7 +43,7 @@
             "oneOf": [
                 {
                     "description": "Inline depositional environment model definition.",
-                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/DepositionalEnvironmentModelSchema.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/DepositionalEnvironmentModelSchema.json"
                 },
                 {
                     "type": "object",
@@ -58,6 +58,36 @@
                         "url"
                     ],
                     "additionalProperties": false
+                },
+                {
+                    "type": "null",
+                    "description": "No depositionalEnvironmentModel defined."
+                }
+            ]
+        },
+        "faciesModel": {
+            "oneOf": [
+                {
+                    "description": "Inline facies model definition.",
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/FaciesModelSchema.json"
+                },
+                {
+                    "type": "object",
+                    "description": "Path to facies model JSON file.",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Relative or absolute path to the facies model JSON file."
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "null",
+                    "description": "No faciesModel defined."
                 }
             ]
         },
@@ -65,7 +95,7 @@
             "oneOf": [
                 {
                     "description": "Inline curve definition.",
-                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json"
+                    "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/CurveSchema.json"
                 },
                 {
                     "type": "object",
@@ -80,6 +110,10 @@
                         "url"
                     ],
                     "additionalProperties": false
+                },
+                {
+                    "type": "null",
+                    "description": "No eustaticCurve defined."
                 }
             ]
         }
