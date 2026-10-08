@@ -110,7 +110,11 @@ class TestAdaptTimeStep:
             dt_max=1.0,
             safety=1.0,
         )
-        ctrl = TimeStepController(params, _sequential_changes(0.2, 0.2, 1.2))
+        # selected dt = 1.0 violates; halved steps (0.5, 0.25, 0.125) also
+        # violate; 0.0625 < dt_min so the controller gives up and raises.
+        ctrl = TimeStepController(
+            params, _sequential_changes(0.2, 0.2, 1.2, 1.2, 1.2, 1.2)
+        )
 
         with pytest.raises(
             RuntimeError, match="Chosen timestep still violates"
@@ -121,6 +125,53 @@ class TestAdaptTimeStep:
                 rates=np.array([1.0]),
                 remaining=1.0,
             )
+
+    def test_halves_step_when_change_is_not_monotonic(self) -> None:
+        """Adapt halves the step when the selected dt violates constraints.
+
+        Water-depth change may be non-monotonic with dt (e.g., oscillating
+        eustasy), so a smaller step can violate the constraint while dt_max
+        does not.
+        """
+        params = FSSimulatorParameters(
+            max_waterDepth_change_per_step=1.0,
+            dt_min=0.1,
+            dt_max=1.0,
+            safety=0.9,
+        )
+        # dt_min ok, dt_max ok (0.9), selected 0.9 violates (1.1),
+        # halved 0.45 satisfies (0.6)
+        ctrl = TimeStepController(
+            params, _sequential_changes(0.2, 0.9, 1.1, 0.6)
+        )
+
+        dt = ctrl.adapt(
+            t=30.0,
+            curWaterDepths=np.array([1.0]),
+            rates=np.array([1.0]),
+            remaining=1.0,
+        )
+
+        assert dt == pytest.approx(0.45)
+
+    def test_zero_rates_use_user_dt_max(self) -> None:
+        """Adapt does not divide by zero when no realization accumulates."""
+        params = FSSimulatorParameters(
+            max_waterDepth_change_per_step=1.0,
+            dt_min=0.1,
+            dt_max=1.0,
+            safety=1.0,
+        )
+        ctrl = TimeStepController(params, _sequential_changes(0.0, 0.0, 0.0))
+
+        dt = ctrl.adapt(
+            t=30.0,
+            curWaterDepths=np.array([1.0]),
+            rates=np.array([0.0]),
+            remaining=5.0,
+        )
+
+        assert dt == pytest.approx(1.0)
 
     def test_uses_binary_search_branch(self) -> None:
         """Adapt uses binary search when dt_max violates the constraint."""
