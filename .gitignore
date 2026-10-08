@@ -206,6 +206,8 @@ CLAUDE.md
 .claude/
 .superpowers/
 docs/superpowers/
+# Notebooks mirrored by docs/conf.py at build time
+docs/notebooks/
 
 # Marimo
 marimo/_static/
@@ -213,3 +215,6 @@ marimo/_lsp/
 __marimo__/
 
 coverage*
+
+# draw.io backup files
+*.drawio.bkp
