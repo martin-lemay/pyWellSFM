@@ -129,12 +129,20 @@ def loadFaciesModelFromJsonObj(obj: dict[str, Any]) -> FaciesModel:
                     "a number when provided."
                 )
 
+            mode = crit_def.get("mode")
+            if (mode is not None) and (not isinstance(mode, (int, float))):
+                raise ValueError(
+                    f"faciesModel[{idx}].criteria[{jdx}].mode must be "
+                    "a number when provided."
+                )
+
             criteria_set.add(
                 FaciesCriteria(
                     name=crit_name,
                     minRange=float(min_range),  # type: ignore[arg-type]
                     maxRange=float(max_range),  # type: ignore[arg-type]
                     type=crit_type,
+                    mode=None if mode is None else float(mode),
                 )
             )
 
@@ -223,6 +231,8 @@ def faciesModelToJsonObj(faciesModel: FaciesModel) -> dict[str, Any]:
                 crit_obj["minRange"] = float(crit.minRange)
             if crit.maxRange is not None and not math.isinf(crit.maxRange):
                 crit_obj["maxRange"] = float(crit.maxRange)
+            if crit.mode is not None:
+                crit_obj["mode"] = float(crit.mode)
 
             facies_obj["criteria"].append(crit_obj)
 

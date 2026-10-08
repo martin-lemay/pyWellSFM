@@ -6,7 +6,11 @@ The symbols re-exported here form the supported, stable entry points. Callers
 should prefer importing from `pywellsfm.model` instead of submodules.
 """
 
-from .AccommodationSpaceWellCalculator import AccommodationSpaceWellCalculator
+from .AccommodationSpaceWellCalculator import (
+    AccommodationBoundaryRule,
+    AccommodationEstimateMethod,
+    AccommodationSpaceWellCalculator,
+)
 from .AccumulationModel import (
     AccumulationModel,
     AccumulationModelElementGaussian,
@@ -49,6 +53,8 @@ from .Marker import Marker, StratigraphicSurfaceType
 from .Well import Well
 
 __all__ = [
+    "AccommodationBoundaryRule",
+    "AccommodationEstimateMethod",
     "AccommodationSpaceWellCalculator",
     "AccumulationCurve",
     "AccumulationModel",

@@ -35,8 +35,14 @@ class FaciesCriteria:
         minRange: float = -float("inf"),
         maxRange: float = float("inf"),
         type: FaciesCriteriaType = FaciesCriteriaType.UNCATEGORIZED,
+        mode: Optional[float] = None,
     ) -> None:
         """Defines a criteria to classify rocks based on a range of a property.
+
+        The property is distributed in the range. Its most likely value (the
+        mode) may be given, e.g., the typical water depth of a facies from
+        modern analogues. Otherwise, the distribution is assumed uniform and
+        the middle of the range is used as the mode.
 
         :param str name: property name
         :param float minRange: minimum value of the property.
@@ -45,18 +51,43 @@ class FaciesCriteria:
             Default is infinity.
         :param FaciesCriteriaType type: type of the criteria.
             Default is UNCATEGORIZED.
+        :param float | None mode: most likely value of the property, in the
+            range. Default is None (uniform distribution).
+        :raises ValueError: if the mode is outside the range.
         """
         self.name: str = name
         self.type: FaciesCriteriaType = type
         self.minRange: float = minRange
         self.maxRange: float = maxRange
+        if mode is not None and not (minRange <= mode <= maxRange):
+            raise ValueError(
+                f"Mode {mode} of criteria {name} is outside the range "
+                f"[{minRange}, {maxRange}]."
+            )
+        #: most likely value of the property; None for a uniform distribution
+        self.mode: Optional[float] = mode
 
     def __repr__(self: Self) -> str:
         """Redefines __repr__.
 
         :return str: repr string
         """
-        return f"{self.name} [{self.minRange}, {self.maxRange}]"
+        if self.mode is None:
+            return f"{self.name} [{self.minRange}, {self.maxRange}]"
+        return (
+            f"{self.name} [{self.minRange}, {self.maxRange}], mode {self.mode}"
+        )
+
+    def getMode(self: Self) -> float:
+        """Get the most likely value of the property.
+
+        :return float: the mode if defined, otherwise the middle of the range
+            (uniform distribution). The middle of a range with an infinite
+            bound is infinite or NaN.
+        """
+        if self.mode is not None:
+            return self.mode
+        return 0.5 * (self.minRange + self.maxRange)
 
     def __hash__(self: Self) -> int:
         """Defines __hash__ method.
