@@ -1,0 +1,55 @@
+{
+  "month": "2026-10",
+  "generated": "2026-10-08T00:00:00Z",
+  "summary": "October prepares the 0.1.0 release with a new set of analysis tools: facies succession statistics, observed-versus-simulated well comparison and brute-force parameter sweeps. Accommodation estimates can now use the most likely water depth of each facies, depositional environments gain relative weights and redesigned carbonate platform models, and simulations become reproducible with a random seed. Scenario files can now embed a facies model, and a time stepping issue during non-depositional periods is fixed.",
+  "entries": [
+    {
+      "title": "Use the most likely water depth of facies to estimate accommodation",
+      "description": "Facies criteria can now define a mode (most likely value), and the accommodation space calculator offers new estimate methods (midpoint, mode or smoothest curve) and boundary rules to combine ranges between facies.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-10-08",
+      "commits": ["c41c709"]
+    },
+    {
+      "title": "Weight depositional environments and use redesigned carbonate platform models",
+      "description": "Each depositional environment can carry a relative weight to make it more or less frequent in simulations, e.g., occasional patch reefs. The open ramp and protected platform carbonate models were reworked with contiguous water depth ranges, energy and salinity conditions.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-10-08",
+      "commits": ["d09be6a"]
+    },
+    {
+      "title": "Make depositional environment simulations reproducible with a seed",
+      "description": "FSSimulator accepts a seed so that two runs produce identical environment sequences. Initial environments that are unknown or inconsistent with the initial water depth are now reported with clear warnings.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-10-08",
+      "commits": ["0eee261"]
+    },
+    {
+      "title": "Include a facies model in scenario files",
+      "description": "Scenario JSON files can now define a facies model inline or by file path, and exported scenarios keep their facies model.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-10-08",
+      "commits": ["f056837"]
+    },
+    {
+      "title": "Analyze facies successions and compare simulated wells with observations",
+      "description": "A new algorithms module provides facies transition statistics with Markov chain tests, misfit measures between observed and simulated wells, and parameter sweeps to explore simulation inputs.",
+      "category": "feature",
+      "components": ["pywellsfm"],
+      "date": "2026-10-08",
+      "commits": ["d2c095a"]
+    },
+    {
+      "title": "Fix time stepping when no sediment accumulates",
+      "description": "Simulations no longer fail or stall when no realization accumulates sediment (e.g., subaerial exposure or drowning), and time steps are refined when water depth changes are not monotonic.",
+      "category": "fix",
+      "components": ["pywellsfm"],
+      "date": "2026-10-08",
+      "commits": ["49763d7"]
+    }
+  ]
+}
