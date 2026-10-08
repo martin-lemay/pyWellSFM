@@ -240,18 +240,126 @@ def test_carbonate_open_ramp_default_environments() -> None:
 
 
 def test_carbonate_protected_ramp_default_environments() -> None:
-    """Builds protected ramp model with expected defaults."""
+    """Builds the protected (rimmed) platform model with expected defaults."""
     model = CarbonateProtectedRampDepositionalEnvironmentModel()
 
     assert model.name == "Carbonate Protected Ramp"
-    assert model.getEnvironmentCount() == 11
-    assert model.environmentExists("Lagoon")
-    assert model.environmentExists("ReefCrest")
-    assert model.environmentExists("Basin")
+    assert [e.name for e in model.environments] == [
+        "Continent",
+        "TidalFlat",
+        "Lagoon",
+        "Buildup",
+        "BackReef",
+        "ReefFlat",
+        "ForeReef",
+        "OuterPlatform",
+        "Basin",
+    ]
+    expected = {
+        "Continent": (-10000.0, -1.0),
+        "TidalFlat": (-1.0, 1.0),
+        "Lagoon": (1.0, 10.0),
+        "Buildup": (1.0, 10.0),
+        "BackReef": (0.0, 10.0),
+        "ReefFlat": (0.0, 8.0),
+        "ForeReef": (5.0, 40.0),
+        "OuterPlatform": (30.0, 200.0),
+        "Basin": (200.0, 10000.0),
+    }
+    for env in model.environments:
+        assert env.waterDepth_range == expected[env.name]
+    distalities = [e.distality for e in model.environments]
+    assert distalities == [-1.0, 0.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    weights = {e.name: e.weight for e in model.environments}
+    assert weights.pop("Buildup") == pytest.approx(0.1)
+    assert set(weights.values()) == {1.0}
 
     lagoon = model.getEnvironmentByName("Lagoon")
-    fore_reef = model.getEnvironmentByName("ForeReef")
     assert lagoon is not None
-    assert fore_reef is not None
-    assert lagoon.waterDepth_range == (2.0, 10.0)
-    assert fore_reef.waterDepth_range == (1.0, 20.0)
+    assert set(lagoon.envConditionsModel.environmentConditionNames) == {
+        "energy",
+        "salinity",
+    }
+
+
+def test_carbonate_protected_ramp_parameters() -> None:
+    """Water depth limits of the protected platform are parameterized."""
+    model = CarbonateProtectedRampDepositionalEnvironmentModel(
+        tidal_range=4.0,
+        lagoon_max_waterDepth=15.0,
+        reef_flat_max_waterDepth=6.0,
+        fairweather_wave_breaking_waterDepth=3.0,
+        fairweather_wave_base_waterDepth=20.0,
+        storm_wave_base_waterDepth=50.0,
+        shelf_break_waterDepth=150.0,
+        buildup_weight=0.3,
+    )
+    ranges = {e.name: e.waterDepth_range for e in model.environments}
+    assert ranges["TidalFlat"] == (-2.0, 2.0)
+    assert ranges["Lagoon"] == (2.0, 15.0)
+    assert ranges["Buildup"] == (2.0, 15.0)
+    assert ranges["BackReef"] == (0.0, 15.0)
+    assert ranges["ReefFlat"] == (0.0, 6.0)
+    assert ranges["ForeReef"] == (3.0, 50.0)
+    assert ranges["OuterPlatform"] == (20.0, 150.0)
+    assert ranges["Basin"] == (150.0, 10000.0)
+    buildup = model.getEnvironmentByName("Buildup")
+    assert buildup is not None
+    assert buildup.weight == pytest.approx(0.3)
+
+
+def test_carbonate_presets_share_wave_base_defaults() -> None:
+    """Open and protected presets use the same default wave bases."""
+    openRamp = CarbonateOpenRampDepositionalEnvironmentModel()
+    protected = CarbonateProtectedRampDepositionalEnvironmentModel()
+    outerRamp = openRamp.getEnvironmentByName("OuterRamp")
+    outerPlatform = protected.getEnvironmentByName("OuterPlatform")
+    lowerShoreface = openRamp.getEnvironmentByName("InnerRampLowerShoreface")
+    foreReef = protected.getEnvironmentByName("ForeReef")
+    buildup = openRamp.getEnvironmentByName("Buildup")
+    assert outerRamp is not None and outerPlatform is not None
+    assert lowerShoreface is not None and foreReef is not None
+    assert buildup is not None
+    # fair-weather wave base (30 m)
+    assert outerRamp.waterDepth_min == outerPlatform.waterDepth_min == 30.0
+    assert lowerShoreface.waterDepth_max == 30.0
+    # storm wave base (40 m)
+    assert foreReef.waterDepth_max == buildup.waterDepth_max == 40.0
+
+
+def test_environment_weight() -> None:
+    """Environment weight defaults to 1 and must be non-negative."""
+    env = _make_environment("A", 0.0, 10.0)
+    assert env.weight == 1.0
+    weighted = DepositionalEnvironment(
+        "B",
+        waterDepthModel=EnvironmentConditionModelUniform(
+            "waterDepth", 0.0, 10.0
+        ),
+        weight=0.2,
+    )
+    assert weighted.weight == pytest.approx(0.2)
+    with pytest.raises(ValueError, match="non-negative"):
+        DepositionalEnvironment(
+            "C",
+            waterDepthModel=EnvironmentConditionModelUniform(
+                "waterDepth", 0.0, 10.0
+            ),
+            weight=-1.0,
+        )
+
+
+def test_open_ramp_preset_water_depth_ranges_are_contiguous() -> None:
+    """Open ramp environments (except buildups) tile the water depth axis."""
+    model = CarbonateOpenRampDepositionalEnvironmentModel(
+        shelf_break_waterDepth=150.0
+    )
+    envs = sorted(
+        (e for e in model.environments if e.name != "Buildup"),
+        key=lambda e: e.waterDepth_min,
+    )
+    for shallower, deeper in zip(envs[:-1], envs[1:], strict=True):
+        assert shallower.waterDepth_max == deeper.waterDepth_min
+    outerRamp = model.getEnvironmentByName("OuterRamp")
+    assert outerRamp is not None
+    assert outerRamp.waterDepth_range == (30.0, 150.0)

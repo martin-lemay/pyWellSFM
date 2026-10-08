@@ -23,6 +23,7 @@ class DepositionalEnvironment:
         waterDepthModel: EnvironmentConditionModelStats,
         envConditionsModel: EnvironmentConditionsModel | None = None,
         distality: float | None = None,
+        weight: float = 1.0,
     ) -> None:
         """Defines a depositional environment.
 
@@ -48,7 +49,13 @@ class DepositionalEnvironment:
             no conditions is used.
         :param float distality: distality of the environment, defined as the
             distance from the shoreline, in km.
+        :param float weight: relative weight of the environment in the prior
+            probabilities of the depositional environment simulator, e.g., to
+            make an environment less frequent than others sharing the same
+            water depth. Must be non-negative. Default is 1.0.
         """
+        if weight < 0.0:
+            raise ValueError("Environment weight must be non-negative.")
         self.name: str = name
         self.waterDepthModel: EnvironmentConditionModelStats = waterDepthModel
         # evolution of environment conditions
@@ -58,6 +65,8 @@ class DepositionalEnvironment:
             else envConditionsModel
         )
         self.distality: float | None = distality
+        #: relative weight of the environment in prior probabilities
+        self.weight: float = float(weight)
 
     def __repr__(self: Self) -> str:
         """Defines __repr__ method.
@@ -271,8 +280,8 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
         self: Self,
         tidal_range: float = 2.0,
         fairweather_wave_breaking_waterDepth: float = 5.0,
-        fairweather_wave_base_waterDepth: float = 20.0,
-        storm_wave_base_waterDepth: float = 50.0,
+        fairweather_wave_base_waterDepth: float = 30.0,
+        storm_wave_base_waterDepth: float = 40.0,
         shelf_break_waterDepth: float = 200.0,
         slope_toe_max_waterDepth: float = 1000.0,
     ) -> None:
@@ -296,8 +305,9 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
           fairweather wave-base where energy is lower than the shoreface zone
         - Buildup: patch reefs and other buildups creating locally low
           waterDepth () and high energy () environment.
-        - Outer Ramp: fairweather wave-base to storm wave-base (offshore zone),
-          where energy is low
+        - Outer Ramp: fairweather wave-base to shelf-break depth (offshore
+          zone, including the zone below storm wave-base), where energy is
+          low
         - Shelf Slope: Continental slope
         - Basin: Deep basin (intra-shelf or open ocean)
 
@@ -309,9 +319,9 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
         :param float fairweather_wave_breaking_waterDepth: fairweather
             wave-breaking depth (default 5 m).
         :param float fairweather_wave_base_waterDepth: fairweather
-            wave-base depth (default 20 m).
+            wave-base depth (default 30 m).
         :param float storm_wave_base_waterDepth: storm wave-base depth
-            (default 50 m).
+            (default 40 m).
         :param float shelf_break_waterDepth: shelf-break depth (default 200 m).
         :param float slope_toe_max_waterDepth: base of the slope maximum
             waterDepth (default 1000 m).
@@ -381,10 +391,12 @@ class CarbonateOpenRampDepositionalEnvironmentModel(
             ),
             DepositionalEnvironment(
                 name="OuterRamp",
+                # extends down to the shelf break so that water depth ranges
+                # are contiguous with the shelf slope
                 waterDepthModel=EnvironmentConditionModelUniform(
                     "waterDepth",
                     fairweather_wave_base_waterDepth,
-                    storm_wave_base_waterDepth,
+                    shelf_break_waterDepth,
                 ),
                 envConditionsModel=EnvironmentConditionsModel(
                     [
@@ -439,207 +451,188 @@ class CarbonateProtectedRampDepositionalEnvironmentModel(
         self: Self,
         tidal_range: float = 2.0,
         lagoon_max_waterDepth: float = 10.0,
-        fairweather_wave_base_waterDepth: float = 20.0,
-        storm_wave_base_waterDepth: float = 50.0,
+        reef_flat_max_waterDepth: float = 8.0,
+        fairweather_wave_breaking_waterDepth: float = 5.0,
+        fairweather_wave_base_waterDepth: float = 30.0,
+        storm_wave_base_waterDepth: float = 40.0,
         shelf_break_waterDepth: float = 200.0,
-        slope_toe_max_waterDepth: float = 1000.0,
+        buildup_weight: float = 0.1,
     ) -> None:
-        """Defines a carbonate ramp depositional environment model.
+        """Defines a protected (rimmed) carbonate platform model.
 
-        The model is defined as a list of depositional environments. The
-        model has a pre-defined list of environmnents, but waterDepth ranges
-        are parameterized based on input parameters.
-        The list of pre-defined environmnets includes:
+        The platform interior (tidal flat and lagoon) is protected from open
+        sea waves by a reef margin. The model has a pre-defined list of
+        environments whose water depth ranges are parameterized. From
+        proximal to distal:
 
-        - Continent: terrestrial environment, above tidal limit.
-        - SupraTidal: supratidal zone where carbonate/salt precipitation may
-          occur.
-        - Inner Ramp Upper Shoreface: 0 to fairweather wave-breaking depth,
-          where energy is high
-        - Inner Ramp Lower Shoreface: fairweather wave-breaking depth to
-          fairweather wave-base where energy is lower than the shoreface zone
-        - Buildup: patch reefs and other buildups creating locally low
-          waterDepth () and high energy () environment.
-        - Outer Ramp: fairweather wave-base to storm wave-base (offshore zone),
-          where energy is low
-        - Shelf Slope: Continental slope
-        - Basin: Deep basin (intra-shelf or open ocean)
+        - Continent: subaerial platform, above the tidal flat.
+        - TidalFlat: intertidal zone (-tidal_range/2 to +tidal_range/2),
+          low energy, restricted (high salinity).
+        - Lagoon: restricted inner platform, from the low tide level to the
+          lagoon maximum depth, very low energy, moderately restricted.
+        - Buildup: patch reefs within the lagoon, with the same water depth
+          range and distality as the lagoon but higher energy and normal
+          salinity. Its weight in the prior probabilities is lower than the
+          other environments so that buildups remain occasional.
+        - BackReef: open inner platform behind the margin (e.g., rudist
+          shoals), from sea level to the lagoon maximum depth, moderate
+          energy.
+        - ReefFlat: reef margin (e.g., coral-rudist buildups), from sea level
+          to the reef flat maximum depth, high energy, open marine.
+        - ForeReef: reef front and upper slope, from the fair-weather
+          wave-breaking depth to the storm wave base, moderate energy.
+        - OuterPlatform: from the fair-weather wave base to the shelf break,
+          low energy.
+        - Basin: below the shelf break, no energy.
+
+        Lagoon, buildup, back-reef and reef flat share the same water depths:
+        they can only be told apart by their energy and salinity (which
+        control the accumulation of environment-specific elements) and by
+        their position along the platform profile (distality), which the
+        transition and trend likelihoods of the depositional environment
+        simulator use.
+        Fore-reef and outer platform overlap between the fair-weather wave
+        base and the storm wave base.
+
+        Energy and salinity (restriction) are given between 0.0 and 1.0.
+        Distality is a rank along the platform profile; only the relative
+        distality between environments matters.
 
         :param float tidal_range: tidal range in meters (default 2 m).
-        :param float lagoon_max_waterDepth: maximum depth of the lagoon
-            (default 10 m).
-
-        :param float fairweather_wave_base_waterDepth: fairweather
-            wave-base depth (default 20 m).
-        :param float storm_wave_base_waterDepth: storm wave-base depth
-            (default 50 m).
-        :param float shelf_break_waterDepth: shelf-break depth
-            (default 200 m).
-        :param float slope_toe_max_waterDepth: base of the slope maximum
-            waterDepth (default 1000 m).
+        :param float lagoon_max_waterDepth: maximum depth of the lagoon and
+            back-reef (default 10 m).
+        :param float reef_flat_max_waterDepth: maximum depth of the reef flat
+            (default 8 m).
+        :param float fairweather_wave_breaking_waterDepth: fair-weather
+            wave-breaking depth, top of the fore-reef (default 5 m).
+        :param float fairweather_wave_base_waterDepth: fair-weather wave-base
+            depth, top of the outer platform (default 30 m).
+        :param float storm_wave_base_waterDepth: storm wave-base depth, base
+            of the fore-reef (default 40 m).
+        :param float shelf_break_waterDepth: shelf-break depth, base of the
+            outer platform and top of the basin (default 200 m).
+        :param float buildup_weight: weight of the buildup environment in the
+            prior probabilities of the depositional environment simulator,
+            relative to the weight of other environments (1.0) (default 0.1).
         """
         name = "Carbonate Protected Ramp"
+        low_tide = 0.5 * tidal_range
         environments = [
             DepositionalEnvironment(
                 name="Continent",
                 waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth", -10000, -tidal_range
-                ),
-                distality=-2.0,
-            ),
-            DepositionalEnvironment(
-                name="SupraTidal",
-                waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth", -tidal_range, 0.0
-                ),
-                envConditionsModel=EnvironmentConditionsModel(
-                    [
-                        EnvironmentConditionModelUniform(
-                            "salinity", 0.5, 1.0
-                        ),  # hypersaline conditions, no unit
-                    ]
+                    "waterDepth", -10000.0, -low_tide
                 ),
                 distality=-1.0,
             ),
             DepositionalEnvironment(
-                name="Shore",
+                name="TidalFlat",
                 waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth", 0.0, 2.0
+                    "waterDepth", -low_tide, low_tide
                 ),
                 envConditionsModel=EnvironmentConditionsModel(
                     [
-                        EnvironmentConditionModelUniform("energy", 0.1, 0.5),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 20.0, 30.0
-                        ),
+                        EnvironmentConditionModelUniform("energy", 0.1, 0.3),
+                        EnvironmentConditionModelUniform("salinity", 0.6, 1.0),
                     ]
                 ),
                 distality=0.0,
             ),
             DepositionalEnvironment(
-                # deepest part of the lagoon
                 name="Lagoon",
                 waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth", 2.0, lagoon_max_waterDepth
+                    "waterDepth", low_tide, lagoon_max_waterDepth
                 ),
                 envConditionsModel=EnvironmentConditionsModel(
                     [
-                        EnvironmentConditionModelUniform("energy", 0.0, 0.1),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 20.0, 30.0
-                        ),
+                        EnvironmentConditionModelUniform("energy", 0.0, 0.2),
+                        EnvironmentConditionModelUniform("salinity", 0.3, 0.7),
                     ]
                 ),
-                distality=0.01,
+                distality=1.0,
             ),
             DepositionalEnvironment(
                 name="Buildup",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth", low_tide, lagoon_max_waterDepth
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.4, 0.8),
+                        EnvironmentConditionModelUniform("salinity", 0.1, 0.3),
+                    ]
+                ),
+                distality=1.0,  # same as the lagoon
+                weight=buildup_weight,
+            ),
+            DepositionalEnvironment(
+                name="BackReef",
                 waterDepthModel=EnvironmentConditionModelUniform(
                     "waterDepth", 0.0, lagoon_max_waterDepth
                 ),
                 envConditionsModel=EnvironmentConditionsModel(
                     [
-                        EnvironmentConditionModelUniform("energy", 0.0, 0.5),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 25.0, 30.0
-                        ),
-                    ]
-                ),
-                distality=0.01,
-            ),
-            DepositionalEnvironment(
-                name="BackReef",
-                waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth", 1.0, 2.0
-                ),
-                envConditionsModel=EnvironmentConditionsModel(
-                    [
-                        EnvironmentConditionModelUniform("energy", 0.1, 0.2),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 20.0, 30.0
-                        ),
-                    ]
-                ),
-                distality=0.4,
-            ),
-            DepositionalEnvironment(
-                name="ReefCrest",
-                waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth", 0.0, 1.0
-                ),
-                envConditionsModel=EnvironmentConditionsModel(
-                    [
-                        EnvironmentConditionModelUniform("energy", 0.7, 1.0),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 20.0, 30.0
-                        ),
-                    ]
-                ),
-                distality=0.5,
-            ),
-            DepositionalEnvironment(
-                name="ForeReef",
-                waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth", 1.0, fairweather_wave_base_waterDepth
-                ),
-                envConditionsModel=EnvironmentConditionsModel(
-                    [
-                        EnvironmentConditionModelUniform("energy", 0.2, 0.7),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 15.0, 20.0
-                        ),
-                    ]
-                ),
-                distality=0.6,
-            ),
-            DepositionalEnvironment(
-                name="OuterRamp",
-                waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth",
-                    fairweather_wave_base_waterDepth,
-                    storm_wave_base_waterDepth,
-                ),
-                envConditionsModel=EnvironmentConditionsModel(
-                    [
-                        EnvironmentConditionModelUniform("energy", 0.0, 0.2),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 10.0, 15.0
-                        ),
+                        EnvironmentConditionModelUniform("energy", 0.3, 0.6),
+                        EnvironmentConditionModelUniform("salinity", 0.1, 0.3),
                     ]
                 ),
                 distality=2.0,
             ),
             DepositionalEnvironment(
-                name="ShelfSlope",
+                name="ReefFlat",
                 waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth",
-                    shelf_break_waterDepth,
-                    slope_toe_max_waterDepth,
+                    "waterDepth", 0.0, reef_flat_max_waterDepth
                 ),
                 envConditionsModel=EnvironmentConditionsModel(
                     [
-                        EnvironmentConditionModelUniform("energy", 0.0, 0.0),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 4.0, 10.0
-                        ),
+                        EnvironmentConditionModelUniform("energy", 0.7, 1.0),
+                        EnvironmentConditionModelUniform("salinity", 0.0, 0.1),
                     ]
                 ),
-                distality=100.0,
+                distality=3.0,
+            ),
+            DepositionalEnvironment(
+                name="ForeReef",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth",
+                    fairweather_wave_breaking_waterDepth,
+                    storm_wave_base_waterDepth,
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.3, 0.6),
+                        EnvironmentConditionModelUniform("salinity", 0.0, 0.1),
+                    ]
+                ),
+                distality=4.0,
+            ),
+            DepositionalEnvironment(
+                name="OuterPlatform",
+                waterDepthModel=EnvironmentConditionModelUniform(
+                    "waterDepth",
+                    fairweather_wave_base_waterDepth,
+                    shelf_break_waterDepth,
+                ),
+                envConditionsModel=EnvironmentConditionsModel(
+                    [
+                        EnvironmentConditionModelUniform("energy", 0.0, 0.2),
+                        EnvironmentConditionModelUniform("salinity", 0.0, 0.1),
+                    ]
+                ),
+                distality=5.0,
             ),
             DepositionalEnvironment(
                 name="Basin",
                 waterDepthModel=EnvironmentConditionModelUniform(
-                    "waterDepth", slope_toe_max_waterDepth, 10000.0
+                    "waterDepth", shelf_break_waterDepth, 10000.0
                 ),
                 envConditionsModel=EnvironmentConditionsModel(
                     [
                         EnvironmentConditionModelUniform("energy", 0.0, 0.0),
-                        EnvironmentConditionModelUniform(
-                            "temperature", 4.0, 6.0
-                        ),
+                        EnvironmentConditionModelUniform("salinity", 0.0, 0.1),
                     ]
                 ),
-                distality=200.0,
+                distality=6.0,
             ),
         ]
         super().__init__(name, environments)

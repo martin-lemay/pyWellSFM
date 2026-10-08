@@ -46,6 +46,7 @@ def _loadDepositionalEnvironmentFromJsonObj(
             "description",
             "waterDepthModel",
             "distality",
+            "weight",
             "environmentConditionsModel",
         },
         ctx=ctx,
@@ -82,6 +83,15 @@ def _loadDepositionalEnvironmentFromJsonObj(
     else:
         raise ValueError(f"{ctx}.distality must be a number when provided.")
 
+    weight_raw = obj.get("weight", 1.0)
+    if isinstance(weight_raw, bool) or not isinstance(
+        weight_raw, (int, float)
+    ):
+        raise ValueError(f"{ctx}.weight must be a number when provided.")
+    if weight_raw < 0:
+        raise ValueError(f"{ctx}.weight must be non-negative.")
+    weight = float(weight_raw)
+
     environmentConditionsModelObj = obj.get("environmentConditionsModel")
     environmentConditionsModel: EnvironmentConditionsModel | None = None
     if environmentConditionsModelObj is not None:
@@ -98,6 +108,7 @@ def _loadDepositionalEnvironmentFromJsonObj(
         waterDepthModel=waterDepthModel,
         envConditionsModel=environmentConditionsModel,
         distality=distality,
+        weight=weight,
     )
     return environment
 
@@ -198,6 +209,9 @@ def _depositionalEnvironmentToJsonObj(
 
     if environment.distality is not None:
         env_obj["distality"] = float(environment.distality)
+
+    if environment.weight != 1.0:
+        env_obj["weight"] = float(environment.weight)
 
     if (
         environment.envConditionsModel is not None
