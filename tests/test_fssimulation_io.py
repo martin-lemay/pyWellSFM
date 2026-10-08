@@ -19,6 +19,7 @@ m_path = os.path.join(os.path.dirname(os.getcwd()), "src")
 if m_path not in sys.path:
     sys.path.insert(0, m_path)
 
+from pywellsfm.io.facies_model_io import loadFaciesModel
 from pywellsfm.io.fssimulation_io import (
     loadFSSimulation,
     loadRealizationData,
@@ -27,6 +28,7 @@ from pywellsfm.io.fssimulation_io import (
     saveRealizationData,
     saveScenario,
 )
+from pywellsfm.io.json_schema_validation import validateScenarioJsonFile
 from pywellsfm.model.AccumulationModel import (
     AccumulationModel,
 )
@@ -993,7 +995,6 @@ def _minimal_accumulation_model_obj() -> dict[str, object]:
         "version": "1.0",
         "accumulationModel": {
             "name": "AM_MIN",
-            "modelType": "Gaussian",
             "elements": {
                 "Carbonate": {
                     "accumulationRate": 100.0,
@@ -1287,10 +1288,10 @@ def test_saveScenario_rejects_empty_name_on_export(tmp_path: Path) -> None:
         saveScenario(invalid, str(tmp_path / "scenario_out.json"))
 
 
-def test_saveScenario_exports_de_model_and_handles_non_null_facies(
+def test_saveScenario_roundtrips_de_model_and_facies_model(
     tmp_path: Path,
 ) -> None:
-    """Export includes DE model and tolerates non-null faciesModel."""
+    """Saved scenario keeps DE and facies models and matches its schema."""
     payload = _minimal_scenario_obj(name="ScenarioWithDE")
     payload["depositionalEnvironmentModel"] = _minimal_de_model_obj()
     scenario_in = tmp_path / "scenario_with_de.json"
@@ -1298,15 +1299,68 @@ def test_saveScenario_exports_de_model_and_handles_non_null_facies(
     scenario_in.write_text(json.dumps(payload), encoding="utf-8")
 
     scenario = loadScenario(str(scenario_in))
-    scenario_with_facies = replace(
-        scenario,
-        faciesModel=object(),  # type: ignore[arg-type]
+    facies_model = loadFaciesModel(os.path.join(dataDir, "facies_model.json"))
+    saveScenario(
+        replace(scenario, faciesModel=facies_model), str(scenario_out)
     )
-    saveScenario(scenario_with_facies, str(scenario_out))
 
     out_obj = json.loads(scenario_out.read_text(encoding="utf-8"))
     assert isinstance(out_obj.get("depositionalEnvironmentModel"), dict)
-    assert "faciesModel" not in out_obj
+    assert isinstance(out_obj.get("faciesModel"), dict)
+    validateScenarioJsonFile(str(scenario_out))
+
+    reloaded = loadScenario(str(scenario_out))
+    assert reloaded.faciesModel is not None
+    assert {f.name for f in reloaded.faciesModel.faciesSet} == {
+        f.name for f in facies_model.faciesSet
+    }
+
+
+def test_saveScenario_without_optional_models_matches_schema(
+    tmp_path: Path,
+) -> None:
+    """Optional models exported as null still conform to the schema."""
+    scenario_in = tmp_path / "scenario_in.json"
+    scenario_out = tmp_path / "scenario_out.json"
+    scenario_in.write_text(
+        json.dumps(_minimal_scenario_obj()), encoding="utf-8"
+    )
+    saveScenario(loadScenario(str(scenario_in)), str(scenario_out))
+
+    out_obj = json.loads(scenario_out.read_text(encoding="utf-8"))
+    assert out_obj["faciesModel"] is None
+    validateScenarioJsonFile(str(scenario_out))
+
+
+def test_loadScenario_facies_model_from_url(tmp_path: Path) -> None:
+    """Facies model can be referenced by a path relative to the scenario."""
+    facies_src = Path(dataDir) / "facies_model.json"
+    (tmp_path / "facies.json").write_text(
+        facies_src.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    payload = _minimal_scenario_obj()
+    payload["faciesModel"] = {"url": "facies.json"}
+    path = tmp_path / "scenario.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    validateScenarioJsonFile(str(path))
+    scenario = loadScenario(str(path))
+    assert scenario.faciesModel is not None
+    assert scenario.faciesModel.getFaciesByName("Sand") is not None
+
+
+def test_loadScenario_rejects_invalid_facies_model_url(
+    tmp_path: Path,
+) -> None:
+    """A facies model url pointing to a non-facies file is rejected."""
+    (tmp_path / "facies.txt").write_text("not json", encoding="utf-8")
+    payload = _minimal_scenario_obj()
+    payload["faciesModel"] = {"url": "facies.txt"}
+    path = tmp_path / "scenario.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"faciesModel\.url must point"):
+        loadScenario(str(path))
 
 
 def test_saveScenario_rejects_non_json_extension(tmp_path: Path) -> None:
