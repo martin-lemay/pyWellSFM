@@ -30,6 +30,7 @@ from pywellsfm.model.Marker import (
     StratigraphicSurfaceType,
 )
 from pywellsfm.model.Well import Well
+from pywellsfm.utils.logging_utils import clear_stored_logs, get_stored_logs
 
 
 def _write_json(tmp_path: Path, payload: dict[str, Any], filename: str) -> str:
@@ -1201,8 +1202,16 @@ def test_loadWellFromLasFile_handles_curve_filtering_branches(
     p.write_text("dummy", encoding="utf-8")
     monkeypatch.setattr(wio.lasio, "read", lambda *_args, **_kwargs: _Las())
 
+    clear_stored_logs()
     well = wio.loadWellFromLasFile(str(p))
     assert well.getDepthLog("OK") is not None
+
+    warnings = [
+        e["message"] for e in get_stored_logs() if e["level"] == "WARNING"
+    ]
+    for skipped in ("BADGET", "SIZE", "NULLS"):
+        assert any(f"'{skipped}'" in w for w in warnings), skipped
+    assert not any("'OK'" in w for w in warnings)
 
 
 def test_loadWellFromLasFile_drops_duplicate_x_then_skips_curve(

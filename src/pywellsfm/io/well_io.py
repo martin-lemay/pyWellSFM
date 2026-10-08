@@ -283,7 +283,7 @@ def loadWell(filepath: str) -> Well:
         with path.open(encoding="utf-8") as f:
             obj = json.load(f)
         if not isinstance(obj, dict):
-            raise ValueError("Tabulated function JSON must be an object.")
+            raise ValueError("Well JSON must be an object.")
         return loadWellFromJsonObj(obj, base_dir=path.resolve().parent)
     if ext == ".las":
         return loadWellFromLasFile(str(path))
@@ -596,10 +596,21 @@ def loadWellFromLasFile(filepath: str) -> Well:
 
         try:
             y_raw = np.asarray(las[mnemonic_str], dtype=float)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "LAS curve '%s' skipped: cannot read values (%s).",
+                mnemonic_str,
+                exc,
+            )
             continue
 
         if y_raw.size != x_raw.size:
+            logger.warning(
+                "LAS curve '%s' skipped: %d values for %d depth samples.",
+                mnemonic_str,
+                y_raw.size,
+                x_raw.size,
+            )
             continue
 
         x = x_raw.copy()
@@ -615,6 +626,11 @@ def loadWellFromLasFile(filepath: str) -> Well:
         x = x[mask]
         y = y[mask]
         if x.size < 2:
+            logger.warning(
+                "LAS curve '%s' skipped: fewer than 2 valid (non-null) "
+                "samples.",
+                mnemonic_str,
+            )
             continue
 
         # Ensure increasing x and drop duplicated x (keep last occurrence).
@@ -632,6 +648,10 @@ def loadWellFromLasFile(filepath: str) -> Well:
         x = x[keep]
         y = y[keep]
         if x.size < 2:
+            logger.warning(
+                "LAS curve '%s' skipped: fewer than 2 distinct depth samples.",
+                mnemonic_str,
+            )
             continue
 
         curve = Curve(
