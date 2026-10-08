@@ -444,12 +444,10 @@ def saveAccumulationModelEnvironmentOptimumToJson(
 ) -> None:
     """Save EnvironmentOptimum accumulation model to json.
 
-    Only `curves_mode='inline'` is supported with the current JSON schema.
+    Only `curves_mode='inline'` is supported with the current JSON schema;
+    `curves_dir` and `curves_format` are accepted for signature compatibility
+    and ignored.
     """
-    if curves_dir is not None or curves_format is not None:
-        # Kept for signature compatibility; unused.
-        pass
-
     mode = curves_mode.lower().strip()
     if mode != "inline":
         raise ValueError(

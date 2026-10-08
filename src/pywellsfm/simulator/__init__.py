@@ -1,9 +1,9 @@
-"""Public API.
+"""Simulators public API.
 
 This package contains the simulators.
 
 The symbols re-exported here form the supported, stable entry points. Callers
-should prefer importing from `pywellsfm.model` instead of submodules.
+should prefer importing from `pywellsfm.simulator` instead of submodules.
 """
 
 from .AccommodationSimulator import (
