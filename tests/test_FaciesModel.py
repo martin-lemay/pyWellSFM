@@ -1067,6 +1067,88 @@ def test_saveFaciesModel_sorts_facies_and_criteria(
     assert b_criteria_names == ["c", "d"]
 
 
+# ------------------------------
+# FaciesCriteria mode
+# ------------------------------
+
+
+def test_FaciesCriteria_mode_defaults_to_middle_of_range() -> None:
+    """Without mode, the distribution is uniform: mode is the middle."""
+    crit = FaciesCriteria("WaterDepth", 10.0, 30.0)
+    assert crit.mode is None
+    assert crit.getMode() == pytest.approx(20.0)
+    assert math.isnan(FaciesCriteria("Gamma").getMode())
+
+
+def test_FaciesCriteria_mode_given() -> None:
+    """A given mode is returned and shown in repr."""
+    crit = FaciesCriteria("WaterDepth", 10.0, 30.0, mode=12.0)
+    assert crit.getMode() == pytest.approx(12.0)
+    assert repr(crit) == "WaterDepth [10.0, 30.0], mode 12.0"
+
+
+def test_FaciesCriteria_mode_outside_range_raises() -> None:
+    """The mode must lie in the range."""
+    with pytest.raises(ValueError, match="outside the range"):
+        FaciesCriteria("WaterDepth", 10.0, 30.0, mode=40.0)
+
+
+def test_saveFaciesModel_round_trip_preserves_mode(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The mode is written to JSON only when given, and loaded back."""
+    facies = SedimentaryFacies(
+        "Sand",
+        {
+            FaciesCriteria(
+                "WaterDepth",
+                0.0,
+                20.0,
+                FaciesCriteriaType.SEDIMENTOLOGICAL,
+                mode=5.0,
+            ),
+            FaciesCriteria(
+                "GrainSize", 0.1, 2.0, FaciesCriteriaType.SEDIMENTOLOGICAL
+            ),
+        },
+    )
+    out_file = tmp_path / "mode.json"
+    saveFaciesModel(FaciesModel(faciesSet={facies}), str(out_file))
+
+    exported = json.loads(out_file.read_text(encoding="utf-8"))
+    criteria = {c["name"]: c for c in exported["faciesModel"][0]["criteria"]}
+    assert criteria["WaterDepth"]["mode"] == 5.0
+    assert "mode" not in criteria["GrainSize"]
+
+    faciesOut = loadFaciesModel(str(out_file)).getFaciesByName("Sand")
+    assert faciesOut is not None
+    waterDepth = faciesOut.getCriteria("WaterDepth")
+    assert waterDepth is not None
+    assert waterDepth.mode == 5.0
+    grainSize = faciesOut.getCriteria("GrainSize")
+    assert grainSize is not None
+    assert grainSize.mode is None
+
+
+def test_loadFaciesModel_rejects_invalid_mode(tmp_path: pathlib.Path) -> None:
+    """A non numeric mode is rejected."""
+    payload = {
+        "format": "pyWellSFM.FaciesModelData",
+        "version": "1.0",
+        "faciesModel": [
+            {
+                "name": "X",
+                "criteria": [
+                    {"name": "WaterDepth", "minRange": 0, "mode": "deep"}
+                ],
+            }
+        ],
+    }
+    path = _write_json(tmp_path, payload)
+    with pytest.raises(ValueError, match="mode must be a number"):
+        loadFaciesModel(path)
+
+
 if __name__ == "__main__":
     pytest.main(
         [

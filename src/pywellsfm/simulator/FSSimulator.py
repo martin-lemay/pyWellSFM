@@ -44,6 +44,7 @@ class FSSimulator:
         deSimulator_weights: dict[str, float] | None = None,
         deSimulator_params: DESimulatorParameters | None = None,
         fsSimulator_params: FSSimulatorParameters = FSSimulatorParameters(),
+        seed: int | None = None,
     ) -> None:
         """Defines a Forward Stratigraphic Simulator runner.
 
@@ -69,6 +70,18 @@ class FSSimulator:
             are used. Default is None.
         :param FSSimulatorParameters fsSimulator_params: parameters for the FS
             simulator.
+        :param int | None seed: seed of the random number generator used by
+            the depositional environment simulator. The generator is
+            re-created at each call to :meth:`prepare`, so that two runs with
+            the same seed give identical environment sequences. If None,
+            sampling is not reproducible. Default is None.
+
+        .. NOTE::
+
+            Environment condition models (e.g., uniform energy ranges) and
+            Gaussian accumulation models still draw from the global NumPy
+            generator; call ``numpy.random.seed`` as well for fully
+            reproducible runs when such models are used.
         """
         # store scenario and realization data
         self.scenario: Scenario = scenario
@@ -98,6 +111,8 @@ class FSSimulator:
         self.use_deSimulator = use_depositional_environment_simulator
         self.deSimulator_weights = deSimulator_weights
         self.deSimulator_params = deSimulator_params
+        #: seed of the random number generator for environment sampling
+        self.seed: int | None = seed
 
         # Adaptative step configuration
         self.n_real: int = len(
@@ -199,6 +214,7 @@ class FSSimulator:
                     deModel,
                     params=self.deSimulator_params,
                     weights=self.deSimulator_weights,
+                    rng=np.random.default_rng(self.seed),
                 )
             )
             self.depositionalEnvironmentSimulator.prepare()
@@ -459,27 +475,77 @@ class FSSimulator:
     def _initializeDepositionalEnvironments(
         self: Self, waterDepth: npt.NDArray[np.float64]
     ) -> list[Optional[DepositionalEnvironment]]:
+        """Initialize the depositional environment of each realization.
+
+        When the depositional environment simulator is used, the initial
+        environment of a realization is the one given by
+        ``RealizationData.initialEnvironmentName`` if it exists in the
+        depositional environment model. A warning is logged if the initial
+        water depth is outside the water depth range of this environment, but
+        the environment is kept. If no initial environment is given, or if it
+        is not in the model, the initial environment is sampled by the
+        depositional environment simulator.
+
+        When the depositional environment simulator is not used, no
+        environment is simulated and initial environments are ignored.
+
+        :param npt.NDArray[np.float64] waterDepth: initial water depth of
+            each realization.
+        :return list[Optional[DepositionalEnvironment]]: initial depositional
+            environment of each realization.
+        """
         depEnv: list[Optional[DepositionalEnvironment]] = [
             None for _ in self.realizationDataList
         ]
         deModel = self.environmentConditionSimulator.environmentModel
-        if deModel is not None:
-            for i in range(self.n_real):
-                envName = self.realizationDataList[i].initialEnvironmentName
-                env = None
+        deSimulator = self.depositionalEnvironmentSimulator
+        for i in range(self.n_real):
+            envName = self.realizationDataList[i].initialEnvironmentName
+            if deModel is None or deSimulator is None:
                 if envName is not None:
-                    env = deModel.getEnvironmentByName(envName)
-
-                if (
-                    env is None
-                    and self.depositionalEnvironmentSimulator is not None
-                ):
-                    # simulate environment from the simulator
-                    _, env_i = self.depositionalEnvironmentSimulator.run(
-                        waterDepth_value=waterDepth[i],
-                        previous_environments=None,
+                    logger.warning(
+                        "Initial environment '%s' of realization %d is "
+                        "ignored because the depositional environment "
+                        "simulator is not used.",
+                        envName,
+                        i,
                     )
-                    depEnv[i] = env_i
+                continue
+
+            env: Optional[DepositionalEnvironment] = None
+            if envName is not None:
+                env = deModel.getEnvironmentByName(envName)
+                if env is None:
+                    logger.warning(
+                        "Initial environment '%s' of realization %d is not "
+                        "in the depositional environment model '%s'. The "
+                        "initial environment is simulated instead.",
+                        envName,
+                        i,
+                        deModel.name,
+                    )
+                elif not (
+                    env.waterDepth_min <= waterDepth[i] <= env.waterDepth_max
+                ):
+                    logger.warning(
+                        "Initial water depth %.4g m of realization %d is "
+                        "outside the water depth range [%.4g, %.4g] m of "
+                        "the initial environment '%s'. The initial "
+                        "environment is kept.",
+                        waterDepth[i],
+                        i,
+                        env.waterDepth_min,
+                        env.waterDepth_max,
+                        envName,
+                    )
+
+            if env is None:
+                # simulate environment from the simulator
+                _, env = deSimulator.run(
+                    waterDepth_value=waterDepth[i],
+                    previous_environments=None,
+                )
+            depEnv[i] = env
         return depEnv
 
     def _getDeltaSeaLevel(self: Self, t1: float, t2: float) -> float:

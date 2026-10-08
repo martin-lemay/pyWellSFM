@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "pyWellSFM: Python Well Stratigraphic Forward Modeling"
+abstract: >-
+  pyWellSFM simulates the deposition of sedimentary layers over time along
+  one or multiple wells. Deposition is controlled by the accommodation space
+  (eustatism and subsidence) and by an accumulation model (Gaussian or
+  environment optimum).
+authors:
+  - family-names: Lemay
+    given-names: Martin
+    orcid: "https://orcid.org/0000-0002-5538-7885"
+version: 0.1.0
+license: Apache-2.0
+repository-code: "https://github.com/martin-lemay/pyWellSFM"
+url: "https://pywellsfm.readthedocs.io/en/latest/"
+keywords:
+  - stratigraphic forward modeling
+  - sedimentology
+  - stratigraphy
+  - well

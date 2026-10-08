@@ -85,11 +85,16 @@ class TimeStepController:
         # proxy)
         # TODO: to improve, better evaluate max deposition rate (need
         # to cumulate over waterDepth range)
-        dt_max = min(
-            self.params.dt_max,
-            self.params.max_waterDepth_change_per_step
-            / float(np.nanmax(rates)),
-        )
+        # If no realization accumulates (e.g., subaerial exposure or
+        # drowning with zero production), the deposition limit does not
+        # apply and only the user-defined dt_max is used.
+        max_rate = float(np.nanmax(rates)) if np.size(rates) > 0 else 0.0
+        dt_max = self.params.dt_max
+        if np.isfinite(max_rate) and max_rate > 0.0:
+            dt_max = min(
+                dt_max,
+                self.params.max_waterDepth_change_per_step / max_rate,
+            )
         dt_hi = float(min(dt_max, remaining))
         dt_lo = float(min(self.params.dt_min, dt_hi))
         max_change = self.params.max_waterDepth_change_per_step
@@ -146,6 +151,13 @@ class TimeStepController:
         # Final safety check to ensure chosen dt still satisfies
         # constraint.
         max_change_at_selected_dt = self._compute_max_change(t, dt, rates)
+        # Water-depth change is not always monotonic with dt (e.g., when
+        # eustatic oscillations and deposition partly cancel), so a smaller
+        # step may violate the constraint while a larger one does not. In
+        # that case, halve the step until the constraint is satisfied.
+        while max_change_at_selected_dt > max_change and dt * 0.5 >= dt_lo:
+            dt *= 0.5
+            max_change_at_selected_dt = self._compute_max_change(t, dt, rates)
         if max_change_at_selected_dt > max_change:
             raise RuntimeError(
                 "Chosen timestep still violates"

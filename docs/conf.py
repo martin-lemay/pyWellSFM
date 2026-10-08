@@ -13,7 +13,9 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import shutil
 import sys
+import tomllib
 from pathlib import Path
 
 # Add python modules to be documented
@@ -27,13 +29,14 @@ sys.path.insert( 0, src_dir )
 # -- Project information -----------------------------------------------------
 
 project = u'pyWellSFM - Python Well Stratigraphic Forward Modelling'
-copyright = u'2026 Martin Lemay <martin.lemay@mines-paris.org>'
+copyright = u'2026 Martin Lemay <martinlemay@mines-paris.org>'
 author = u'Martin Lemay'
 
+# The full version, read from pyproject.toml (single source of truth)
+with open(os.path.join(project_root, 'pyproject.toml'), 'rb') as f:
+    release = tomllib.load(f)['project']['version']
 # The short X.Y version
-version = u'1.0'
-# The full version, including alpha/beta/rc tags
-release = u'0'
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
@@ -47,8 +50,23 @@ release = u'0'
 extensions = [
     'sphinx_design', 'sphinx.ext.todo', 'sphinx.ext.autodoc', 'sphinx.ext.doctest',
     'sphinx.ext.mathjax', 'sphinxarg.ext', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary',
-    'sphinxcontrib.programoutput', 'sphinx.ext.intersphinx'
+    'sphinxcontrib.programoutput', 'sphinx.ext.intersphinx', 'myst_nb'
 ]
+
+# -- Notebooks ---------------------------------------------------------------
+# Render the example notebooks with their stored outputs (no execution, so the
+# docs build does not need to run the simulations).
+nb_execution_mode = 'off'
+# Hide stderr (e.g. library warnings), which shows absolute file paths.
+nb_output_stderr = 'remove'
+
+# Sphinx only reads sources under docs/, so mirror the notebooks into
+# docs/notebooks/ (git-ignored) at each build.
+_nb_src_dir = Path(project_root) / 'notebooks'
+_nb_dst_dir = Path(config_file_dir) / 'notebooks'
+_nb_dst_dir.mkdir(exist_ok=True)
+for _nb in _nb_src_dir.glob('*.ipynb'):
+    shutil.copy2(_nb, _nb_dst_dir / _nb.name)
 
 intersphinx_mapping = {
     'pywellsfmui': ('https://pywellsfmui.readthedocs.io/en/latest/', None),
@@ -69,7 +87,8 @@ autodoc_default_options = {
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+# myst_nb registers '.ipynb' (and '.md') on top of this.
+source_suffix = {'.rst': 'restructuredtext'}
 
 # The master toctree document.
 master_doc = 'index'
@@ -84,7 +103,11 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = [ u'_build', 'Thumbs.db', '.DS_Store', 'cmake/*' ]
+exclude_patterns = [
+    u'_build', 'Thumbs.db', '.DS_Store', 'cmake/*',
+    # Markdown notes, not documentation pages (myst_nb parses '.md' files)
+    'superpowers', 'depositionalSimulator_context.md',
+]
 
 todo_include_todos = True
 

@@ -2,6 +2,8 @@
 
 from .io import validate_json_file_against_schema
 from .model import (
+    AccommodationBoundaryRule,
+    AccommodationEstimateMethod,
     AccommodationSpaceWellCalculator,
     AccumulationCurve,
     AccumulationModel,
@@ -54,8 +56,10 @@ from .utils.logging_utils import (
     set_log_level,
 )
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __all__ = [
+    "AccommodationBoundaryRule",
+    "AccommodationEstimateMethod",
     "AccommodationSpaceWellCalculator",
     "AccumulationCurve",
     "AccumulationModel",
@@ -104,6 +108,3 @@ __all__ = [
     "INFO",
     "DEBUG",
 ]
-
-
-configure_logging(level=INFO, enable_console=True)

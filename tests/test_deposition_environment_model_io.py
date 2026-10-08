@@ -316,3 +316,42 @@ def test_saved_payload_has_no_legacy_fields(tmp_path: Path) -> None:
     assert "waterDepth_range" not in env_obj
     assert "other_property_ranges" not in env_obj
     assert "property_curves" not in env_obj
+
+
+def test_environment_weight_defaults_to_one() -> None:
+    """Environments without weight in JSON get a weight of 1."""
+    model = loadDepositionalEnvironmentModelFromJsonObj(_base_payload())
+    env = model.getEnvironmentByName("Lagoon")
+    assert env is not None
+    assert env.weight == 1.0
+    payload = depositionalEnvironmentModelToJsonObj(model)
+    assert "weight" not in payload["environments"][0]
+
+
+def test_environment_weight_roundtrip(tmp_path: Path) -> None:
+    """Environment weights are saved and loaded."""
+    payload = _base_payload()
+    payload["environments"][0]["weight"] = 0.1
+    model = loadDepositionalEnvironmentModelFromJsonObj(payload)
+    env = model.getEnvironmentByName("Lagoon")
+    assert env is not None
+    assert env.weight == pytest.approx(0.1)
+
+    out_path = tmp_path / "weighted_model.json"
+    saveDepositionalEnvironmentModel(model, str(out_path))
+    with open(out_path, encoding="utf-8") as f:
+        assert json.load(f)["environments"][0]["weight"] == pytest.approx(0.1)
+    loaded = loadDepositionalEnvironmentModel(str(out_path))
+    loaded_env = loaded.getEnvironmentByName("Lagoon")
+    assert loaded_env is not None
+    assert loaded_env.weight == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize("weight", ["low", True, -0.5])
+def test_load_rejects_invalid_weight(weight: Any) -> None:  # noqa: ANN401
+    """Reject non-numeric or negative weights."""
+    payload = _base_payload()
+    payload["environments"][0]["weight"] = weight
+
+    with pytest.raises(ValueError, match="weight must be"):
+        loadDepositionalEnvironmentModelFromJsonObj(payload)

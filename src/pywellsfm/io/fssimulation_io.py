@@ -35,6 +35,11 @@ from pywellsfm.io.depositional_environment_simulation_io import (
     loadSimulatorWeights,
     simulatorParametersToJsonObj,
 )
+from pywellsfm.io.facies_model_io import (
+    faciesModelToJsonObj,
+    loadFaciesModel,
+    loadFaciesModelFromJsonObj,
+)
 from pywellsfm.io.json_schema_validation import expect_format_version
 from pywellsfm.io.well_io import loadWell, loadWellFromJsonObj, wellToJsonObj
 from pywellsfm.model import Curve
@@ -362,7 +367,28 @@ def _loadScenarioFromJsonObj(obj: dict[str, Any], base_dir: Path) -> Scenario:
         )
 
     # --- Facies model (optional) ---
-    facies_model: FaciesModel | None = None
+    facies_model: FaciesModel | None
+    facies_model_obj: Any = obj.get("faciesModel")
+    if facies_model_obj is None:
+        facies_model = None
+    else:
+
+        def _load_facies_file(path: Path) -> FaciesModel:
+            try:
+                return loadFaciesModel(str(path))
+            except (ValueError, FileNotFoundError, OSError) as exc:
+                raise ValueError(
+                    "Scenario.faciesModel.url must point to a supported "
+                    "facies model file (.json)."
+                ) from exc
+
+        facies_model = load_inline_or_url(
+            facies_model_obj,
+            base_dir=base_dir,
+            ctx="Scenario.faciesModel",
+            load_inline=loadFaciesModelFromJsonObj,
+            load_file=_load_facies_file,
+        )
 
     # --- Eustatic curve (optional) ---
     eustatic_curve: Curve | None
@@ -432,8 +458,7 @@ def exportScenarioToJsonObj(scenario: Scenario) -> dict[str, Any]:
         payload["depositionalEnvironmentModel"] = None
     # facies model
     if scenario.faciesModel is not None:
-        pass
-        # payload["faciesModel"] = faciesModelToJsonObj(scenario.faciesModel)
+        payload["faciesModel"] = faciesModelToJsonObj(scenario.faciesModel)
     else:
         payload["faciesModel"] = None
     # eustatic curve

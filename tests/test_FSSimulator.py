@@ -26,6 +26,7 @@ from pywellsfm.model.Facies import (
 )
 from pywellsfm.model.Marker import Marker
 from pywellsfm.simulator.FSSimulator import FSSimulator, FSSimulatorParameters
+from pywellsfm.utils import clear_stored_logs, get_stored_log_messages
 
 
 class _DummyAccommodationSimulator:
@@ -439,31 +440,117 @@ def test_run_covers_exact_age_union_scalar_and_env_window(
     assert prev_env_seen[0] == [["none"]]
 
 
-def test_initialize_depositional_environment_reads_named_env(
+def _named_env_simulator(
     fs_sim: FSSimulator,
-) -> None:
-    """Initialize path queries named environments from the DE model."""
-    env = DepositionalEnvironment(
+    initialEnvironmentName: str | None,
+    use_de_simulator: bool = True,
+) -> tuple[DepositionalEnvironment, DepositionalEnvironment]:
+    """Set a 2-environment model and one realization on the simulator.
+
+    Returns the "Named" environment (0-10 m) and the "Sampled" environment
+    returned by the dummy depositional environment simulator.
+    """
+    named = DepositionalEnvironment(
         name="Named",
         waterDepthModel=EnvironmentConditionModelUniform(
-            "waterDepth", -np.inf, np.inf
+            "waterDepth", 0.0, 10.0
         ),
     )
-    model = DepositionalEnvironmentModel(name="M", environments=[env])
+    sampled = DepositionalEnvironment(
+        name="Sampled",
+        waterDepthModel=EnvironmentConditionModelUniform(
+            "waterDepth", 10.0, 100.0
+        ),
+    )
+    model = DepositionalEnvironmentModel(
+        name="M", environments=[named, sampled]
+    )
     rd0 = fs_sim.realizationDataList[0].__class__(
         well=fs_sim.realizationDataList[0].well,
         initialBathymetry=fs_sim.realizationDataList[0].initialBathymetry,
-        initialEnvironmentName="Named",
+        initialEnvironmentName=initialEnvironmentName,
         subsidenceCurve=fs_sim.realizationDataList[0].subsidenceCurve,
         subsidenceType=fs_sim.realizationDataList[0].subsidenceType,
     )
     fs_sim.n_real = 1
     fs_sim.realizationDataList = [rd0]
     fs_sim.environmentConditionSimulator.setEnvironmentModel(model)
+    fs_sim.depositionalEnvironmentSimulator = (
+        cast(Any, _DummyDESimulator(sampled)) if use_de_simulator else None
+    )
+    return named, sampled
+
+
+def test_initialize_depositional_environment_reads_named_env(
+    fs_sim: FSSimulator,
+) -> None:
+    """The named initial environment is used when the selector is on."""
+    named, _ = _named_env_simulator(fs_sim, "Named")
+    clear_stored_logs()
+
+    dep_env = fs_sim._initializeDepositionalEnvironments(np.array([1.0]))
+
+    assert dep_env == [named]
+    assert not any("WARNING" in m for m in get_stored_log_messages())
+
+
+def test_initialize_depositional_environment_warns_on_water_depth(
+    fs_sim: FSSimulator,
+) -> None:
+    """The named environment is kept with a warning if water depth misfits."""
+    named, _ = _named_env_simulator(fs_sim, "Named")
+    clear_stored_logs()
+
+    dep_env = fs_sim._initializeDepositionalEnvironments(np.array([25.0]))
+
+    assert dep_env == [named]
+    messages = get_stored_log_messages()
+    assert any(
+        "WARNING" in m and "outside the water depth range" in m
+        for m in messages
+    )
+
+
+def test_initialize_depositional_environment_unknown_name_is_sampled(
+    fs_sim: FSSimulator,
+) -> None:
+    """An unknown initial environment is replaced by a sampled one."""
+    _, sampled = _named_env_simulator(fs_sim, "Unknown")
+    clear_stored_logs()
+
+    dep_env = fs_sim._initializeDepositionalEnvironments(np.array([1.0]))
+
+    assert dep_env == [sampled]
+    assert any(
+        "WARNING" in m and "is not in the depositional environment model" in m
+        for m in get_stored_log_messages()
+    )
+
+
+def test_initialize_depositional_environment_without_name_is_sampled(
+    fs_sim: FSSimulator,
+) -> None:
+    """Without initial environment, the selector samples one."""
+    _, sampled = _named_env_simulator(fs_sim, None)
+
+    dep_env = fs_sim._initializeDepositionalEnvironments(np.array([1.0]))
+
+    assert dep_env == [sampled]
+
+
+def test_initialize_depositional_environment_ignored_without_selector(
+    fs_sim: FSSimulator,
+) -> None:
+    """The initial environment is discarded when the selector is off."""
+    _named_env_simulator(fs_sim, "Named", use_de_simulator=False)
+    clear_stored_logs()
 
     dep_env = fs_sim._initializeDepositionalEnvironments(np.array([1.0]))
 
     assert dep_env == [None]
+    assert any(
+        "WARNING" in m and "is ignored" in m for m in get_stored_log_messages()
+    )
 
 
 def test_compute_max_water_depth_change_returns_finite_value(

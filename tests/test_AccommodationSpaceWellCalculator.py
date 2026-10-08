@@ -22,6 +22,8 @@ from pywellsfm.model import (
     Well,
 )
 from pywellsfm.model.AccommodationSpaceWellCalculator import (
+    AccommodationBoundaryRule,
+    AccommodationEstimateMethod,
     AccommodationSpaceWellCalculator,
 )
 
@@ -444,9 +446,11 @@ def test_computeAccommodationCurve02() -> None:
 
 
 def test_computeAccommodationCurve1() -> None:
-    """Test of computeAccommodationCurve method."""
+    """Test of computeAccommodationCurve method (intersection rule)."""
     aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList1)
-    accoCurve: UncertaintyCurve = aspc.computeAccommodationCurve(lithoLogName)
+    accoCurve: UncertaintyCurve = aspc.computeAccommodationCurve(
+        lithoLogName, boundaryRule=AccommodationBoundaryRule.INTERSECTION
+    )
     assert accoCurve is not None, "Accommodation curve is undefined"
 
     # check curves coherency
@@ -520,9 +524,11 @@ def test_computeAccommodationCurve1() -> None:
 
 
 def test_computeAccommodationCurve2() -> None:
-    """Test of computeAccommodationCurve method."""
+    """Test of computeAccommodationCurve method (intersection rule)."""
     aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList2)
-    accoCurve: UncertaintyCurve = aspc.computeAccommodationCurve(lithoLogName)
+    accoCurve: UncertaintyCurve = aspc.computeAccommodationCurve(
+        lithoLogName, boundaryRule=AccommodationBoundaryRule.INTERSECTION
+    )
     assert accoCurve is not None, "Accommodation curve is undefined"
 
     # check curves coherency
@@ -937,6 +943,358 @@ def test_computeWaterDepthThicknessRatioCurve_raises_without_wd() -> None:
     calc = AccommodationSpaceWellCalculator(well, [sandFac])
     with pytest.raises(RuntimeError, match="water depth"):
         calc.computeWaterDepthThicknessRatioCurve("lithology")
+
+
+def _curveValuesAt(curve: UncertaintyCurve, depths: list[float]) -> np.ndarray:
+    """Get (min, median, max) of an uncertainty curve at sampled depths."""
+    abscissa = curve.getAbscissa()
+    rows = []
+    for depth in depths:
+        idx = np.flatnonzero(
+            np.isclose(abscissa, depth) & np.isfinite(curve.getMinValues())
+        )
+        assert idx.size > 0, f"No defined sample at depth {depth}."
+        i = idx[0]
+        rows.append(
+            (
+                curve.getMinValues()[i],
+                curve.getMedianValues()[i],
+                curve.getMaxValues()[i],
+            )
+        )
+    return np.array(rows)
+
+
+def test_computeAccommodationCurve_union_is_default() -> None:
+    """Union rule spans both estimates at facies boundaries (default).
+
+    Barbier well with exact facies water depths: shale (30-55 m, 60 m wd),
+    siltstone (15-30 m, 10 m wd), sandstone (0-15 m, 5 m wd).
+    """
+    aspc = AccommodationSpaceWellCalculator(wellBarbier, faciesList2)
+    accoCurve = aspc.computeAccommodationCurve(lithoLogName)
+    values = _curveValuesAt(accoCurve, [55.0, 30.0, 15.0, 0.0])
+    expected = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            # 25 m deposited; water depth 60 m (shale) or 10 m (siltstone)
+            [-25.0, 0.0, 25.0],
+            # 40 m deposited; water depth 10 m (siltstone) or 5 m (sandstone)
+            [-15.0, -12.5, -10.0],
+            [0.0, 0.0, 0.0],
+        ]
+    )
+    np.testing.assert_allclose(values, expected, atol=1e-6)
+
+
+def test_computeAccommodationCurve_union_contains_intersection() -> None:
+    """Union bounds always contain intersection bounds."""
+    union = AccommodationSpaceWellCalculator(
+        wellBarbier, faciesList1
+    ).computeAccommodationCurve(lithoLogName)
+    inter = AccommodationSpaceWellCalculator(
+        wellBarbier, faciesList1
+    ).computeAccommodationCurve(
+        lithoLogName, boundaryRule=AccommodationBoundaryRule.INTERSECTION
+    )
+    ok = np.isfinite(union.getMinValues()) & np.isfinite(inter.getMinValues())
+    assert np.all(union.getMinValues()[ok] <= inter.getMinValues()[ok] + 1e-9)
+    assert np.all(union.getMaxValues()[ok] >= inter.getMaxValues()[ok] - 1e-9)
+
+
+def test_computeAccommodationCurve_waterDepthAtBase() -> None:
+    """Water depth at base given by the user overrides the basal facies."""
+    depths = [30.0, 15.0, 0.0]
+    reference = _curveValuesAt(
+        AccommodationSpaceWellCalculator(
+            wellBarbier, faciesList2
+        ).computeAccommodationCurve(lithoLogName),
+        depths,
+    )
+    # same value as the basal facies: identical result
+    same = _curveValuesAt(
+        AccommodationSpaceWellCalculator(
+            wellBarbier, faciesList2
+        ).computeAccommodationCurve(lithoLogName, waterDepthAtBase=60.0),
+        depths,
+    )
+    np.testing.assert_allclose(same, reference, atol=1e-6)
+    # 50 m shallower at the base: accommodation is 50 m larger everywhere
+    shallower = _curveValuesAt(
+        AccommodationSpaceWellCalculator(
+            wellBarbier, faciesList2
+        ).computeAccommodationCurve(lithoLogName, waterDepthAtBase=10.0),
+        depths,
+    )
+    np.testing.assert_allclose(shallower, reference + 50.0, atol=1e-6)
+    # a range at the base widens the curve by the range width
+    ranged = _curveValuesAt(
+        AccommodationSpaceWellCalculator(
+            wellBarbier, faciesList2
+        ).computeAccommodationCurve(
+            lithoLogName, waterDepthAtBase=(12.0, 8.0)
+        ),
+        depths,
+    )
+    np.testing.assert_allclose(ranged[:, 0], reference[:, 0] + 48.0)
+    np.testing.assert_allclose(ranged[:, 2], reference[:, 2] + 52.0)
+
+
+def test_computeAccommodationCurve_waterDepthAtBase_narrows_range() -> None:
+    """A known base water depth removes the basal facies uncertainty."""
+    facies = AccommodationSpaceWellCalculator(
+        wellBarbier, faciesList1
+    ).computeAccommodationCurve(lithoLogName)
+    known = AccommodationSpaceWellCalculator(
+        wellBarbier, faciesList1
+    ).computeAccommodationCurve(lithoLogName, waterDepthAtBase=70.0)
+    ok = np.isfinite(facies.getMinValues()) & np.isfinite(known.getMinValues())
+    width_facies = facies.getMaxValues()[ok] - facies.getMinValues()[ok]
+    width_known = known.getMaxValues()[ok] - known.getMinValues()[ok]
+    # shale range at the base is 40-100 m: 60 m narrower except at the base
+    assert np.all(width_known <= width_facies + 1e-9)
+    assert np.max(width_facies - width_known) == pytest.approx(60.0)
+
+
+def _alternatingWell() -> Well:
+    """Well with frequent facies changes, as cyclic shallowing upward."""
+    logTxt = """top,base,comp lithology
+0.0,8.0,sandstone
+8.0,20.0,siltstone
+20.0,40.0,shale
+40.0,55.0,siltstone
+55.0,70.0,shale
+70.0,75.0,siltstone
+75.0,78.0,sandstone
+78.0,85.0,siltstone
+85.0,95.0,shale
+"""
+    well = Well("Alternating", wellCoords, 120.0)
+    well.addLog(lithoLogName, Striplog.from_csv(text=logTxt))
+    return well
+
+
+def _definedSamples(
+    curve: UncertaintyCurve,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Depth, min, median, max of the defined samples of a curve."""
+    ok = np.isfinite(curve.getMedianValues())
+    return (
+        curve.getAbscissa()[ok],
+        curve.getMinValues()[ok],
+        curve.getMedianValues()[ok],
+        curve.getMaxValues()[ok],
+    )
+
+
+@pytest.mark.parametrize(
+    "boundaryRule",
+    [AccommodationBoundaryRule.UNION, AccommodationBoundaryRule.INTERSECTION],
+)
+def test_computeAccommodationCurve_smooth_in_range(
+    boundaryRule: AccommodationBoundaryRule,
+) -> None:
+    """Smooth estimate lies in the range, which is the midpoint one."""
+    well = _alternatingWell()
+    midpoint = AccommodationSpaceWellCalculator(
+        well, faciesList1
+    ).computeAccommodationCurve(lithoLogName, boundaryRule=boundaryRule)
+    smooth = AccommodationSpaceWellCalculator(
+        well, faciesList1
+    ).computeAccommodationCurve(
+        lithoLogName,
+        boundaryRule=boundaryRule,
+        estimateMethod=AccommodationEstimateMethod.SMOOTH,
+        smoothingLength=20.0,
+    )
+    _, midMin, _, midMax = _definedSamples(midpoint)
+    depth, accoMin, accoMed, accoMax = _definedSamples(smooth)
+    np.testing.assert_allclose(accoMin, midMin)
+    np.testing.assert_allclose(accoMax, midMax)
+    low, high = np.minimum(accoMin, accoMax), np.maximum(accoMin, accoMax)
+    assert np.all(accoMed >= low - 1e-6)
+    assert np.all(accoMed <= high + 1e-6)
+    # accommodation is 0 at the base
+    assert accoMed[np.argmax(depth)] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_computeAccommodationCurve_smooth_reduces_roughness() -> None:
+    """Smooth estimate is smoother than the midpoint, more with length."""
+
+    def roughness(curve: UncertaintyCurve) -> float:
+        depth, _, med, _ = _definedSamples(curve)
+        slope = np.diff(med) / np.diff(depth)
+        return float(np.sum(np.diff(slope) ** 2))
+
+    well = _alternatingWell()
+    values = [
+        roughness(
+            AccommodationSpaceWellCalculator(
+                well, faciesList1
+            ).computeAccommodationCurve(lithoLogName)
+        )
+    ]
+    for length in (5.0, 20.0, 80.0):
+        values.append(
+            roughness(
+                AccommodationSpaceWellCalculator(
+                    well, faciesList1
+                ).computeAccommodationCurve(
+                    lithoLogName,
+                    estimateMethod=AccommodationEstimateMethod.SMOOTH,
+                    smoothingLength=length,
+                )
+            )
+        )
+    assert all(b < a for a, b in zip(values[:-1], values[1:], strict=True))
+
+
+def test_computeAccommodationCurve_smooth_single_interval() -> None:
+    """Without curvature, the smooth estimate is the midpoint."""
+    midpoint = AccommodationSpaceWellCalculator(
+        well0, faciesList1
+    ).computeAccommodationCurve(lithoLogName)
+    smooth = AccommodationSpaceWellCalculator(
+        well0, faciesList1
+    ).computeAccommodationCurve(
+        lithoLogName, estimateMethod=AccommodationEstimateMethod.SMOOTH
+    )
+    np.testing.assert_allclose(
+        _definedSamples(smooth)[2], _definedSamples(midpoint)[2], atol=1e-6
+    )
+
+
+def test_computeAccommodationCurve_smooth_known_base() -> None:
+    """A known water depth at the base and an offset are honored."""
+    well = _alternatingWell()
+    curve = AccommodationSpaceWellCalculator(
+        well, faciesList1
+    ).computeAccommodationCurve(
+        lithoLogName,
+        accommodationAtBase=10.0,
+        waterDepthAtBase=45.0,
+        estimateMethod=AccommodationEstimateMethod.SMOOTH,
+    )
+    depth, accoMin, accoMed, accoMax = _definedSamples(curve)
+    assert accoMed[np.argmax(depth)] == pytest.approx(10.0, abs=1e-6)
+    assert np.all((accoMed >= accoMin - 1e-6) & (accoMed <= accoMax + 1e-6))
+
+
+def test_computeAccommodationCurve_smooth_invalid_length() -> None:
+    """Smoothing length must be strictly positive."""
+    calc = AccommodationSpaceWellCalculator(wellBarbier, faciesList1)
+    with pytest.raises(ValueError, match="smoothingLength"):
+        calc.computeAccommodationCurve(
+            lithoLogName,
+            estimateMethod=AccommodationEstimateMethod.SMOOTH,
+            smoothingLength=0.0,
+        )
+
+
+def _faciesListWithModes() -> list[SedimentaryFacies]:
+    """Facies of faciesList1 with a most likely water depth."""
+    return [
+        SedimentaryFacies(
+            name,
+            {
+                FaciesCriteria(
+                    "WaterDepth",
+                    wdMin,
+                    wdMax,
+                    FaciesCriteriaType.SEDIMENTOLOGICAL,
+                    mode=mode,
+                )
+            },
+        )
+        for name, wdMin, wdMax, mode in (
+            ("sandstone", 0.0, 20.0, 5.0),
+            ("siltstone", 20.0, 50.0, 30.0),
+            ("shale", 40.0, 100.0, 60.0),
+        )
+    ]
+
+
+def test_computeAccommodationCurve_mode_uniform() -> None:
+    """Without mode, MODE uses the middle of each facies range.
+
+    Exact facies water depths: the mean of both facies at boundaries is the
+    middle of the union range, as for MIDPOINT.
+    """
+    curve = AccommodationSpaceWellCalculator(
+        wellBarbier, faciesList2
+    ).computeAccommodationCurve(
+        lithoLogName, estimateMethod=AccommodationEstimateMethod.MODE
+    )
+    values = _curveValuesAt(curve, [55.0, 30.0, 15.0, 0.0])
+    np.testing.assert_allclose(values[:, 1], [0.0, 0.0, -12.5, 0.0], atol=1e-6)
+
+
+def test_computeAccommodationCurve_mode_given() -> None:
+    """Facies modes set the estimate; boundaries average both facies.
+
+    Base water depth is the shale mode (60 m). At 30 m: 25 m deposited and
+    water depth (30 + 60) / 2 = 45 m. At 15 m: 40 m deposited and
+    (5 + 30) / 2 = 17.5 m. At the top: 55 m deposited and 5 m.
+    """
+    curve = AccommodationSpaceWellCalculator(
+        wellBarbier, _faciesListWithModes()
+    ).computeAccommodationCurve(
+        lithoLogName, estimateMethod=AccommodationEstimateMethod.MODE
+    )
+    values = _curveValuesAt(curve, [55.0, 30.0, 15.0, 0.0])
+    np.testing.assert_allclose(values[:, 1], [0.0, 10.0, -2.5, 0.0], atol=1e-6)
+    assert np.all(values[:, 1] >= values[:, 0] - 1e-6)
+    assert np.all(values[:, 1] <= values[:, 2] + 1e-6)
+
+
+def test_computeAccommodationCurve_mode_limited_to_range() -> None:
+    """With intersection, the mean of the modes is limited to the range.
+
+    At 15 m, sandstone (0-20 m) and siltstone (20-50 m) only share 20 m:
+    17.5 m is limited to 20 m, so accommodation is 40 + 20 - 60 = 0 m.
+    """
+    curve = AccommodationSpaceWellCalculator(
+        wellBarbier, _faciesListWithModes()
+    ).computeAccommodationCurve(
+        lithoLogName,
+        boundaryRule=AccommodationBoundaryRule.INTERSECTION,
+        estimateMethod=AccommodationEstimateMethod.MODE,
+    )
+    values = _curveValuesAt(curve, [30.0, 15.0])
+    np.testing.assert_allclose(values[:, 1], [10.0, 0.0], atol=1e-6)
+
+
+def test_computeAccommodationCurve_mode_known_base() -> None:
+    """A known base water depth replaces the mode of the basal facies."""
+    curve = AccommodationSpaceWellCalculator(
+        wellBarbier, _faciesListWithModes()
+    ).computeAccommodationCurve(
+        lithoLogName,
+        waterDepthAtBase=50.0,
+        estimateMethod=AccommodationEstimateMethod.MODE,
+    )
+    values = _curveValuesAt(curve, [30.0, 0.0])
+    np.testing.assert_allclose(values[:, 1], [20.0, 10.0], atol=1e-6)
+
+
+def test_computeAccommodationCurve_smooth_targets_mode() -> None:
+    """Without smoothing, the smooth estimate is the mode estimate."""
+    well = _alternatingWell()
+    mode = AccommodationSpaceWellCalculator(
+        well, _faciesListWithModes()
+    ).computeAccommodationCurve(
+        lithoLogName, estimateMethod=AccommodationEstimateMethod.MODE
+    )
+    smooth = AccommodationSpaceWellCalculator(
+        well, _faciesListWithModes()
+    ).computeAccommodationCurve(
+        lithoLogName,
+        estimateMethod=AccommodationEstimateMethod.SMOOTH,
+        smoothingLength=1e-3,
+    )
+    np.testing.assert_allclose(
+        _definedSamples(smooth)[2], _definedSamples(mode)[2], atol=1e-3
+    )
 
 
 def array_equal(array1: np.ndarray, array2: np.ndarray, tol: float) -> bool:

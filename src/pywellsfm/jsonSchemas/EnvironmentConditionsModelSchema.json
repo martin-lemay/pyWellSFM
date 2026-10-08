@@ -1,6 +1,6 @@
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/EnvironmentConditionsModelSchema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/EnvironmentConditionsModelSchema.json",
   "title": "Input Environment Conditions Model Data",
   "description": "Defines the input data to create an EnvironmentConditionsModel (mapping condition name -> EnvironmentConditionModel).",
   "type": "object",
@@ -22,7 +22,7 @@
         "minLength": 1
       },
       "additionalProperties": {
-        "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/EnvironmentConditionModelSchema.json"
+        "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/EnvironmentConditionModelSchema.json"
       }
     }
   },

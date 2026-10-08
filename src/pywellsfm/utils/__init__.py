@@ -1,9 +1,9 @@
-"""I/O public API.
+"""Utilities public API.
 
-This package contains file-format specific loaders and utilities.
+This package contains geometry, interpolation, logging and plotting helpers.
 
 The symbols re-exported here form the supported, stable entry points. Callers
-should prefer importing from `pywellsfm.io` instead of submodules.
+should prefer importing from `pywellsfm.utils` instead of submodules.
 """
 
 from .geometry import (

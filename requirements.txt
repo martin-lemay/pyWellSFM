@@ -7,11 +7,12 @@
 numpy>=2.3.1
 pandas>=2.3.0
 scipy>=1.16.0
-welly>=0.5.2
 striplog>=0.9.2
 lasio>=0.31
 xarray>=2025.12.0
 jsonschema>=4.26.0
+referencing>=0.36
+plotly>=6.1.0
 
 # --- Optional dependencies: tests ---
 pytest
@@ -26,7 +27,7 @@ sphinx-rtd-theme
 sphinx-autodoc-typehints
 sphinx-argparse>=0.5.2
 sphinx-design
-nbsphinx
+myst-nb
 # Running CLI programs and capture outputs
 sphinxcontrib-programoutput>=0.17
 

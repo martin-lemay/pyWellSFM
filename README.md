@@ -1,5 +1,5 @@
 [![CI](https://github.com/martin-lemay/pyWellSFM/actions/workflows/python-package.yml/badge.svg)](https://github.com/martin-lemay/pyWellSFM/actions)
-[![docs](https://readthedocs.com/projects/mlemay-pywellsfm/badge/?version=latest)](https://pywellsfm.readthedocs.io/en/latest/)
+[![docs](https://readthedocs.org/projects/pywellsfm/badge/?version=latest)](https://pywellsfm.readthedocs.io/en/latest/)
 
 # Welcome to pyWellSFM Repo!
 pyWellSFM stands for Python Well Stratigraphic Forward Modeling.
@@ -24,52 +24,59 @@ Install from GitHub:
 pip install git+https://github.com/martin-lemay/pyWellSFM.git
 ```
 
-Minimal example (data loading and simulation run):
+Minimal example, run from the `tests/data/` folder of this repository
+(`simulation.json` references `eustatic_curve.csv` by relative path):
 
 ```python
-from pywellsfm.io import loadSimulation
-from pywellsfm import (
-    FSSimulator,
-    Realization,
-    RealizationData,
-    Scenario,
-)
+from pywellsfm.io import loadFSSimulation
+from pywellsfm.utils import plot_litho_log
 
-# 1) Load simulation data
+# 1) Load the simulation data (scenario + realizations) from a JSON file
+simulator = loadFSSimulation("simulation.json")
 
+# 2) Run the simulation from the oldest marker up to the top of the well
+simulator.prepare()
+simulator.run()
+simulator.finalize()
 
-# 2) Create simulation object
+# 3) Inspect results: an xarray Dataset with one entry per realization ...
+print(simulator.outputs)
 
+# ... and one simulated well per realization, with lithology logs
+well = simulator.simulatedWells[0]
+print(well.getDiscreteLogNames())
 
-# 3) Run the simulation
-
-
-# 4) Plot results
-
-
+# 4) Plot the simulated lithology log of the first realization
+fig = plot_litho_log(well, "MainElement")
+fig.show()
 ```
+
+By default, warnings and errors are printed to the console and all messages
+from INFO up are kept in memory (`pywellsfm.get_stored_logs()`). Call
+`pywellsfm.configure_logging(level=pywellsfm.INFO)` to also print progress
+messages.
 
 Supported input formats:
 
 - wells (use `loadWell()`):
   - LAS 2.0
-  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/WellSchema.json
+  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/WellSchema.json
 
 - curves (subsidence, eustatism, accumulation curve, etc.; use `loadCurvesFromFile()`):
   - csv: expects 2 columns, `AbscissaName` (e.g., "Age", "WaterDepth") and `CurveName` (e.g., "Eustacy", "Subsidence", "ReductionCoeff").
-  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json
+  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/CurveSchema.json
 
 - Accumulation model (use `loadAccumulationModel()`):
-  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/AccumulationModelSchema.json
+  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/AccumulationModelSchema.json
 
 - Facies model (use `loadFaciesModel()`):
-  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FaciesModelSchema.json
+  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/FaciesModelSchema.json
 
 - Scenario (use `loadScenario()`):
-  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/ScenarioSchema.json
+  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/ScenarioSchema.json
 
-- Simulation data (use `loadSimulationData()`):
-  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FSSimulationDataSchema.json
+- Simulation data (use `loadFSSimulation()`):
+  - json: see json schema in https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/FSSimulationDataSchema.json
 
 Tip: example files are available in `tests/data/` and test files.
 
@@ -136,8 +143,6 @@ pytest
 # Test run fails if total coverage is below 80%
 pytest --cov=pywellsfm --cov-fail-under=80
 
-# To mirror CI more closely (includes doctests)
-pytest ./ --doctest-modules
 ```
 
 ### Build the docs locally
@@ -152,13 +157,19 @@ Then open `docs/_build/html/index.html` in your browser.
 
 On each Pull Request, GitHub Actions runs:
 
-- `ruff check` (lint; currently non-blocking in CI)
+- `ruff format --check` and `ruff check` (formatting and lint)
 - `mypy` (static type checks)
-- `pytest` (tests + doctests) 
+- package build, then a smoke test of the installed wheel
+- `pytest` (unit tests)
 - Coverage threshold: test run fails if total coverage is below 80%
 
 ## Credits
-pyWellSFM was written by [Martin Lemay](https://github.com/martin-lemay) <br>[![ORCID Badge](https://img.shields.io/badge/ORCID-A6CE39?logo=orcid&logoColor=fff&style=flat-square)](https://orcid.org/my-orcid?orcid=0000-0002-5538-7885)</br>
+pyWellSFM was written by [Martin Lemay](https://github.com/martin-lemay) <br>[![ORCID Badge](https://img.shields.io/badge/ORCID-A6CE39?logo=orcid&logoColor=fff&style=flat-square)](https://orcid.org/0000-0002-5538-7885)</br>
+
+## Citation
+If you use pyWellSFM in your work, please cite it. Citation metadata is in
+[CITATION.cff](CITATION.cff); on GitHub, use the "Cite this repository" button.
+Each release is archived on Zenodo with a DOI.
 
 ## License
 pyWellSFM is licensed under [Apache-2.0 license](https://opensource.org/licenses/Apache-2.0).

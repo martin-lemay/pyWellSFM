@@ -1,16 +1,83 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileContributor: Martin Lemay
 
+from enum import StrEnum
 from typing import Optional, Self, cast
 
 import numpy as np
 import numpy.typing as npt
+from scipy.optimize import lsq_linear
 from striplog import Interval, Striplog
 
 from .Curve import Curve, UncertaintyCurve
 from .Facies import FaciesCriteria, SedimentaryFacies
 from .Marker import Marker
 from .Well import Well
+
+
+class AccommodationBoundaryRule(StrEnum):
+    """Rule to combine accommodation estimates at facies boundaries.
+
+    At each boundary between two facies intervals, accommodation is estimated
+    twice: from the water depth range of the interval below and from the
+    water depth range of the interval above the boundary.
+    """
+
+    #: combined span of both estimates (min of minimums, max of maximums).
+    #: Conservative: it does not assume that the water depth at the boundary
+    #: lies in both facies ranges.
+    UNION = "union"
+    #: overlap of both estimates (max of minimums, min of maximums). It
+    #: assumes that the water depth at the boundary lies in both facies
+    #: ranges; the range may become empty when they do not overlap.
+    INTERSECTION = "intersection"
+
+
+class AccommodationEstimateMethod(StrEnum):
+    """Method to compute the best estimate of accommodation in its range.
+
+    The accommodation range at each facies boundary is set by the water
+    depth ranges of the facies and by the boundary rule. The best estimate is
+    the median curve of the output accommodation curve.
+    """
+
+    #: middle of the accommodation range at each boundary. Simple, but jumps
+    #: at every facies change since each facies has its own range.
+    MIDPOINT = "midpoint"
+    #: most likely water depth of the facies (mode of the ``waterDepth``
+    #: criteria, middle of the range for a uniform distribution). At each
+    #: boundary, the modes of both facies are averaged and limited to the
+    #: water depth range of the boundary.
+    MODE = "mode"
+    #: smoothest accommodation curve inside the range. Water depth at each
+    #: boundary is estimated in the water depth range of the facies by
+    #: penalizing the curvature of accommodation and the distance to the
+    #: facies mode, while the water depth at the base is a single datum
+    #: shared by the whole curve.
+    SMOOTH = "smooth"
+
+
+def _combineRanges(
+    ranges: npt.NDArray[np.float64], boundaryRule: AccommodationBoundaryRule
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Combine the two ranges estimated at each facies boundary.
+
+    :param npt.NDArray[np.float64] ranges: array with columns min from the
+        interval, min from the adjacent interval, max from the interval, max
+        from the adjacent interval
+    :param AccommodationBoundaryRule boundaryRule: combination rule
+    :return tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]: minimum
+        and maximum values
+    """
+    if boundaryRule == AccommodationBoundaryRule.UNION:
+        return (
+            np.minimum(ranges[:, 0], ranges[:, 1]),
+            np.maximum(ranges[:, 2], ranges[:, 3]),
+        )
+    return (
+        np.maximum(ranges[:, 0], ranges[:, 1]),
+        np.minimum(ranges[:, 2], ranges[:, 3]),
+    )
 
 
 class AccommodationSpaceWellCalculator:
@@ -22,7 +89,32 @@ class AccommodationSpaceWellCalculator:
         """Class to compute accommodation space curve.
 
         Accommodation space curve represents the variation of accommodation
-        from the base of the start of a sequence.
+        from the base of the start of a sequence. Apparent accommodation at
+        a depth z is the deposited thickness since the base plus the change
+        of water depth:
+
+        .. math::
+
+            A(z) = h(z) + w(z) - w_0
+
+        where water depth :math:`w` is only known as the range of the facies
+        (``waterDepth`` criteria). The output curve is an
+        :class:`UncertaintyCurve`:
+
+        * minimum and maximum curves bracket the accommodation; their width
+          is set by the water depth ranges of the facies and by the
+          :class:`AccommodationBoundaryRule`;
+        * the median curve is the best estimate inside this range, computed
+          with the :class:`AccommodationEstimateMethod`.
+
+        Example::
+
+            calculator = AccommodationSpaceWellCalculator(well, faciesList)
+            curve = calculator.computeAccommodationCurve(
+                "lithology",
+                estimateMethod=AccommodationEstimateMethod.SMOOTH,
+                smoothingLength=10.0,
+            )
 
         :param Well well: input well
         :param list[SedimentaryFacies] faciesList: list of sedimentary facies
@@ -46,6 +138,21 @@ class AccommodationSpaceWellCalculator:
         self.accommodationChangeCurve: UncertaintyCurve
         #: output cummulative accommodation curve with uncertainties
         self.accommodationCurve: UncertaintyCurve
+        #: water depth ranges at each facies boundary: depth, min from the
+        #: interval, min from the adjacent interval, max from the interval,
+        #: max from the adjacent interval
+        self._boundaryWaterDepthArray: Optional[npt.NDArray[np.float64]] = None
+        #: water depth range at the base of the accommodation calculation
+        self._baseWaterDepth: tuple[float, float] = (np.nan, np.nan)
+        #: most likely water depth (mode) per interval of the facies log
+        self._waterDepthModes: Optional[npt.NDArray[np.float64]] = None
+        #: water depth modes at each facies boundary: mode of the interval,
+        #: mode of the adjacent interval
+        self._boundaryWaterDepthModeArray: Optional[
+            npt.NDArray[np.float64]
+        ] = None
+        #: most likely water depth at the base of the calculation
+        self._baseWaterDepthMode: float = np.nan
         #: epsilon for depth around the markers
         self._eps: float = 0.001  # 1mm
         self._initCurves()
@@ -115,11 +222,59 @@ class AccommodationSpaceWellCalculator:
         fromMarker: Optional[Marker] = None,
         toMarker: Optional[Marker] = None,
         accommodationAtBase: float = 0.0,
+        waterDepthAtBase: float | tuple[float, float] | None = None,
+        boundaryRule: AccommodationBoundaryRule = (
+            AccommodationBoundaryRule.UNION
+        ),
+        estimateMethod: AccommodationEstimateMethod = (
+            AccommodationEstimateMethod.MIDPOINT
+        ),
+        smoothingLength: float = 10.0,
     ) -> UncertaintyCurve:
-        """Compute accommodation space along the well.
+        r"""Compute accommodation space along the well.
+
+        Apparent accommodation since the base is the deposited thickness plus
+        the change of water depth, water depth being known as the range of
+        each facies. The water depth at the base is a datum for the whole
+        curve: its uncertainty propagates to every sample. Starting from a
+        facies with a narrow water depth range, or providing the water depth
+        at the base when it is known independently, sharpens the curve.
+
+        Minimum and maximum curves are the range of accommodation at each
+        facies boundary. The median curve is the best estimate in this range:
+
+        * ``MIDPOINT``: middle of the range at each boundary;
+        * ``MODE``: water depth at each boundary is the most likely water
+          depth of the facies, i.e., the mode of the ``waterDepth`` criteria
+          (see :class:`FaciesCriteria`), or the middle of its range if no
+          mode is given (uniform distribution). At a boundary, the modes of
+          the facies below and above are averaged, and the result is limited
+          to the water depth range of the boundary. The water depth at the
+          base is the mode of the basal facies, or the middle of
+          ``waterDepthAtBase``. With uniform distributions, it differs from
+          ``MIDPOINT`` only at boundaries, where the middle of the combined
+          range is not the mean of the two middles;
+        * ``SMOOTH``: water depth at each boundary :math:`w_k` and at the
+          base :math:`w_0` are estimated together, bounded by their ranges,
+          by minimizing
+
+          .. math::
+
+              \int \left(\frac{h_{ref}}{h(z)}\right)^2
+              \left(w(z) - m(z)\right)^2 dz
+              + \left(\frac{L}{2\pi}\right)^4 \int A''(z)^2 dz
+
+          where :math:`m` is the water depth of the ``MODE`` method,
+          :math:`h` the half width of the water depth range, :math:`h_{ref}`
+          the median half width and
+          :math:`L` the smoothing length. Accommodation variations with a
+          wavelength shorter than :math:`L` are damped, longer ones are kept.
+          The estimate always lies in the accommodation range. Since the
+          thickness is linear with depth, :math:`A'' = w''`: smoothing in
+          depth does not constrain the datum :math:`w_0`, which stays close
+          to its mode unless the bounds are reached.
 
         :param str faciesLogName: name of the sedimentary facies log
-        :param float step: step between continuous log samples
         :param Marker fromMarker: base marker where to start calculation. If no
             marker is given, calculation starts from the base of the well.
             Defaults to None.
@@ -128,6 +283,19 @@ class AccommodationSpaceWellCalculator:
             Defaults to None.
         :param float accommodationAtBase: accommodation at the base marker.
             Defaults to 0.
+        :param float | tuple[float, float] | None waterDepthAtBase: water
+            depth (value or (min, max) range) at the base where calculation
+            starts. If None, the water depth range of the facies at the base
+            is used. Defaults to None.
+        :param AccommodationBoundaryRule boundaryRule: rule to combine the
+            two accommodation estimates at facies boundaries. Defaults to
+            AccommodationBoundaryRule.UNION (combined span).
+        :param AccommodationEstimateMethod estimateMethod: method to compute
+            the best estimate (median curve) in the accommodation range.
+            Defaults to AccommodationEstimateMethod.MIDPOINT.
+        :param float smoothingLength: wavelength (same unit as depth) below
+            which accommodation variations are damped. Used by the SMOOTH
+            method only. Defaults to 10.
         :return UncertaintyCurve: accommodation curve
         """
         if not isinstance(self._well.getDepthLog(faciesLogName), Striplog):
@@ -144,6 +312,13 @@ class AccommodationSpaceWellCalculator:
         topDepth: float = (
             toMarker.depth if toMarker is not None else faciesLog.start.z
         )
+        boundaryRule = AccommodationBoundaryRule(boundaryRule)
+        estimateMethod = AccommodationEstimateMethod(estimateMethod)
+        if (
+            estimateMethod == AccommodationEstimateMethod.SMOOTH
+            and not smoothingLength > 0.0
+        ):
+            raise ValueError("smoothingLength must be strictly positive.")
 
         # compute waterDepth curve if it is not defined
         if self._waterDepthStepCurve is None:
@@ -152,20 +327,179 @@ class AccommodationSpaceWellCalculator:
         # Accommodation array: depth, acco min 1, acco min 2, acco max 1,
         # acco max 2
         accoArray: npt.NDArray[np.float64] = self._computeAccommodationArray(
-            faciesLog, baseDepth, topDepth, accommodationAtBase
+            faciesLog,
+            baseDepth,
+            topDepth,
+            accommodationAtBase,
+            waterDepthAtBase,
         )
-        # compute as min=max(min1, min2), max = min(max1, max2),
-        # mean from min and max
-        for row in accoArray:
-            depth = row[0]
-            accoMin = np.max(row[1:3])
-            accoMax = np.min(row[3:])
-            accoMed = float(np.mean((accoMin, accoMax)))
+        # combine the estimates from the intervals below and above each
+        # boundary
+        accoMin, accoMax = _combineRanges(accoArray[:, 1:], boundaryRule)
+        accoMed = 0.5 * (accoMin + accoMax)
+        if estimateMethod == AccommodationEstimateMethod.MODE:
+            accoMed = self._computeModeAccommodation(
+                boundaryRule, accommodationAtBase
+            )
+        elif estimateMethod == AccommodationEstimateMethod.SMOOTH:
+            accoMed = self._computeSmoothAccommodation(
+                boundaryRule, accommodationAtBase, smoothingLength
+            )
+        for depth, med, amin, amax in zip(
+            accoArray[:, 0], accoMed, accoMin, accoMax, strict=True
+        ):
             self.accommodationCurve.addSampledPoint(
-                depth, accoMed, accoMin, accoMax
+                float(depth), float(med), float(amin), float(amax)
             )
 
         return self.accommodationCurve
+
+    def _boundaryWaterDepthNodes(
+        self: Self, boundaryRule: AccommodationBoundaryRule
+    ) -> tuple[
+        npt.NDArray[np.intp],
+        npt.NDArray[np.float64],
+        npt.NDArray[np.float64],
+        npt.NDArray[np.float64],
+        npt.NDArray[np.float64],
+    ]:
+        """Get water depth range and mode at each facies boundary.
+
+        Nodes are the boundaries with a defined depth, sorted by increasing
+        depth: the last node is the base, whose water depth is the datum.
+
+        :param AccommodationBoundaryRule boundaryRule: rule to combine the
+            water depth ranges at facies boundaries.
+        :return tuple: rows of the boundary arrays, depth, minimum, maximum
+            and mode of water depth at each node.
+        """
+        wdArray = cast(npt.NDArray[np.float64], self._boundaryWaterDepthArray)
+        modeArray = cast(
+            npt.NDArray[np.float64], self._boundaryWaterDepthModeArray
+        )
+        rows = np.flatnonzero(np.isfinite(wdArray[:, 0]))
+        rows = rows[np.argsort(wdArray[rows, 0])]
+        depth = wdArray[rows, 0]
+        wdMin, wdMax = _combineRanges(wdArray[rows, 1:], boundaryRule)
+        # empty intersection: water depth lies between both ranges
+        wdMin, wdMax = np.minimum(wdMin, wdMax), np.maximum(wdMin, wdMax)
+        wdMode = np.mean(modeArray[rows], axis=1)
+        if rows.size > 0:
+            wdMin[-1], wdMax[-1] = self._baseWaterDepth
+            wdMode[-1] = self._baseWaterDepthMode
+        wdMode = np.clip(wdMode, wdMin, wdMax)
+        return rows, depth, wdMin, wdMax, wdMode
+
+    def _computeModeAccommodation(
+        self: Self,
+        boundaryRule: AccommodationBoundaryRule,
+        accommodationAtBase: float,
+    ) -> npt.NDArray[np.float64]:
+        """Compute accommodation from the most likely facies water depth.
+
+        :param AccommodationBoundaryRule boundaryRule: rule to combine the
+            water depth ranges at facies boundaries.
+        :param float accommodationAtBase: accommodation at the base.
+        :return npt.NDArray[np.float64]: accommodation at each row of the
+            boundary water depth array (NaN where the depth is undefined).
+        """
+        wdArray = cast(npt.NDArray[np.float64], self._boundaryWaterDepthArray)
+        result = np.full(wdArray.shape[0], np.nan)
+        rows, depth, _, _, wdMode = self._boundaryWaterDepthNodes(boundaryRule)
+        if rows.size > 0:
+            thickness = depth[-1] - depth
+            result[rows] = (
+                accommodationAtBase + thickness + wdMode - wdMode[-1]
+            )
+        return result
+
+    def _computeSmoothAccommodation(
+        self: Self,
+        boundaryRule: AccommodationBoundaryRule,
+        accommodationAtBase: float,
+        smoothingLength: float,
+    ) -> npt.NDArray[np.float64]:
+        """Compute the smoothest accommodation inside its range.
+
+        See :meth:`computeAccommodationCurve` for the formulation. The
+        problem is a linear least squares problem bounded by the water depth
+        ranges, solved with :func:`scipy.optimize.lsq_linear`.
+
+        :param AccommodationBoundaryRule boundaryRule: rule to combine the
+            water depth ranges at facies boundaries.
+        :param float accommodationAtBase: accommodation at the base.
+        :param float smoothingLength: wavelength below which accommodation
+            variations are damped.
+        :return npt.NDArray[np.float64]: accommodation at each row of the
+            boundary water depth array (NaN where the depth is undefined).
+        """
+        wdArray = cast(npt.NDArray[np.float64], self._boundaryWaterDepthArray)
+        result = np.full(wdArray.shape[0], np.nan)
+        # water depth bounds and mode per node, sorted by increasing depth;
+        # the base node (last one) is the datum w0
+        rows, depth, wdMin, wdMax, wdMode = self._boundaryWaterDepthNodes(
+            boundaryRule
+        )
+        nbNodes = rows.size
+        if nbNodes < 2:
+            result[rows] = accommodationAtBase
+            return result
+
+        # data term: distance to the mode, weighted by the inverse of the
+        # half width of the range, integrated along depth
+        halfWidth = 0.5 * (wdMax - wdMin)
+        informative = (
+            np.isfinite(halfWidth) & (halfWidth > 0.0) & np.isfinite(wdMode)
+        )
+        refHalfWidth = (
+            float(np.median(halfWidth[informative]))
+            if np.any(informative)
+            else 1.0
+        )
+        nodeLength = np.zeros(nbNodes)
+        nodeLength[:-1] += 0.5 * np.diff(depth)
+        nodeLength[1:] += 0.5 * np.diff(depth)
+        dataWeight = np.zeros(nbNodes)
+        dataWeight[informative] = (
+            np.sqrt(nodeLength[informative])
+            * refHalfWidth
+            / halfWidth[informative]
+        )
+        dataMatrix = np.diag(dataWeight)
+        dataRhs = dataWeight * np.where(informative, wdMode, 0.0)
+
+        # smoothing term: change of slope of accommodation between
+        # consecutive segments, integrated along depth. Thickness is
+        # linear with depth, so only water depth contributes.
+        slope = np.zeros((nbNodes - 1, nbNodes))
+        dz = np.maximum(np.diff(depth), 1e-12)
+        idx = np.arange(nbNodes - 1)
+        slope[idx, idx] = -1.0 / dz
+        slope[idx, idx + 1] = 1.0 / dz
+        curvature = np.diff(slope, axis=0)
+        curvatureLength = 0.5 * (depth[2:] - depth[:-2])
+        smoothWeight = (smoothingLength / (2.0 * np.pi)) ** 2 / np.sqrt(
+            np.maximum(curvatureLength, 1e-12)
+        )
+        smoothMatrix = smoothWeight[:, None] * curvature
+
+        # fixed water depth (e.g., given base water depth): lsq_linear
+        # requires strictly ordered bounds
+        lower = np.where(np.isfinite(wdMin), wdMin, -np.inf)
+        upper = np.where(np.isfinite(wdMax), wdMax, np.inf)
+        upper = np.maximum(upper, lower + 1e-9)
+        solution = lsq_linear(
+            np.vstack((dataMatrix, smoothMatrix)),
+            np.concatenate((dataRhs, np.zeros(smoothMatrix.shape[0]))),
+            bounds=(lower, upper),
+            method="bvls",
+        )
+        waterDepth = solution.x
+        thickness = depth[-1] - depth
+        result[rows] = (
+            accommodationAtBase + thickness + waterDepth - waterDepth[-1]
+        )
+        return result
 
     def _computeAccommodationArray(
         self: Self,
@@ -173,6 +507,7 @@ class AccommodationSpaceWellCalculator:
         baseDepth: float,
         topDepth: float,
         accommodationAtBase: float = 0.0,
+        waterDepthAtBase: float | tuple[float, float] | None = None,
     ) -> npt.NDArray[np.float64]:
         """Compute apparent accommodation space array along the well.
 
@@ -194,6 +529,9 @@ class AccommodationSpaceWellCalculator:
         :param float topDepth: depth to stop calculation.
         :param float accommodationAtBase: cummulative accommodation at the
             base depth. Defaults to 0.
+        :param float | tuple[float, float] | None waterDepthAtBase: water
+            depth (value or (min, max) range) at the base depth. If None, the
+            water depth range of the facies at the base is used.
         :return npt.NDArray[np.float64]: accommodation array
         """
         # compute waterDepth curve if it is not defined
@@ -202,17 +540,35 @@ class AccommodationSpaceWellCalculator:
 
         # get waterDepth at the base and computation depth
         depthBase: float = baseDepth
-        waterDepthAtBase: tuple[float, float] = (0.0, 0.0)
+        baseWaterDepth: tuple[float, float] = (0.0, 0.0)
         lastIndex: int = len(faciesLog)
         for row in self._waterDepthStepCurve[::-1]:  # type: ignore
             if row[0] > baseDepth:
                 lastIndex -= 1
                 continue
-            waterDepthAtBase = row[2:]
+            baseWaterDepth = row[2:]
             depthBase = row[0]
             break
 
-        if not np.isfinite(waterDepthAtBase[0]):
+        modes = cast(npt.NDArray[np.float64], self._waterDepthModes)
+        baseMode: float = (
+            float(modes[lastIndex - 1]) if lastIndex > 0 else np.nan
+        )
+
+        # water depth at the base given by the user overrides the facies one
+        if waterDepthAtBase is not None:
+            if isinstance(waterDepthAtBase, (int, float)):
+                baseWaterDepth = (
+                    float(waterDepthAtBase),
+                    float(waterDepthAtBase),
+                )
+            else:
+                baseWaterDepth = (
+                    float(min(waterDepthAtBase)),
+                    float(max(waterDepthAtBase)),
+                )
+            baseMode = 0.5 * (baseWaterDepth[0] + baseWaterDepth[1])
+        if not np.isfinite(baseWaterDepth[0]):
             raise ValueError("waterDepth at the base is undefined.")
 
         # accommodation array: depth, acco min 1, acco min 2, acco max 1,
@@ -220,6 +576,12 @@ class AccommodationSpaceWellCalculator:
         accoArray: npt.NDArray[np.float64] = np.full(
             (self._waterDepthStepCurve.shape[0] + 1, 5),  # type: ignore
             np.nan,
+        )
+        # same layout for the water depth ranges at each boundary
+        wdArray: npt.NDArray[np.float64] = np.full_like(accoArray, np.nan)
+        # water depth modes: interval, adjacent interval
+        modeArray: npt.NDArray[np.float64] = np.full(
+            (accoArray.shape[0], 2), np.nan
         )
         interval: Interval
         for i, interval in enumerate(faciesLog):
@@ -237,7 +599,7 @@ class AccommodationSpaceWellCalculator:
                 # compute accommodation from water depth of the interval
                 acco0: tuple[float, float] = self._computeAccommodationValue(
                     thickness,
-                    waterDepthAtBase,
+                    baseWaterDepth,
                     tuple(waterDepthInterval.tolist()),
                 )
                 # store the results
@@ -247,24 +609,30 @@ class AccommodationSpaceWellCalculator:
                 accoArray[i, 1:3] = (acco0[0], acco0[0])
                 # max accommodation
                 accoArray[i, 3:] = (acco0[1], acco0[1])
+                wdArray[i, 0] = interval.top.z
+                wdArray[i, 1:3] = waterDepthInterval[0]
+                wdArray[i, 3:] = waterDepthInterval[1]
+                modeArray[i] = modes[i]
 
             # compute accommodation at the base
             thickness = depthBase - interval.base.z
 
             # waterDepth of above interval
             waterDepthAboveInterval = waterDepthInterval
+            adjacentIndex = i
             if (i < len(faciesLog) - 1) and (i < lastIndex):
                 waterDepthAboveInterval = self._waterDepthStepCurve[i + 1, 2:]  # type: ignore
+                adjacentIndex = i + 1
 
             # compute accommodation
             # computed from waterDepth of the interval
             acco1: tuple[float, float] = self._computeAccommodationValue(
-                thickness, waterDepthAtBase, tuple(waterDepthInterval.tolist())
+                thickness, baseWaterDepth, tuple(waterDepthInterval.tolist())
             )
             # computed from the waterDepth of the facies above
             acco2: tuple[float, float] = self._computeAccommodationValue(
                 thickness,
-                waterDepthAtBase,
+                baseWaterDepth,
                 tuple(waterDepthAboveInterval.tolist()),
             )
 
@@ -274,12 +642,29 @@ class AccommodationSpaceWellCalculator:
             accoArray[i + 1, 1:3] = (acco1[0], acco2[0])
             # max accommodation
             accoArray[i + 1, 3:] = (acco1[1], acco2[1])
+            wdArray[i + 1, 0] = interval.base.z
+            wdArray[i + 1, 1:3] = (
+                waterDepthInterval[0],
+                waterDepthAboveInterval[0],
+            )
+            wdArray[i + 1, 3:] = (
+                waterDepthInterval[1],
+                waterDepthAboveInterval[1],
+            )
+            modeArray[i + 1] = (modes[i], modes[adjacentIndex])
 
         # set initial accommodation at the base to 0 (no uncertainty here)
         accoArray[-1, 1:] = 0.0
 
         # add initial accommodation value
         accoArray[:, 1:] += accommodationAtBase
+        self._boundaryWaterDepthArray = wdArray
+        self._boundaryWaterDepthModeArray = modeArray
+        self._baseWaterDepthMode = baseMode
+        self._baseWaterDepth = (
+            float(baseWaterDepth[0]),
+            float(baseWaterDepth[1]),
+        )
         return accoArray
 
     def _computeAccommodationValue(
@@ -413,6 +798,19 @@ class AccommodationSpaceWellCalculator:
             waterDepth conditions is undefined for a given facies.
         :return tuple[float, float]: waterDepth minimum and maximum values.
         """
+        criteria = self._getWaterDepthCriteriaFromFaciesName(faciesName)
+        return (criteria.minRange, criteria.maxRange)
+
+    def _getWaterDepthCriteriaFromFaciesName(
+        self: Self, faciesName: str
+    ) -> FaciesCriteria:
+        """Get the waterDepth criteria from the facies name.
+
+        :param str faciesName: facies name
+        :raises ValueError: if the facies name is not in the list or the
+            waterDepth conditions is undefined for a given facies.
+        :return FaciesCriteria: waterDepth criteria of the facies.
+        """
         facies: Optional[SedimentaryFacies] = self._faciesDict.get(
             faciesName, None
         )
@@ -429,7 +827,7 @@ class AccommodationSpaceWellCalculator:
                 f"waterDepth is undefined for the facies {faciesName}. "
                 + "waterDepth curve cannot be computed."
             )
-        return (waterDepthRange.minRange, waterDepthRange.maxRange)
+        return waterDepthRange
 
     def _computeWaterDepthStepCurve(
         self: Self,
@@ -438,6 +836,7 @@ class AccommodationSpaceWellCalculator:
         topDepth: float,
     ) -> npt.NDArray[np.float64]:
         self._waterDepthStepCurve = np.full((len(faciesLog), 4), np.nan)
+        self._waterDepthModes = np.full(len(faciesLog), np.nan)
         # add epsilon because if Interval.completely_contains returns True only
         # if limits are not equal
         eps: float = 1e-6
@@ -451,10 +850,14 @@ class AccommodationSpaceWellCalculator:
             if interval.primary is None:
                 raise ValueError("Interval primary attribute is None.")
             faciesName: str = interval.primary["lithology"]
-            bathRange = self._getWaterDepthRangeFromFaciesName(faciesName)
+            criteria = self._getWaterDepthCriteriaFromFaciesName(faciesName)
             self._waterDepthStepCurve[i, 0] = interval.base.z
             self._waterDepthStepCurve[i, 1] = interval.top.z
-            self._waterDepthStepCurve[i, 2:] = bathRange
+            self._waterDepthStepCurve[i, 2:] = (
+                criteria.minRange,
+                criteria.maxRange,
+            )
+            self._waterDepthModes[i] = criteria.getMode()
             nbIntervals += 1
 
         return self._waterDepthStepCurve

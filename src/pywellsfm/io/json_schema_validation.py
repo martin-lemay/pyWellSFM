@@ -6,21 +6,28 @@
 This module centralizes JSON Schema loading and validation so that domain/model
 mapping code in I/O helpers stays focused on constructing model objects.
 
-Schemas are expected in the repository-level `jsonSchemas/` directory.
+Schemas are shipped with the package in ``pywellsfm/jsonSchemas/``.
+``$ref`` values are resolved against these local schemas only: validation
+never downloads anything.
 """
 
 from __future__ import annotations
 
 import json
 from functools import lru_cache
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
+
+from jsonschema.validators import validator_for
+from referencing import Registry, Resource
+from referencing.exceptions import Unresolvable
+from referencing.jsonschema import DRAFT202012
 
 
 @lru_cache(maxsize=1)
 def _json_schema_dir() -> Path:
-    # repo-root/jsonSchemas (schema_validation.py is in src/pywellsfm/io)
-    return Path(__file__).resolve().parents[3] / "jsonSchemas"
+    return Path(str(files("pywellsfm") / "jsonSchemas"))
 
 
 @lru_cache(maxsize=1)
@@ -54,6 +61,15 @@ def _json_schema_store() -> dict[str, Any]:
     return store
 
 
+@lru_cache(maxsize=1)
+def _schema_registry() -> Registry:
+    """Registry of local schemas; unknown $refs are never fetched."""
+    return Registry().with_resources(
+        (uri, Resource.from_contents(schema, DRAFT202012))
+        for uri, schema in _json_schema_store().items()
+    )
+
+
 def _format_jsonschema_path(path_items: Any) -> str:  # noqa: ANN401
     try:
         items = list(path_items)
@@ -73,16 +89,11 @@ def _iter_schema_errors(
     instance: Any,  # noqa: ANN401
     schema_filename: str,
 ) -> list[Any]:
-    """Return jsonschema validation errors for instance (does not raise)."""
-    try:
-        from jsonschema import RefResolver
-        from jsonschema.validators import validator_for
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError(
-            "jsonschema is required for schema validation. Install with: "
-            "pip install jsonschema"
-        ) from exc
+    """Return jsonschema validation errors for instance.
 
+    :raises ValueError: if the schema references a schema that is not
+        shipped with pywellsfm.
+    """
     schema_path = _json_schema_dir() / schema_filename
     if not schema_path.exists():
         raise FileNotFoundError(f"Schema file not found: {schema_path}")
@@ -91,9 +102,14 @@ def _iter_schema_errors(
     ValidatorClass = validator_for(schema)
     ValidatorClass.check_schema(schema)
 
-    resolver = RefResolver.from_schema(schema, store=_json_schema_store())
-    validator = ValidatorClass(schema, resolver=resolver)
-    return sorted(validator.iter_errors(instance), key=lambda e: str(e))
+    validator = ValidatorClass(schema, registry=_schema_registry())
+    try:
+        errors = list(validator.iter_errors(instance))
+    except Unresolvable as exc:
+        raise ValueError(
+            f"Schema '{schema_filename}' has an unresolvable reference: {exc}"
+        ) from exc
+    return sorted(errors, key=lambda e: str(e))
 
 
 def _raise_first_schema_error(

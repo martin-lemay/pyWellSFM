@@ -1,6 +1,6 @@
 {
-  "$schema": "http://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/EnvironmentConditionModelSchema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/EnvironmentConditionModelSchema.json",
   "title": "Input Environment Condition Model Data",
   "description": "Environment condition model definition.",
   "type": "object",
@@ -57,7 +57,7 @@
       "oneOf": [
         {
           "description": "Inline curve definition (CurveSchema).",
-          "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/CurveSchema.json"
+          "$ref": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/CurveSchema.json"
         },
         {
           "type": "object",

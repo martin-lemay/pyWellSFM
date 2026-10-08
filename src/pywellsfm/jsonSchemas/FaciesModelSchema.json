@@ -1,6 +1,6 @@
 {
-    "$schema": "http://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/jsonSchemas/FaciesModelSchema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/martin-lemay/pyWellSFM/main/src/pywellsfm/jsonSchemas/FaciesModelSchema.json",
     "title": "Input Facies Model Data",
     "description": "Defines the input data to create a facies model.",
     "type": "object",
@@ -76,6 +76,10 @@
                 },
                 "maxRange": {
                     "description": "Maximum value of the property. If omitted, defaults to +infinity in the Python model.",
+                    "type": "number"
+                },
+                "mode": {
+                    "description": "Most likely value of the property, within [minRange, maxRange]. If omitted, the distribution is assumed uniform and the middle of the range is used.",
                     "type": "number"
                 }
             },
