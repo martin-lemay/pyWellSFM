@@ -5,12 +5,32 @@
 
 import json
 import logging
+import subprocess
+import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
 import pywellsfm
 import pywellsfm.utils.logging_utils as logging_utils
+
+
+@pytest.fixture(autouse=True)
+def _restore_logging_state() -> Iterator[None]:
+    """Keep logging configuration changes from leaking into other tests."""
+    logger = logging.getLogger("pywellsfm")
+    level, handlers = logger.level, list(logger.handlers)
+    console = logging_utils._console_handler
+    console_level = console.level if console is not None else None
+    user_configured = logging_utils._user_configured
+    yield
+    logger.setLevel(level)
+    logger.handlers = handlers
+    if console is not None and console_level is not None:
+        console.setLevel(console_level)
+    logging_utils._console_handler = console
+    logging_utils._user_configured = user_configured
 
 
 def test_logging_retention_collects_info_warning_error() -> None:
@@ -106,7 +126,7 @@ def test_get_stored_logs_returns_empty_when_handler_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """get_stored_logs returns empty list when storage is unavailable."""
-    monkeypatch.setattr(logging_utils, "configure_logging", lambda **_: None)
+    monkeypatch.setattr(logging_utils, "_ensure_default_logging", lambda: None)
     monkeypatch.setattr(logging_utils, "_stored_logs_handler", None)
 
     assert pywellsfm.get_stored_logs() == []
@@ -217,3 +237,60 @@ def test_export_stored_logs_json_append_raises(tmp_path: Path) -> None:
             format="json",
             append=True,
         )
+
+
+def test_default_logging_prints_warnings_but_not_info() -> None:
+    """Without configuration, INFO is stored but only WARNING is printed."""
+    code = "; ".join(
+        [
+            "import pywellsfm",
+            "log = pywellsfm.get_logger('defaults')",
+            "log.info('info-not-printed')",
+            "log.warning('warning-printed')",
+            "msgs = [e['message'] for e in pywellsfm.get_stored_logs()]",
+            "assert msgs == ['info-not-printed', 'warning-printed'], msgs",
+        ]
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "warning-printed" in result.stderr
+    assert "info-not-printed" not in result.stderr
+
+
+def test_get_logger_keeps_user_logging_configuration() -> None:
+    """get_logger does not reset levels chosen with configure_logging."""
+    pywellsfm.configure_logging(level=pywellsfm.DEBUG, enable_console=True)
+    pywellsfm.get_logger("pywellsfm.tests.keep")
+
+    logger = logging.getLogger("pywellsfm")
+    assert logger.level == pywellsfm.DEBUG
+    assert logging_utils._console_handler is not None
+    assert logging_utils._console_handler.level == pywellsfm.DEBUG
+
+
+def test_stored_logs_are_bounded() -> None:
+    """The in-memory store keeps only the most recent records."""
+    handler = logging_utils.StoredLogsHandler(max_records=3)
+    logger = logging.getLogger("pywellsfm.tests.bounded")
+    for i in range(5):
+        handler.emit(
+            logger.makeRecord(
+                logger.name, logging.INFO, __file__, 1, f"m{i}", (), None
+            )
+        )
+    assert [r["message"] for r in handler.get_records()] == ["m2", "m3", "m4"]
+
+
+def test_set_log_level_survives_later_get_logger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A level chosen with set_log_level is not reset by get_logger."""
+    monkeypatch.setattr(logging_utils, "_user_configured", False)
+    pywellsfm.set_log_level(pywellsfm.ERROR)
+    pywellsfm.get_logger("pywellsfm.tests.level")
+
+    assert logging.getLogger("pywellsfm").level == pywellsfm.ERROR

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Self
@@ -18,11 +19,19 @@ INFO = logging.INFO
 DEBUG = logging.DEBUG
 
 
+# Maximum number of records retained in memory (oldest are dropped first)
+MAX_STORED_LOGS = 10_000
+
+
 class StoredLogsHandler(logging.Handler):
-    def __init__(self: Self) -> None:
-        """In-memory log handler storing structured records."""
+    def __init__(self: Self, max_records: int = MAX_STORED_LOGS) -> None:
+        """In-memory log handler storing the most recent structured records.
+
+        Args:
+            max_records (int): maximum number of retained records.
+        """
         super().__init__()
-        self._records: list[dict[str, Any]] = []
+        self._records: deque[dict[str, Any]] = deque(maxlen=max_records)
 
     def emit(self: Self, record: logging.LogRecord) -> None:
         """Emit a log record.
@@ -57,6 +66,8 @@ class StoredLogsHandler(logging.Handler):
 _PACKAGE_LOGGER_NAME = "pywellsfm"
 _stored_logs_handler: StoredLogsHandler | None = None
 _console_handler: logging.Handler | None = None
+# True once the user called configure_logging; defaults are then left alone
+_user_configured = False
 
 
 def _default_formatter() -> logging.Formatter:
@@ -66,7 +77,9 @@ def _default_formatter() -> logging.Formatter:
     )
 
 
-def _ensure_handlers(level: int, enable_console: bool) -> logging.Logger:
+def _ensure_handlers(
+    level: int, enable_console: bool, console_level: int | None = None
+) -> logging.Logger:
     global _stored_logs_handler, _console_handler
 
     logger = logging.getLogger(_PACKAGE_LOGGER_NAME)
@@ -87,7 +100,9 @@ def _ensure_handlers(level: int, enable_console: bool) -> logging.Logger:
             logger.addHandler(_console_handler)
         elif _console_handler not in logger.handlers:
             logger.addHandler(_console_handler)
-        _console_handler.setLevel(level)
+        _console_handler.setLevel(
+            level if console_level is None else console_level
+        )
     elif _console_handler is not None and _console_handler in logger.handlers:
         logger.removeHandler(_console_handler)
 
@@ -97,13 +112,43 @@ def _ensure_handlers(level: int, enable_console: bool) -> logging.Logger:
 def configure_logging(
     *, level: int = INFO, enable_console: bool = True
 ) -> logging.Logger:
-    """Configure package logging and return the package logger."""
+    """Configure package logging and return the package logger.
+
+    Args:
+        level (int): level of the package logger and of the console output.
+        enable_console (bool): print log messages to the console (stderr).
+
+    Returns:
+        logging.Logger: the package logger.
+    """
+    global _user_configured
+    _user_configured = True
     return _ensure_handlers(level=level, enable_console=enable_console)
+
+
+def _ensure_default_logging() -> logging.Logger:
+    """Apply the default setup unless configure_logging was called.
+
+    By default, INFO and above are retained in memory while only WARNING and
+    above are printed to the console.
+    """
+    if _user_configured:
+        logger = logging.getLogger(_PACKAGE_LOGGER_NAME)
+        return _ensure_handlers(
+            level=logger.level,
+            enable_console=_console_handler in logger.handlers,
+            console_level=(
+                _console_handler.level if _console_handler else None
+            ),
+        )
+    return _ensure_handlers(
+        level=INFO, enable_console=True, console_level=WARNING
+    )
 
 
 def get_logger(name: str | None = None) -> logging.Logger:
     """Get a package logger or a package child logger."""
-    configure_logging()
+    _ensure_default_logging()
 
     if name is None:
         return logging.getLogger(_PACKAGE_LOGGER_NAME)
@@ -119,7 +164,9 @@ def get_logger(name: str | None = None) -> logging.Logger:
 
 def set_log_level(level: int) -> None:
     """Update the package logger level."""
-    logger = configure_logging(level=level)
+    global _user_configured
+    logger = _ensure_default_logging()
+    _user_configured = True
     logger.setLevel(level)
     if _console_handler is not None:
         _console_handler.setLevel(level)
@@ -127,7 +174,7 @@ def set_log_level(level: int) -> None:
 
 def get_stored_logs() -> list[dict[str, Any]]:
     """Return retained logs as structured dictionaries."""
-    configure_logging()
+    _ensure_default_logging()
     if _stored_logs_handler is None:
         return []
     return _stored_logs_handler.get_records()
